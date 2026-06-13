@@ -1,0 +1,126 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    // -----------------------------------------------------------------------
+    // C++ Executables (CMake build via presets)
+    // -----------------------------------------------------------------------
+    // Debug: pick a target from the list, build it, then launch under lldb/gdb.
+    {
+        "name": "C++: Debug",
+        "type": "cppdbg",
+        "request": "launch",
+        "program": "${workspaceFolder}/build/debug/bin/${input:targetName}",
+        "args": [],
+        "cwd": "${workspaceFolder}",
+        "preLaunchTask": "CMake Full Build (Debug)",
+        "osx": {
+            "MIMode": "lldb"
+        },
+        "linux": {
+            "MIMode": "gdb"
+        },
+        "windows": {
+            "MIMode": "gdb"
+        }
+    },
+    // Release: same target picker, release build.
+    {
+        "name": "C++: Release",
+        "type": "cppdbg",
+        "request": "launch",
+        "program": "${workspaceFolder}/build/release/bin/${input:targetName}",
+        "args": [],
+        "cwd": "${workspaceFolder}",
+        "preLaunchTask": "CMake Full Build (Release)",
+        "osx": {
+            "MIMode": "lldb"
+        },
+        "linux": {
+            "MIMode": "gdb"
+        },
+        "windows": {
+            "MIMode": "gdb"
+        }
+    }
+  ],
+
+  // -----------------------------------------------------------------------
+  // Shared inputs
+  // -----------------------------------------------------------------------
+  "inputs": [
+    {
+        "id": "targetName",
+        "type": "pickString",
+        "description": "Select the demo/simulation target to run",
+        "options": [
+            // ml_methods
+            "demo_mlm_scaler_01",
+            "demo_mlm_hac_01",
+            "demo_mlm_hac_02_mmap",
+            "demo_mlm_ms_01_ridge_gcv",
+            "demo_mlm_ms_02_ridge_cv",
+            // tsolvers
+            "demo_ts_01_tlars",
+            "demo_ts_02_tlasso",
+            "demo_ts_03_tstepwise",
+            "demo_ts_04_tenet",
+            "demo_ts_05_tstagewise",
+            "demo_ts_06_tomp",
+            "demo_ts_07_tgp",
+            "demo_ts_08_tacgp",
+            "demo_ts_09_tmp",
+            "demo_ts_10_tncgmp",
+            "demo_ts_11_tools",
+            "demo_ts_12_tafs",
+            // trex_selector_methods — classic
+            "demo_trex_01_classic_trex_inmem",
+            "demo_trex_02_classic_trex_mmap",
+            "demo_trex_03_classic_trex_mmap_mc_sim",
+            // trex_selector_methods — group variable selection
+            "demo_trex_gvs_01_hastie",
+            "sim_trex_gvs_01_hastie",
+            "demo_trex_gvs_02_scattered",
+            "sim_trex_gvs_02_scattered",
+            "demo_trex_gvs_03_unequal_blocks",
+            "sim_trex_gvs_03_unequal_blocks",
+            "demo_trex_gvs_04_mixed_blocks",
+            "sim_trex_gvs_04_mixed_blocks",
+            "demo_trex_gvs_05_random_blocks",
+            "sim_trex_gvs_05_random_blocks",
+            "demo_trex_gvs_06_neg_corr",
+            "sim_trex_gvs_06_neg_corr",
+            "demo_trex_gvs_07_neg_traps",
+            "sim_trex_gvs_07_neg_traps",
+            "demo_trex_gvs_08_block_bench",
+            "sim_trex_gvs_08_block_bench",
+            "demo_trex_gvs_09_equicorr_blocks",
+            "sim_trex_gvs_09_equicorr_blocks",
+            "demo_trex_gvs_10_t3_blocks",
+            "sim_trex_gvs_10_t3_blocks",
+            "demo_trex_gvs_11_ar1_blocks",
+            "sim_trex_gvs_11_ar1_blocks",
+            "demo_trex_gvs_12_arma_blocks",
+            "sim_trex_gvs_12_arma_blocks",
+            "demo_trex_gvs_13_hapgen",
+            "sim_trex_gvs_13_hapgen",
+            // trex_selector_methods — distributional assumptions
+            "demo_trex_da_01_ar1",
+            "demo_trex_da_02_equi_and_block_equi",
+            "demo_trex_da_03_nn",
+            "demo_trex_da_03b_nn_ar",
+            "demo_trex_da_04_bt_ar1_block",
+            "demo_trex_da_05_ar1_block_sweeps",
+            "demo_trex_da_06_heavy_tailed_block_sweeps",
+            "demo_trex_da_07_ht_block_white",
+            "demo_trex_da_08_groups",
+            // trex_selector_methods — screening
+            "demo_trex_scr_01_screen_trex",
+            "demo_trex_scr_02_screen_trex_mmap",
+            "demo_trex_scr_03_screen_trex_correlated",
+            "demo_trex_scr_04_biobank_screen_trex_inmem",
+            "demo_trex_scr_05_biobank_screen_trex_mmap",
+            "demo_trex_scr_06_screen_trex_solvers"
+        ]
+    }
+  ]
+}
