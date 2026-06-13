@@ -2,24 +2,25 @@
 # simulation_utils.R
 # ==============================================================================
 #
-# Shared utility functions for the DA-TRex simulation demos.
-# Sourced by each demo file — do not run standalone.
+# Shared utility functions for TRex simulation demos.
+# Sourced by each demo file.
 #
 # Contents:
-#   plot_cormat()    — Plotly heatmap of a correlation matrix.
-#   .print_table()   — Print a column-aligned MC results table.
-#   .print_matrix()  — Print a labelled 2-D results matrix.
-#   .run_mc()        — Generic parallel MC runner (core engine).
-#   .run_mc_ar1()    — Wrapper: dgp_ar1_snr   + trex+DA+AR1.
-#   .run_mc_nn()     — Wrapper: dgp_nn_snr    + trex+DA+NN.
-#   .run_mc_equi()   — Wrapper: dgp_bt_snr    + trex+DA+equi (rho_within==rho_between).
-#   .run_mc_bt()            — Wrapper: dgp_bt_snr            + trex+DA+BT (hierarchical blocks).
-#   .print_table_multi()    — Print aligned table with multiple key columns.
-#   .run_mc_ar1_block()     — Wrapper: dgp_ar1_block_snr      + trex+DA+BT.
-#   .run_mc_ar1_block_white() — Wrapper: dgp_ar1_block_white_snr + trex+DA+BT (p=NULL).
-#   .run_mc_ht_block()      — Wrapper: dgp_ht_block_snr       + trex+DA+BT.
-#   .run_mc_ht_block_white() — Wrapper: dgp_ht_block_white_snr + trex+DA+BT (p=NULL).
-#   .run_mc_nn_2d()         — 2-D (row x col) grid sweep using .run_mc_nn().
+# ------------------------------------------------------------------------------
+#   plot_cormat()              — Plotly heatmap of a correlation matrix.
+#   .print_table()             — Print a column-aligned MC results table.
+#   .print_matrix()            — Print a labelled 2-D results matrix.
+#   .run_mc()                  — Generic parallel MC runner (core engine).
+#   .run_mc_ar1()              — Wrapper: dgp_ar1_snr + trex+DA+AR1.
+#   .run_mc_nn()               — Wrapper: dgp_nn_snr  + trex+DA+NN.
+#   .run_mc_equi()             — Wrapper: dgp_bt_snr  + trex+DA+equi (rho_within==rho_between).
+#   .run_mc_bt()               — Wrapper: dgp_bt_snr  + trex+DA+BT (hierarchical blocks).
+#   .print_table_multi()       — Print aligned table with multiple key columns.
+#   .run_mc_ar1_block()        — Wrapper: dgp_ar1_block_snr       + trex+DA+BT.
+#   .run_mc_ar1_block_white()  — Wrapper: dgp_ar1_block_white_snr + trex+DA+BT (p=NULL).
+#   .run_mc_ht_block()         — Wrapper: dgp_ht_block_snr        + trex+DA+BT.
+#   .run_mc_ht_block_white()   — Wrapper: dgp_ht_block_white_snr  + trex+DA+BT (p=NULL).
+#   .run_mc_nn_2d()            — 2-D (row x col) grid sweep using .run_mc_nn().
 #   .run_mc_hastie()           — Wrapper: dgp_hastie_snr             + trex+GVS (EN or IEN).
 #   .run_mc_scattered()        — Wrapper: dgp_scattered_grouped_snr  + trex+GVS (EN or IEN).
 #   .run_mc_unequal_blocks()   — Wrapper: dgp_unequal_blocks_snr     + trex+GVS (EN or IEN).
@@ -31,7 +32,7 @@
 #   .run_mc_t3_equi_blocks()   — Wrapper: dgp_t3_equi_blocks_snr     + trex+GVS (EN or IEN).
 #   .run_mc_ar1_blocks()       — Wrapper: dgp_ar1_blocks_snr         + trex+GVS (EN or IEN).
 #   .run_mc_arma_blocks()      — Wrapper: dgp_arma_blocks_snr        + trex+GVS (EN or IEN).
-#   .run_mc_hapgen_snr()        — Wrapper: dgp_hapgen_snr             + trex+GVS (EN or IEN).
+#   .run_mc_hapgen_snr()       — Wrapper: dgp_hapgen_snr             + trex+GVS (EN or IEN).
 # ==============================================================================
 
 
