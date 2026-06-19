@@ -132,6 +132,11 @@ endif()
 if(BLAS_FOUND)
     message(STATUS "  - BLAS Vendor: ${BLA_VENDOR}")
 endif()
+if(OpenMP_CXX_FOUND)
+    message(STATUS "  - OpenMP: ${OpenMP_CXX_VERSION} (flags: ${OpenMP_CXX_FLAGS})")
+else()
+    message(STATUS "  - OpenMP: NOT FOUND")
+endif()
 message(STATUS "==============================================")
 
 

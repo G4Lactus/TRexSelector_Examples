@@ -6,7 +6,6 @@
 # Organization:
 # -------------
 # |-- cpp/
-# |-- applications/
 # |-- ml_methods/
 # |-- trex_selector_methods/
 # |-- tsolvers/
@@ -80,6 +79,7 @@ macro(add_demo_target target_name demo_file library_set)
 
     target_compile_definitions(${target_name} PRIVATE
         EIGEN_USE_BLAS
+        DEMO_OUTPUT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/simulation_results/"
     )
 
     # NOTE: -ffast-math implies -ffinite-math-only, which breaks std::isnan/isfinite.
@@ -97,8 +97,7 @@ endmacro()
 # ===================================================================================
 # Demo/Simulation Targets
 # ===================================================================================
+add_subdirectory(memory_mapping)
 add_subdirectory(ml_methods)
 add_subdirectory(tsolvers)
 add_subdirectory(trex_selector_methods)
-add_subdirectory(applications)
-#

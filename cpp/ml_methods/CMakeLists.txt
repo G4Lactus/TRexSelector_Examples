@@ -6,12 +6,12 @@ add_demo_target(demo_mlm_scaler_01
 )
 
 add_demo_target(demo_mlm_hac_01
-    hac/demo_mlm_hac_01.cpp
+    hac_clustering/demo_mlm_hac_01.cpp
     DATA_PREPROCESSING_LIBS
 )
 
 add_demo_target(demo_mlm_hac_02_mmap
-    hac/demo_mlm_hac_02_mmap.cpp
+    hac_clustering/demo_mlm_hac_02_mmap.cpp
     DATA_PREPROCESSING_LIBS
 )
 
