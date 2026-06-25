@@ -1,17 +1,15 @@
 # ==============================================================================
-# demo_trex_gvs_07.R
+# demo_trex_gvs_10.R
 # ==============================================================================
 #
-# T-Rex+GVS demo and MC simulation for the negative-traps DGP.
-# Group 1 (indices 1-100):   active, +Z1/-Z1, beta = +3/-3.  s = 100.
-# Group 2 (indices 101-200): inactive Trap 1, +Z2/-Z2.
-# Noise   (indices 201-300): white noise.
-# Group 3 (indices 301-360): inactive Trap 2, +Z3/-Z3.
-# Noise   (indices 361-500): white noise.
+# T-Rex+GVS demo and MC simulation for the block-structured AR(1) DGP.
+# 4 blocks (sizes 20, 50, 80, 65): 3 active (beta=3), 1 inactive trap.
+# Shuffled into p=500 columns with white-noise gaps. Active set: s = 150.
+# Within-block AR(1): Cor(X_j, X_k) = rho^|j-k|.
 #
-#  Part 1: Single-run demo — trap FP autopsy + selector run.
+#  Part 1: Single-run demo — AR(1) decay check + selector.
 #
-# Monte Carlo simulations (Parts 2–4) are in simulation_trex_gvs_07.R.
+# Monte Carlo simulations (Parts 2–4) are in simulation_trex_gvs_10.R.
 #
 # ==============================================================================
 
@@ -28,7 +26,7 @@ this_dir_ <- tryCatch(
 
 source(file.path(this_dir_, "..", "support_generators.R"))
 source(file.path(this_dir_, "..", "simulation_utils.R"))
-source(file.path(this_dir_, "dgp_neg_traps.R"))
+source(file.path(this_dir_, "dgp_ar1_blocks.R"))
 
 
 # ==============================================================================
@@ -38,7 +36,7 @@ source(file.path(this_dir_, "dgp_neg_traps.R"))
 PARAMS <- list(
   n        = 200L,
   p        = 500L,
-  sd_x     = sqrt(0.01),
+  rho      = 0.85,
   snr      = 2.0,
   K        = 20L,
   tFDR     = 0.1,
@@ -67,11 +65,9 @@ run_part_1 <- TRUE
   cat(strrep("-", 70), "\n")
   cat(sprintf(" Data: n = %d, p = %d, tFDR = %.2f, s = %d\n",
               dat$n, dat$p, tFDR, dat$s))
-  cat(sprintf("       SNR = %.2f,  sigma_y = %.4f,  sd_x = %.4f\n",
-              dat$snr, dat$sigma_y, dat$sd_x))
-  cat(sprintf("       Group 1 [1-100]:   active (+Z1/-Z1)\n"))
-  cat(sprintf("       Group 2 [101-200]: Trap 1 (+Z2/-Z2)\n"))
-  cat(sprintf("       Group 3 [301-360]: Trap 2 (+Z3/-Z3)\n"))
+  cat(sprintf("       SNR = %.2f,  sigma_y = %.4f,  rho = %.2f\n",
+              dat$snr, dat$sigma_y, dat$rho))
+  cat(sprintf("       Blocks (sizes 20,50,80 active; 65 trap), shuffled; AR(1)\n"))
   cat(strrep("-", 70), "\n")
   cat(sprintf("  Calibration:  T_stop = %d,  dummies = %d\n",
               result$T_stop, result$num_dummies))
@@ -83,62 +79,58 @@ run_part_1 <- TRUE
   invisible(NULL)
 }
 
-#' Categorize false positives by source region (trap 1, trap 2, or noise).
-.fp_autopsy <- function(selected_var, beta) {
-  sel_set    <- which(selected_var == 1L)
-  fp_indices <- sel_set[beta[sel_set] == 0]
-
-  if (length(fp_indices) == 0L) {
-    cat("  No false positives.\n\n")
-    return(invisible(NULL))
-  }
-
-  trap1_leaks <- sum(fp_indices >= 101L & fp_indices <= 200L)
-  trap2_leaks <- sum(fp_indices >= 301L & fp_indices <= 360L)
-  noise_leaks <- length(fp_indices) - trap1_leaks - trap2_leaks
-
-  cat(sprintf("  --- FP Autopsy (%d total FPs) ---\n", length(fp_indices)))
-  cat(sprintf("  Leaked from Trap 1 (101-200): %d\n", trap1_leaks))
-  cat(sprintf("  Leaked from Trap 2 (301-360): %d\n", trap2_leaks))
-  cat(sprintf("  Leaked from white noise:       %d\n\n", noise_leaks))
-  invisible(NULL)
-}
-
 
 # ==============================================================================
 # Part 1: Single-run demo
 # ==============================================================================
 
 if (run_part_1) {
-  trx_gvs_07_01 <- function() {
+  trx_gvs_10_01 <- function() {
 
     # Header
     # ----------------------------------------------------
     cat("\n", strrep("=", 70), "\n", sep = "")
-    cat("Neg-Traps GVS Demo  |  Part 1: Single-run\n")
-    cat(sprintf("n=%d,  p=%d,  s=100  (active group + 2 inactive traps)\n",
+    cat("AR(1)-Blocks GVS Demo  |  Part 1: Single-run\n")
+    cat(sprintf("n=%d,  p=%d,  s=150  (blocks 20+50+80 active; 65 trap)\n",
                 PARAMS$n, PARAMS$p))
-    cat(sprintf("SNR=%.2f,  sd_x=%.4f,  tFDR=%.2f\n",
-                PARAMS$snr, PARAMS$sd_x, PARAMS$tFDR))
+    cat(sprintf("rho=%.2f,  SNR=%.2f,  tFDR=%.2f\n",
+                PARAMS$rho, PARAMS$snr, PARAMS$tFDR))
     cat(strrep("=", 70), "\n\n")
     # ----------------------------------------------------
 
-    cat("[Part 1] Generating neg-traps data ...\n")
-    dat_p1 <- dgp_neg_traps_snr(
+    cat("[Part 1] Generating AR(1)-blocks data ...\n")
+    dat_p1 <- dgp_ar1_blocks_snr(
       n    = PARAMS$n,
       p    = PARAMS$p,
       snr  = PARAMS$snr,
-      sd_x = PARAMS$sd_x,
+      rho  = PARAMS$rho,
       seed = PARAMS$seed
     )
-    cat(sprintf("[Part 1] Active: %d  |  Null (incl. traps): %d  |  sigma_y = %.4f\n\n",
-                dat_p1$s, dat_p1$p - dat_p1$s, dat_p1$sigma_y))
+    cat(sprintf("[Part 1] Active: %d  |  sigma_y = %.4f\n\n",
+                dat_p1$s, dat_p1$sigma_y))
 
-    # Structural checks
-    cat(sprintf("[Part 1] Cor(X[,1],   X[,51])  [active,  expect ~-%.2f]: %.4f\n",
-                1 / (1 + PARAMS$sd_x^2), cor(dat_p1$X[, 1],   dat_p1$X[, 51])))
-    cat(sprintf("[Part 1] Cor(X[,301], X[,331]) [trap 2, expect ~-%.2f]: %.4f\n\n",
-                1 / (1 + PARAMS$sd_x^2), cor(dat_p1$X[, 301], dat_p1$X[, 331])))
+    # Block layout
+    cat("[Part 1] Block layout (shuffled order):\n")
+    block_sizes  <- c(20L, 50L, 80L, 65L)
+    active_label <- c("active", "active", "active", "trap")
+    for (b in seq_len(4L)) {
+      idx <- dat_p1$block_indices[[b]]
+      cat(sprintf("  Block %d [size=%2d, %s]: columns %d - %d\n",
+                  b, block_sizes[b], active_label[b],
+                  min(idx), max(idx)))
+    }
+    cat(sprintf("  Block order (ID sequence placed): {%s}\n\n",
+                paste(dat_p1$block_order, collapse = ", ")))
+
+    # AR(1) decay check
+    b1_idx <- dat_p1$block_indices[[1L]]
+    rho_hat1 <- cor(dat_p1$X[, b1_idx[1L]], dat_p1$X[, b1_idx[2L]])
+    rho_hat2 <- cor(dat_p1$X[, b1_idx[1L]], dat_p1$X[, b1_idx[3L]])
+    rho_hat3 <- cor(dat_p1$X[, b1_idx[1L]], dat_p1$X[, b1_idx[4L]])
+    cat(sprintf("[Part 1] AR(1) decay (theoretical rho^k vs empirical):\n"))
+    cat(sprintf("  Lag 1: %.4f (target rho    = %.4f)\n", rho_hat1, PARAMS$rho))
+    cat(sprintf("  Lag 2: %.4f (target rho^2  = %.4f)\n", rho_hat2, PARAMS$rho^2))
+    cat(sprintf("  Lag 3: %.4f (target rho^3  = %.4f)\n\n", rho_hat3, PARAMS$rho^3))
 
     cat("[Part 1] Plotting correlation matrix ...\n")
     plot_cormat(cor(dat_p1$X))
@@ -157,8 +149,7 @@ if (run_part_1) {
       verbose       = FALSE,
       seed          = PARAMS$seed
     )
-    .print_result("Part 1 \u2014 Neg-Traps GVS  [EN]", dat_p1, res_en, PARAMS$tFDR)
-    .fp_autopsy(res_en$selected_var, dat_p1$beta)
+    .print_result("Part 1 \u2014 AR(1)-Blocks GVS  [EN]", dat_p1, res_en, PARAMS$tFDR)
 
     cat("[Part 1] Running trex+GVS (IEN) ...\n\n")
     res_ien <- TRexSelector::trex(
@@ -174,15 +165,14 @@ if (run_part_1) {
       verbose       = FALSE,
       seed          = PARAMS$seed
     )
-    .print_result("Part 1 \u2014 Neg-Traps GVS  [IEN]", dat_p1, res_ien, PARAMS$tFDR)
-    .fp_autopsy(res_ien$selected_var, dat_p1$beta)
+    .print_result("Part 1 \u2014 AR(1)-Blocks GVS  [IEN]", dat_p1, res_ien, PARAMS$tFDR)
   }
 
-  trx_gvs_07_01()
+  trx_gvs_10_01()
 
 }  # end Part 1
 # ==============================================================================
 
 
 
-cat("\nNeg-traps GVS demo complete.\n")
+cat("\nAR(1)-blocks GVS demo complete.\n")

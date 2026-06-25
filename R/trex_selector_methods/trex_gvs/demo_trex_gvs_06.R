@@ -1,18 +1,17 @@
 # ==============================================================================
-# demo_trex_gvs_06.R
+# demo_trex_gvs_09.R
 # ==============================================================================
 #
-# T-Rex+GVS demo and MC simulation for the negative-correlations DGP.
-# Group 1 (indices 1-100): active, +Z1/-Z1 structure, beta = +3/-3.
-# Group 2 (indices 101-200): inactive trap, +Z2/-Z2, beta = 0.
-# Indices 201-500: white noise.
-# Active set: s = 100.
+# T-Rex+GVS demo and MC simulation for the heavy-tailed equi-correlated
+# blocks DGP. Same block structure as demo_08 but with Student-t(3)
+# distributed latent factors, noise, and response shocks.
+# 4 blocks (sizes 20, 50, 80, 65): 3 active (beta=3), 1 inactive trap.
+# Shuffled into p=500 columns with heavy-tailed noise gaps. Active set: s = 150.
 #
-#  Part 1: Single-run demo — negative-correlation structure check + selector.
+#  Part 1: Single-run demo — heavy-tail check + correlation + selector.
 #
-# Monte Carlo simulations (Parts 2–4) are in simulation_trex_gvs_06.R.
+# Monte Carlo simulations (Parts 2–4) are in simulation_trex_gvs_09.R.
 #
-
 # ==============================================================================
 
 library(TRexSelector)
@@ -28,7 +27,7 @@ this_dir_ <- tryCatch(
 
 source(file.path(this_dir_, "..", "support_generators.R"))
 source(file.path(this_dir_, "..", "simulation_utils.R"))
-source(file.path(this_dir_, "dgp_neg_corr.R"))
+source(file.path(this_dir_, "dgp_t3_equi_blocks.R"))
 
 
 # ==============================================================================
@@ -38,7 +37,8 @@ source(file.path(this_dir_, "dgp_neg_corr.R"))
 PARAMS <- list(
   n        = 200L,
   p        = 500L,
-  sd_x     = sqrt(0.01),
+  rho      = 0.75,
+  df       = 3L,
   snr      = 2.0,
   K        = 20L,
   tFDR     = 0.1,
@@ -67,10 +67,10 @@ run_part_1 <- TRUE
   cat(strrep("-", 70), "\n")
   cat(sprintf(" Data: n = %d, p = %d, tFDR = %.2f, s = %d\n",
               dat$n, dat$p, tFDR, dat$s))
-  cat(sprintf("       SNR = %.2f,  sigma_y = %.4f,  sd_x = %.4f\n",
-              dat$snr, dat$sigma_y, dat$sd_x))
-  cat(sprintf("       Group 1 [1-100]: active (+Z1/-Z1, beta=+3/-3)\n"))
-  cat(sprintf("       Group 2 [101-200]: inactive trap (+Z2/-Z2)\n"))
+  cat(sprintf("       SNR = %.2f,  sigma_y = %.4f,  rho = %.2f,  df = %d\n",
+              dat$snr, dat$sigma_y, dat$rho, dat$df))
+  cat(sprintf("       Blocks (sizes 20,50,80 active; 65 trap), shuffled; t(%d) noise\n",
+              dat$df))
   cat(strrep("-", 70), "\n")
   cat(sprintf("  Calibration:  T_stop = %d,  dummies = %d\n",
               result$T_stop, result$num_dummies))
@@ -88,35 +88,52 @@ run_part_1 <- TRUE
 # ==============================================================================
 
 if (run_part_1) {
-  trx_gvs_06_01 <- function() {
+  trx_gvs_09_01 <- function() {
 
     # Header
     # ----------------------------------------------------
     cat("\n", strrep("=", 70), "\n", sep = "")
-    cat("Neg-Corr GVS Demo  |  Part 1: Single-run\n")
-    cat(sprintf("n=%d,  p=%d,  s=100  (+Z1/-Z1 active + Z2/-Z2 trap)\n",
-                PARAMS$n, PARAMS$p))
-    cat(sprintf("SNR=%.2f,  sd_x=%.4f,  tFDR=%.2f\n",
-                PARAMS$snr, PARAMS$sd_x, PARAMS$tFDR))
+    cat("Heavy-Tailed Equi-Blocks GVS Demo  |  Part 1: Single-run\n")
+    cat(sprintf("n=%d,  p=%d,  s=150  (blocks 20+50+80 active; 65 trap),  t(%d) noise\n",
+                PARAMS$n, PARAMS$p, PARAMS$df))
+    cat(sprintf("rho=%.2f,  SNR=%.2f,  tFDR=%.2f\n",
+                PARAMS$rho, PARAMS$snr, PARAMS$tFDR))
     cat(strrep("=", 70), "\n\n")
     # ----------------------------------------------------
 
-    cat("[Part 1] Generating neg-corr data ...\n")
-    dat_p1 <- dgp_neg_corr_snr(
+    cat("[Part 1] Generating heavy-tailed equi-correlated blocks data ...\n")
+    dat_p1 <- dgp_t3_equi_blocks_snr(
       n    = PARAMS$n,
       p    = PARAMS$p,
       snr  = PARAMS$snr,
-      sd_x = PARAMS$sd_x,
+      rho  = PARAMS$rho,
+      df   = PARAMS$df,
       seed = PARAMS$seed
     )
-    cat(sprintf("[Part 1] Active variables: %d  |  sigma_y = %.4f\n\n",
+    cat(sprintf("[Part 1] Active: %d  |  sigma_y = %.4f\n\n",
                 dat_p1$s, dat_p1$sigma_y))
 
-    # Correlation structure check
-    cat(sprintf("[Part 1] Cor(X[,1], X[,51])  [expect ~ -%.2f]: %.4f\n",
-                1 / (1 + PARAMS$sd_x^2), cor(dat_p1$X[, 1], dat_p1$X[, 51])))
-    cat(sprintf("[Part 1] Cor(X[,101], X[,151]) [inactive trap, expect ~ -%.2f]: %.4f\n\n",
-                1 / (1 + PARAMS$sd_x^2), cor(dat_p1$X[, 101], dat_p1$X[, 151])))
+    # Heavy-tail check
+    cat(sprintf("[Part 1] Max |X| (Gaussian ~ 3.0,  t(3) should be larger): %.4f\n",
+                max(abs(dat_p1$X))))
+
+    # Block layout
+    cat("[Part 1] Block layout (shuffled order):\n")
+    block_sizes  <- c(20L, 50L, 80L, 65L)
+    active_label <- c("active", "active", "active", "trap")
+    for (b in seq_len(4L)) {
+      idx <- dat_p1$block_indices[[b]]
+      cat(sprintf("  Block %d [size=%2d, %s]: columns %d - %d\n",
+                  b, block_sizes[b], active_label[b],
+                  min(idx), max(idx)))
+    }
+    cat(sprintf("  Block order (ID sequence placed): {%s}\n\n",
+                paste(dat_p1$block_order, collapse = ", ")))
+
+    # Correlation check
+    b1_idx <- dat_p1$block_indices[[1L]]
+    cat(sprintf("[Part 1] Cor(X[,b1[1]], X[,b1[2]]) [expect rho=%.2f]: %.4f\n\n",
+                PARAMS$rho, cor(dat_p1$X[, b1_idx[1L]], dat_p1$X[, b1_idx[2L]])))
 
     cat("[Part 1] Plotting correlation matrix ...\n")
     plot_cormat(cor(dat_p1$X))
@@ -135,7 +152,7 @@ if (run_part_1) {
       verbose       = FALSE,
       seed          = PARAMS$seed
     )
-    .print_result("Part 1 \u2014 Neg-Corr GVS  [EN]", dat_p1, res_en, PARAMS$tFDR)
+    .print_result("Part 1 \u2014 HT Equi-Blocks GVS  [EN]", dat_p1, res_en, PARAMS$tFDR)
 
     cat("[Part 1] Running trex+GVS (IEN) ...\n\n")
     res_ien <- TRexSelector::trex(
@@ -151,14 +168,14 @@ if (run_part_1) {
       verbose       = FALSE,
       seed          = PARAMS$seed
     )
-    .print_result("Part 1 \u2014 Neg-Corr GVS  [IEN]", dat_p1, res_ien, PARAMS$tFDR)
+    .print_result("Part 1 \u2014 HT Equi-Blocks GVS  [IEN]", dat_p1, res_ien, PARAMS$tFDR)
   }
 
-  trx_gvs_06_01()
+  trx_gvs_09_01()
 
 }  # end Part 1
 # ==============================================================================
 
 
 
-cat("\nNeg-corr GVS demo complete.\n")
+cat("\nHT equi-blocks GVS demo complete.\n")

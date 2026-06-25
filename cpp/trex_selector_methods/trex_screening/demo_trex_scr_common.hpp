@@ -41,6 +41,7 @@
 // std includes
 #include <algorithm>
 #include <functional>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -188,7 +189,7 @@ inline void print_screen_result(
  *
  * @details Writes a human-readable table (matching the T-Rex results format)
  *          to **console + TXT file** and a machine-readable tidy-long CSV.
- *          Files are placed in `simulations/demos/trex_screening/` under the supplied stem.
+ *          Files are placed in `DEMO_OUTPUT_DIR` under the supplied stem.
  *
  * @param num_MC      Number of Monte Carlo runs.
  * @param file_stem   Output file stem (no folder, no extension).
@@ -209,7 +210,8 @@ inline void save_and_print_mc_results(
     const std::map<std::string, Eigen::VectorXd>&  est_fdr_map,
     const std::string&                             sweep_label = "SNR")
 {
-    const std::string folder = "simulations/demos/trex_screening/";
+    const std::string folder = DEMO_OUTPUT_DIR;
+    std::filesystem::create_directories(folder);
 
     // ── Open TXT file for dual output ────────────────────────────────────
     std::ofstream out_file(folder + file_stem + ".txt");

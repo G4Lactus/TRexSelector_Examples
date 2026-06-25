@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <filesystem>
 #include <fstream>
 #include <functional>
 #include <iomanip>
@@ -613,7 +614,7 @@ inline GridPointResult run_mc_trials_base(
  * @param avg_L_map      Average L results (optional, may be empty).
  * @param avg_T_map      Average T results (optional, may be empty).
  * @param header_extra   Extra info line printed after the main header.
- * @param output_dir     Output directory (default: "simulations/demos/trex_da/").
+ * @param output_dir     Output directory (default: DEMO_OUTPUT_DIR).
  */
 inline void save_and_print_grid_results(
     const std::string& scenario_tag,
@@ -628,8 +629,9 @@ inline void save_and_print_grid_results(
     const std::map<std::string, Eigen::VectorXd>& avg_L_map,
     const std::map<std::string, Eigen::VectorXd>& avg_T_map,
     const std::string& header_extra = "",
-    const std::string& output_dir   = "simulations/demos/trex_da/")
+    const std::string& output_dir   = DEMO_OUTPUT_DIR)
 {
+    std::filesystem::create_directories(output_dir);
     const std::string filename = "da_trex_mc_" + scenario_tag + ".txt";
     std::ofstream out_file(output_dir + filename);
 
@@ -698,8 +700,36 @@ inline void save_and_print_grid_results(
     print_dual(std::string(78, '=') + "\n\n");
 
     if (out_file.is_open()) {
-        std::cout << "[Info] Saved to: " << output_dir + filename << "\n\n";
+        std::cout << "[Info] TXT saved to: " << output_dir + filename << "\n";
         out_file.close();
+    }
+
+    // CSV — tidy long format: solver,metric,grid_label,grid_value,value
+    const std::string csv_filename = "da_trex_mc_" + scenario_tag + ".csv";
+    std::ofstream csv_file(output_dir + csv_filename);
+    if (csv_file.is_open()) {
+        // Sanitize grid_label to a valid CSV column name (replace spaces with _)
+        std::string csv_col = grid_label;
+        for (char& c : csv_col) if (c == ' ') c = '_';
+
+        csv_file << "solver,metric," << csv_col << ",value\n"
+                 << std::fixed << std::setprecision(6);
+
+        for (const auto& sv : solvers) {
+            const auto& nm = sv.name;
+            for (std::size_t i = 0; i < grid_values.size(); ++i) {
+                const double gv = grid_values[i];
+                csv_file << nm << ",FDR,"    << gv << "," << fdr_map.at(nm)(static_cast<Eigen::Index>(i))    << "\n";
+                csv_file << nm << ",sd_FDR," << gv << "," << sd_fdr_map.at(nm)(static_cast<Eigen::Index>(i)) << "\n";
+                csv_file << nm << ",TPR,"    << gv << "," << tpr_map.at(nm)(static_cast<Eigen::Index>(i))    << "\n";
+                csv_file << nm << ",sd_TPR," << gv << "," << sd_tpr_map.at(nm)(static_cast<Eigen::Index>(i)) << "\n";
+                if (avg_L_map.count(nm))
+                    csv_file << nm << ",Avg_L," << gv << "," << avg_L_map.at(nm)(static_cast<Eigen::Index>(i)) << "\n";
+                if (avg_T_map.count(nm))
+                    csv_file << nm << ",Avg_T," << gv << "," << avg_T_map.at(nm)(static_cast<Eigen::Index>(i)) << "\n";
+            }
+        }
+        std::cout << "[Info] CSV saved to: " << output_dir + csv_filename << "\n\n";
     }
 }
 

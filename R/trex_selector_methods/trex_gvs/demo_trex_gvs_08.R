@@ -1,15 +1,18 @@
 # ==============================================================================
-# demo_trex_gvs_08.R
+# demo_trex_gvs_11.R
 # ==============================================================================
 #
-# T-Rex+GVS demo and MC simulation for the equi-correlated blocks DGP.
-# 4 blocks (sizes 20, 50, 80, 65): 3 active (beta=3), 1 inactive trap.
+# T-Rex+GVS demo and MC simulation for the ARMA mixed-structure blocks DGP.
+# 4 blocks: Block1=AR(1) [size 20],
+#            Block2=MA(3) [size 50],
+#           Block3=ARMA(2,1) [size 80] — all active (beta=3);
+#           Block4=AR(1) trap [size 65] — inactive.
 # Shuffled into p=500 columns with white-noise gaps. Active set: s = 150.
-# Within-block equi-correlation: Cor(X_j, X_k) = rho (factor-model construction).
+# ar_coef governs the AR component; ma_coefs = c(0.5, 0.3, 0.1) fixed.
 #
-#  Part 1: Single-run demo — block layout + correlation check + selector.
+#  Part 1: Single-run demo — MA(3) lag structure check + selector.
 #
-# Monte Carlo simulations (Parts 2–4) are in simulation_trex_gvs_08.R.
+# Monte Carlo simulations (Parts 2–4) are in simulation_trex_gvs_11.R.
 #
 # ==============================================================================
 
@@ -26,7 +29,7 @@ this_dir_ <- tryCatch(
 
 source(file.path(this_dir_, "..", "support_generators.R"))
 source(file.path(this_dir_, "..", "simulation_utils.R"))
-source(file.path(this_dir_, "dgp_equi_blocks.R"))
+source(file.path(this_dir_, "dgp_arma_blocks.R"))
 
 
 # ==============================================================================
@@ -36,7 +39,7 @@ source(file.path(this_dir_, "dgp_equi_blocks.R"))
 PARAMS <- list(
   n        = 200L,
   p        = 500L,
-  rho      = 0.75,
+  ar_coef  = 0.8,
   snr      = 2.0,
   K        = 20L,
   tFDR     = 0.1,
@@ -65,9 +68,9 @@ run_part_1 <- TRUE
   cat(strrep("-", 70), "\n")
   cat(sprintf(" Data: n = %d, p = %d, tFDR = %.2f, s = %d\n",
               dat$n, dat$p, tFDR, dat$s))
-  cat(sprintf("       SNR = %.2f,  sigma_y = %.4f,  rho = %.2f\n",
-              dat$snr, dat$sigma_y, dat$rho))
-  cat(sprintf("       Blocks (sizes 20,50,80 active; 65 trap), shuffled\n"))
+  cat(sprintf("       SNR = %.2f,  sigma_y = %.4f,  ar_coef = %.2f\n",
+              dat$snr, dat$sigma_y, dat$ar_coef))
+  cat(sprintf("       Blocks (sizes 20,50,80 active; 65 trap), shuffled; ARMA\n"))
   cat(strrep("-", 70), "\n")
   cat(sprintf("  Calibration:  T_stop = %d,  dummies = %d\n",
               result$T_stop, result$num_dummies))
@@ -85,47 +88,48 @@ run_part_1 <- TRUE
 # ==============================================================================
 
 if (run_part_1) {
-  trx_gvs_08_01 <- function() {
+  trx_gvs_11_01 <- function() {
 
-    # Header
-    # ----------------------------------------------------
     cat("\n", strrep("=", 70), "\n", sep = "")
-    cat("Equi-Blocks GVS Demo  |  Part 1: Single-run\n")
+    cat("ARMA-Blocks GVS Demo  |  Part 1: Single-run\n")
     cat(sprintf("n=%d,  p=%d,  s=150  (blocks 20+50+80 active; 65 trap)\n",
                 PARAMS$n, PARAMS$p))
-    cat(sprintf("rho=%.2f,  SNR=%.2f,  tFDR=%.2f\n",
-                PARAMS$rho, PARAMS$snr, PARAMS$tFDR))
+    cat(sprintf("ar_coef=%.2f,  SNR=%.2f,  tFDR=%.2f\n",
+                PARAMS$ar_coef, PARAMS$snr, PARAMS$tFDR))
+    cat("Block types: AR(1) | MA(3) | ARMA(2,1) | AR(1) trap\n")
     cat(strrep("=", 70), "\n\n")
-    # ----------------------------------------------------
 
-    cat("[Part 1] Generating equi-correlated blocks data ...\n")
-    dat_p1 <- dgp_equi_blocks_snr(
-      n    = PARAMS$n,
-      p    = PARAMS$p,
-      snr  = PARAMS$snr,
-      rho  = PARAMS$rho,
-      seed = PARAMS$seed
+    cat("[Part 1] Generating ARMA-blocks data ...\n")
+    dat_p1 <- dgp_arma_blocks_snr(
+      n       = PARAMS$n,
+      p       = PARAMS$p,
+      snr     = PARAMS$snr,
+      ar_coef = PARAMS$ar_coef,
+      seed    = PARAMS$seed
     )
     cat(sprintf("[Part 1] Active: %d  |  sigma_y = %.4f\n\n",
                 dat_p1$s, dat_p1$sigma_y))
 
-    # Block layout
+    # Block layout + order
     cat("[Part 1] Block layout (shuffled order):\n")
     block_sizes  <- c(20L, 50L, 80L, 65L)
+    block_types  <- c("AR(1)", "MA(3)", "ARMA(2,1)", "AR(1) trap")
     active_label <- c("active", "active", "active", "trap")
     for (b in seq_len(4L)) {
       idx <- dat_p1$block_indices[[b]]
-      cat(sprintf("  Block %d [size=%2d, %s]: columns %d - %d\n",
-                  b, block_sizes[b], active_label[b],
+      cat(sprintf("  Block %d [size=%2d, %s, %s]: columns %d - %d\n",
+                  b, block_sizes[b], block_types[b], active_label[b],
                   min(idx), max(idx)))
     }
     cat(sprintf("  Block order (ID sequence placed): {%s}\n\n",
                 paste(dat_p1$block_order, collapse = ", ")))
 
-    # Correlation check
-    b1_idx <- dat_p1$block_indices[[1L]]
-    cat(sprintf("[Part 1] Cor(X[,b1[1]], X[,b1[2]]) [expect rho=%.2f]: %.4f\n\n",
-                PARAMS$rho, cor(dat_p1$X[, b1_idx[1L]], dat_p1$X[, b1_idx[2L]])))
+    # MA(3) lag structure check
+    ma3_idx <- dat_p1$block_indices[[2L]]
+    lag1 <- cor(dat_p1$X[, ma3_idx[1L]], dat_p1$X[, ma3_idx[2L]])
+    lag4 <- cor(dat_p1$X[, ma3_idx[1L]], dat_p1$X[, ma3_idx[5L]])
+    cat(sprintf("[Part 1] MA(3) Block 2 — Lag 1 correlation (expect > 0): %.4f\n", lag1))
+    cat(sprintf("[Part 1] MA(3) Block 2 — Lag 4 (expect ~0):              %.4f\n\n", lag4))
 
     cat("[Part 1] Plotting correlation matrix ...\n")
     plot_cormat(cor(dat_p1$X))
@@ -144,7 +148,7 @@ if (run_part_1) {
       verbose       = FALSE,
       seed          = PARAMS$seed
     )
-    .print_result("Part 1 \u2014 Equi-Blocks GVS  [EN]", dat_p1, res_en, PARAMS$tFDR)
+    .print_result("Part 1 \u2014 ARMA-Blocks GVS  [EN]", dat_p1, res_en, PARAMS$tFDR)
 
     cat("[Part 1] Running trex+GVS (IEN) ...\n\n")
     res_ien <- TRexSelector::trex(
@@ -160,14 +164,14 @@ if (run_part_1) {
       verbose       = FALSE,
       seed          = PARAMS$seed
     )
-    .print_result("Part 1 \u2014 Equi-Blocks GVS  [IEN]", dat_p1, res_ien, PARAMS$tFDR)
+    .print_result("Part 1 \u2014 ARMA-Blocks GVS  [IEN]", dat_p1, res_ien, PARAMS$tFDR)
   }
 
-  trx_gvs_08_01()
+  trx_gvs_11_01()
 
 }  # end Part 1
 # ==============================================================================
 
 
 
-cat("\nEqui-blocks GVS demo complete.\n")
+cat("\nARMA-blocks GVS demo complete.\n")

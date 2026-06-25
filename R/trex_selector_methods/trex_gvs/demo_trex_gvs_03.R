@@ -1,14 +1,14 @@
 # ==============================================================================
-# demo_trex_gvs_03.R
+# demo_trex_gvs_04.R
 # ==============================================================================
 #
-# T-Rex+GVS demo and MC simulation for the unequal-blocks DGP.
-# Three contiguous blocks of sizes 20, 50, and 80 = 150 active variables.
-# Variables within each block share a latent factor (equi-correlation rho).
+# T-Rex+GVS demo and MC simulation for the mixed-blocks DGP.
+# 3 active blocks (sizes 20, 50, 80 = 150 active) + 1 inactive block (size 65),
+# placed in a random order separated by white-noise gaps.
 #
-#  Part 1: Single-run demo — correlation-matrix visualization and selector run.
+#  Part 1: Single-run demo — block layout diagnostics + selector run.
 #
-# Monte Carlo simulations (Parts 2–4) are in simulation_trex_gvs_03.R.
+# Monte Carlo simulations (Parts 2–4) are in simulation_trex_gvs_04.R.
 #
 
 # ==============================================================================
@@ -26,7 +26,7 @@ this_dir_ <- tryCatch(
 
 source(file.path(this_dir_, "..", "support_generators.R"))
 source(file.path(this_dir_, "..", "simulation_utils.R"))
-source(file.path(this_dir_, "dgp_unequal_blocks.R"))
+source(file.path(this_dir_, "dgp_mixed_blocks.R"))
 
 
 # ==============================================================================
@@ -67,8 +67,8 @@ run_part_1 <- TRUE
               dat$n, dat$p, tFDR, dat$s))
   cat(sprintf("       SNR = %.2f,  sigma_y = %.4f,  sd_x = %.4f\n",
               dat$snr, dat$sigma_y, dat$sd_x))
-  cat(sprintf("       group_sizes = {%s}\n",
-              paste(dat$group_sizes, collapse = ", ")))
+  cat(sprintf("       block_order = {%s}  (block 4 is inactive)\n",
+              paste(dat$block_order, collapse = ", ")))
   cat(strrep("-", 70), "\n")
   cat(sprintf("  Calibration:  T_stop = %d,  dummies = %d\n",
               result$T_stop, result$num_dummies))
@@ -86,31 +86,39 @@ run_part_1 <- TRUE
 # ==============================================================================
 
 if (run_part_1) {
-  trx_gvs_03_01 <- function() {
+  trx_gvs_04_01 <- function() {
 
     # Header
     # ----------------------------------------------------
     cat("\n", strrep("=", 70), "\n", sep = "")
-    cat("Unequal-Blocks GVS Demo  |  Part 1: Single-run\n")
-    cat(sprintf("n=%d,  p=%d,  blocks={20,50,80}\n", PARAMS$n, PARAMS$p))
+    cat("Mixed-Blocks GVS Demo  |  Part 1: Single-run\n")
+    cat(sprintf("n=%d,  p=%d,  active blocks={20,50,80}, inactive={65}\n",
+                PARAMS$n, PARAMS$p))
     cat(sprintf("SNR=%.2f,  sd_x=%.4f,  tFDR=%.2f\n",
                 PARAMS$snr, PARAMS$sd_x, PARAMS$tFDR))
     cat(strrep("=", 70), "\n\n")
     # ----------------------------------------------------
 
-    cat("[Part 1] Generating unequal-blocks data ...\n")
-    dat_p1 <- dgp_unequal_blocks_snr(
+    cat("[Part 1] Generating mixed-blocks data ...\n")
+    dat_p1 <- dgp_mixed_blocks_snr(
       n    = PARAMS$n,
       p    = PARAMS$p,
       snr  = PARAMS$snr,
       sd_x = PARAMS$sd_x,
       seed = PARAMS$seed
     )
-    cat(sprintf("[Part 1] Active variables: %d  |  sigma_y = %.4f\n\n",
+    cat(sprintf("[Part 1] Active variables: %d  |  sigma_y = %.4f\n",
                 dat_p1$s, dat_p1$sigma_y))
-    cat(sprintf("[Part 1] Block 1 (size 20): cols  1 \u2013 20\n"))
-    cat(sprintf("[Part 1] Block 2 (size 50): cols 21 \u2013 70\n"))
-    cat(sprintf("[Part 1] Block 3 (size 80): cols 71 \u2013 150\n\n"))
+    cat(sprintf("[Part 1] Block order (IDs): {%s}\n",
+                paste(dat_p1$block_order, collapse = ", ")))
+
+    for (b in seq_len(4)) {
+      idx  <- dat_p1$block_indices[[b]]
+      lbl  <- if (dat_p1$is_active[b]) "ACTIVE  " else "inactive"
+      cat(sprintf("[Part 1]   Block %d (size %2d, %s): cols %3d \u2013 %3d\n",
+                  b, dat_p1$block_sizes[b], lbl, min(idx), max(idx)))
+    }
+    cat("\n")
 
     cat("[Part 1] Plotting correlation matrix ...\n")
     plot_cormat(cor(dat_p1$X))
@@ -129,7 +137,7 @@ if (run_part_1) {
       verbose       = FALSE,
       seed          = PARAMS$seed
     )
-    .print_result("Part 1 \u2014 Unequal-Blocks GVS  [EN]", dat_p1, res_en, PARAMS$tFDR)
+    .print_result("Part 1 \u2014 Mixed-Blocks GVS  [EN]", dat_p1, res_en, PARAMS$tFDR)
 
     cat("[Part 1] Running trex+GVS (IEN) ...\n\n")
     res_ien <- TRexSelector::trex(
@@ -145,14 +153,14 @@ if (run_part_1) {
       verbose       = FALSE,
       seed          = PARAMS$seed
     )
-    .print_result("Part 1 \u2014 Unequal-Blocks GVS  [IEN]", dat_p1, res_ien, PARAMS$tFDR)
+    .print_result("Part 1 \u2014 Mixed-Blocks GVS  [IEN]", dat_p1, res_ien, PARAMS$tFDR)
   }
 
-  trx_gvs_03_01()
+  trx_gvs_04_01()
 
 }  # end Part 1
 # ==============================================================================
 
 
 
-cat("\nUnequal-blocks GVS demo complete.\n")
+cat("\nMixed-blocks GVS demo complete.\n")

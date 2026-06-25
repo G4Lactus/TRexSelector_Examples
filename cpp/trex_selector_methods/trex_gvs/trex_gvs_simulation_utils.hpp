@@ -10,23 +10,24 @@
  * @brief Monte Carlo infrastructure and sweep utilities for T-Rex+GVS demos.
  *
  * Provides:
- *   - GVSSimConfig          — simulation parameter struct
- *   - GVSSingleRunResult    — single-run diagnostics (FDP, TPP, T_stop, …)
- *   - GVSGridPointResult    — MC-aggregated (mean/sd FDP, TPP) per grid point
- *   - make_gvs_trex_control() — default TRexControlParameter factory
- *   - run_gvs_single()      — single selector run, returns GVSSingleRunResult
+ *   - GVSSimConfig              — simulation parameter struct
+ *   - GVSSingleRunResult        — single-run diagnostics (FDP, TPP, T_stop, …)
+ *   - GVSGridPointResult        — MC-aggregated (mean/sd FDP, TPP) per grid point
+ *   - make_gvs_trex_control()   — default TRexControlParameter factory
+ *   - run_gvs_single()          — single selector run, returns GVSSingleRunResult
  *   - print_single_run_result() — R-style formatted output block
- *   - GVSDGPFactory         — type alias for DGP closure
- *   - run_gvs_mc_trials()   — OpenMP-parallel MC inner loop
- *   - run_gvs_snr_sweep()   — outer SNR-grid sweep
- *   - print_mc_snr_table()  — aligned results table for SNR sweeps
- *   - run_gvs_rho_sweep()   — outer rho-grid sweep
- *   - print_mc_rho_table()  — aligned results table for rho sweeps
- *   - GVS2DDGPFactory       — type alias for 2-D DGP closure (snr, rho, seed)
- *   - run_gvs_2d_sweep()    — nested SNR × rho grid sweep
- *   - print_mc_matrix()     — named matrix table for 2-D sweep results
+ *   - GVSDGPFactory             — type alias for DGP closure
+ *   - run_gvs_mc_trials()       — OpenMP-parallel MC inner loop
+ *   - run_gvs_snr_sweep()       — outer SNR-grid sweep
+ *   - print_mc_snr_table()      — aligned results table for SNR sweeps
+ *   - run_gvs_rho_sweep()       — outer rho-grid sweep
+ *   - print_mc_rho_table()      — aligned results table for rho sweeps
+ *   - GVS2DDGPFactory           — type alias for 2-D DGP closure (snr, rho, seed)
+ *   - run_gvs_2d_sweep()        — nested SNR × rho grid sweep
+ *   - print_mc_matrix()         — named matrix table for 2-D sweep results
+ *   - save_mc_2d_tables()       — console + file/CSV writer for 2-D sweep results
  *
- * Transitively includes trex_gvs_dgps.hpp (GVSDGPResult + all DGP generators).
+ * Includes trex_gvs_dgps.hpp (GVSDGPResult + all DGP generators).
  */
 // ==============================================================================
 
@@ -37,11 +38,11 @@
 #include <chrono>
 #include <cmath>
 #include <cstddef>
+#include <filesystem>
+#include <fstream>
 #include <functional>
 #include <iomanip>
 #include <iostream>
-#include <numeric>
-#include <random>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -90,15 +91,24 @@ using trex::trex_selector_methods::utils::solver_dispatch::SolverHyperparameters
 
 /** @brief Parameter bundle for MC simulations (SNR sweep, rho sweep, 2-D grid). */
 struct GVSSimConfig {
-    int    n         = 200;    ///< Observations.
-    int    p         = 500;    ///< Predictors.
-    double sd_x      = 0.1;    ///< sqrt(0.01) — within-group predictor noise.
-    double tFDR      = 0.1;    ///< Target FDR level.
-    std::size_t K    = 20;     ///< Random experiments per selector run.
-    std::size_t num_MC = 200;  ///< Monte Carlo trials per grid point.
-    int base_seed    = 2026;   ///< Base RNG seed (trial i uses base_seed + i).
-    double corr_max  = 0.98;   ///< corr_max for auto-clustering HAC.
-    double snr       = 1.0;    ///< Fixed SNR for rho-sweep simulations.
+    /** @brief Number of observations. */
+    int n = 200;
+    /** @brief Number of predictors. */
+    int p = 500;
+    /** @brief Within-group predictor noise. */
+    double sd_x = 0.1;
+    /** @brief Target FDR level. */
+    double tFDR = 0.1;
+    /** @brief Number of random experiments per selector run. */
+    std::size_t K = 20;
+    /** @brief Number of Monte Carlo trials per grid point. */
+    std::size_t num_MC = 200;
+    /** @brief Base RNG seed (trial i uses base_seed + i). */
+    int base_seed = 2026;
+    /** @brief Maximum correlation for auto-clustering HAC. */
+    double corr_max = 0.98;
+    /** @brief Fixed SNR for rho-sweep simulations. */
+    double snr = 1.0;
 };
 
 
@@ -191,8 +201,10 @@ inline GVSSingleRunResult run_gvs_single(
     else
         trex_ctrl_run.solver_type = SolverTypeForTRex::TLASSO;
 
-    TRexGVSSelector selector(X_map, y_map, tFDR, gvs_ctrl, trex_ctrl_run,
-                              seed, /*verbose=*/false);
+    TRexGVSSelector selector(X_map, y_map, tFDR,
+                             gvs_ctrl,
+                             trex_ctrl_run,
+                             seed, /*verbose=*/false);
     selector.select();
 
     const auto t1 = std::chrono::steady_clock::now();
@@ -327,15 +339,20 @@ inline GVSGridPointResult run_gvs_mc_trials(
         Eigen::Map<Eigen::VectorXd> y_map(dat.y.data(), dat.y.rows());
 
         // EN requires TENET solver; IEN requires TLASSO (augmented system).
+        // Per-trial cv_seed ensures unique fold assignments when using CV_1SE/CV_MIN.
         TRexControlParameter trex_ctrl_run = trex_ctrl;
-        if (gvs_ctrl.gvs_type == GVSType::EN)
+        TRexGVSControlParameter gvs_ctrl_trial = gvs_ctrl;
+        gvs_ctrl_trial.cv_seed = trial_seed;
+        if (gvs_ctrl_trial.gvs_type == GVSType::EN)
             trex_ctrl_run.solver_type = SolverTypeForTRex::TENET;
         else
             trex_ctrl_run.solver_type = SolverTypeForTRex::TLASSO;
 
-        TRexGVSSelector selector(X_map, y_map, tFDR, gvs_ctrl, trex_ctrl_run,
-                                  static_cast<int>(trial_seed),
-                                  /*verbose=*/false);
+        TRexGVSSelector selector(X_map, y_map, tFDR,
+                                 gvs_ctrl_trial,
+                                 trex_ctrl_run,
+                                 static_cast<int>(trial_seed),
+                                 /*verbose=*/false);
         selector.select();
 
         const auto& sel_idx = selector.getSelectedIndices();
@@ -429,33 +446,39 @@ inline std::vector<GVSGridPointResult> run_gvs_snr_sweep(
 inline void print_mc_1d_method_table(
     const std::string&                     method_label,
     const std::vector<std::string>&        param_labels,
-    const std::vector<GVSGridPointResult>& results)
+    const std::vector<GVSGridPointResult>& results,
+    std::ofstream*                         fout = nullptr)
 {
     constexpr int rw = 12;  // row-label width
     constexpr int cw = 10;  // value column width
     const int total_w = rw + 4 * cw;
 
-    std::cout << "\n  " << method_label << "\n"
-              << "  " << std::string(total_w, '-') << "\n"
-              << "  " << std::left << std::setw(rw) << ""
-              << std::right
-              << std::setw(cw) << "mean_FDP"
-              << std::setw(cw) << "sd_FDP"
-              << std::setw(cw) << "mean_TPP"
-              << std::setw(cw) << "sd_TPP"
-              << "\n"
-              << "  " << std::string(total_w, '-') << "\n";
+    std::ostringstream oss;
+    oss << "\n  " << method_label << "\n"
+        << "  " << std::string(total_w, '-') << "\n"
+        << "  " << std::left << std::setw(rw) << ""
+        << std::right
+        << std::setw(cw) << "mean_FDP"
+        << std::setw(cw) << "sd_FDP"
+        << std::setw(cw) << "mean_TPP"
+        << std::setw(cw) << "sd_TPP"
+        << "\n"
+        << "  " << std::string(total_w, '-') << "\n";
 
     for (std::size_t r = 0; r < results.size() && r < param_labels.size(); ++r) {
-        std::cout << "  " << std::left  << std::setw(rw) << param_labels[r]
-                  << std::right << std::fixed << std::setprecision(4)
-                  << std::setw(cw) << results[r].mean_fdp
-                  << std::setw(cw) << results[r].sd_fdp
-                  << std::setw(cw) << results[r].mean_tpp
-                  << std::setw(cw) << results[r].sd_tpp
-                  << "\n";
+        oss << "  " << std::left  << std::setw(rw) << param_labels[r]
+            << std::right << std::fixed << std::setprecision(4)
+            << std::setw(cw) << results[r].mean_fdp
+            << std::setw(cw) << results[r].sd_fdp
+            << std::setw(cw) << results[r].mean_tpp
+            << std::setw(cw) << results[r].sd_tpp
+            << "\n";
     }
-    std::cout << "\n";
+    oss << "\n";
+
+    const std::string s = oss.str();
+    std::cout << s;
+    if (fout && fout->is_open()) *fout << s;
 }
 
 
@@ -467,35 +490,76 @@ inline void print_mc_1d_method_table(
  * @brief Print two per-method tables for an SNR sweep (EN and IEN).
  *
  * Each table shows mean_TPP, sd_TPP, mean_FDP, sd_FDP as columns.
+ * If file_stem is non-empty, also writes a .txt and a .csv to DEMO_OUTPUT_DIR.
  *
  * @param scenario_tag  Short label printed in the header.
  * @param snr_grid      The swept SNR values.
  * @param en_results    EN method results per SNR point.
  * @param ien_results   IEN method results per SNR point.
  * @param cfg           Simulation config (num_MC, tFDR, …).
+ * @param file_stem     Output file stem (no folder, no extension). Empty = no file output.
  */
 inline void print_mc_snr_table(
     const std::string&                     scenario_tag,
     const std::vector<double>&             snr_grid,
     const std::vector<GVSGridPointResult>& en_results,
     const std::vector<GVSGridPointResult>& ien_results,
-    const GVSSimConfig&                    cfg)
+    const GVSSimConfig&                    cfg,
+    const std::string&                     file_stem = "")
 {
-    std::cout << "\n" << std::string(78, '=') << "\n"
-              << "  T-Rex+GVS MC: " << scenario_tag
-              << "  (MC=" << cfg.num_MC << ", tFDR=" << cfg.tFDR
-              << ", n=" << cfg.n << ", p=" << cfg.p << ")\n"
-              << std::string(78, '=') << "\n";
+    const std::string dir(DEMO_OUTPUT_DIR);
+    std::ofstream txt_file;
+    if (!file_stem.empty()) {
+        std::filesystem::create_directories(dir);
+        txt_file.open(dir + file_stem + ".txt");
+    }
+    std::ofstream* fout = txt_file.is_open() ? &txt_file : nullptr;
+
+    auto write = [&](const std::string& s) {
+        std::cout << s;
+        if (fout) *fout << s;
+    };
+
+    {
+        std::ostringstream hdr;
+        hdr << "\n" << std::string(78, '=') << "\n"
+            << "  T-Rex+GVS MC: " << scenario_tag
+            << "  (MC=" << cfg.num_MC << ", tFDR=" << cfg.tFDR
+            << ", n=" << cfg.n << ", p=" << cfg.p << ")\n"
+            << std::string(78, '=') << "\n";
+        write(hdr.str());
+    }
 
     std::vector<std::string> labels;
     labels.reserve(snr_grid.size());
     for (double s : snr_grid)
         labels.push_back("snr=" + std::to_string(s).substr(0, 4));
 
-    print_mc_1d_method_table("EN",  labels, en_results);
-    print_mc_1d_method_table("IEN", labels, ien_results);
+    print_mc_1d_method_table("EN",  labels, en_results,  fout);
+    print_mc_1d_method_table("IEN", labels, ien_results, fout);
 
-    std::cout << std::string(78, '=') << "\n\n";
+    write(std::string(78, '=') + "\n\n");
+
+    if (!file_stem.empty()) {
+        if (txt_file.is_open()) {
+            txt_file.close();
+            std::cout << "[Info] TXT saved to: " << dir + file_stem + ".txt\n";
+        }
+        // CSV
+        std::ofstream csv(dir + file_stem + ".csv");
+        if (csv.is_open()) {
+            csv << "method,metric,snr,mean,sd\n"
+                << std::fixed << std::setprecision(6);
+            for (std::size_t i = 0; i < snr_grid.size(); ++i) {
+                const double snr = snr_grid[i];
+                csv << "EN,mean_FDP,"  << snr << "," << en_results[i].mean_fdp  << "," << en_results[i].sd_fdp  << "\n";
+                csv << "EN,mean_TPP,"  << snr << "," << en_results[i].mean_tpp  << "," << en_results[i].sd_tpp  << "\n";
+                csv << "IEN,mean_FDP," << snr << "," << ien_results[i].mean_fdp << "," << ien_results[i].sd_fdp << "\n";
+                csv << "IEN,mean_TPP," << snr << "," << ien_results[i].mean_tpp << "," << ien_results[i].sd_tpp << "\n";
+            }
+            std::cout << "[Info] CSV saved to: " << dir + file_stem + ".csv\n\n";
+        }
+    }
 }
 
 
@@ -555,36 +619,77 @@ inline std::vector<GVSGridPointResult> run_gvs_rho_sweep(
  * @brief Print two per-method tables for a rho sweep (EN and IEN).
  *
  * Each table shows mean_TPP, sd_TPP, mean_FDP, sd_FDP as columns.
+ * If file_stem is non-empty, also writes a .txt and a .csv to DEMO_OUTPUT_DIR.
  *
  * @param scenario_tag  Short label printed in the header.
  * @param rho_grid      The swept rho values.
  * @param en_results    EN method results per rho point.
  * @param ien_results   IEN method results per rho point.
  * @param cfg           Simulation config (num_MC, tFDR, snr, …).
+ * @param file_stem     Output file stem (no folder, no extension). Empty = no file output.
  */
 inline void print_mc_rho_table(
     const std::string&                     scenario_tag,
     const std::vector<double>&             rho_grid,
     const std::vector<GVSGridPointResult>& en_results,
     const std::vector<GVSGridPointResult>& ien_results,
-    const GVSSimConfig&                    cfg)
+    const GVSSimConfig&                    cfg,
+    const std::string&                     file_stem = "")
 {
-    std::cout << "\n" << std::string(78, '=') << "\n"
-              << "  T-Rex+GVS MC: " << scenario_tag
-              << "  (MC=" << cfg.num_MC << ", tFDR=" << cfg.tFDR
-              << ", SNR=" << cfg.snr
-              << ", n=" << cfg.n << ", p=" << cfg.p << ")\n"
-              << std::string(78, '=') << "\n";
+    const std::string dir(DEMO_OUTPUT_DIR);
+    std::ofstream txt_file;
+    if (!file_stem.empty()) {
+        std::filesystem::create_directories(dir);
+        txt_file.open(dir + file_stem + ".txt");
+    }
+    std::ofstream* fout = txt_file.is_open() ? &txt_file : nullptr;
+
+    auto write = [&](const std::string& s) {
+        std::cout << s;
+        if (fout) *fout << s;
+    };
+
+    {
+        std::ostringstream hdr;
+        hdr << "\n" << std::string(78, '=') << "\n"
+            << "  T-Rex+GVS MC: " << scenario_tag
+            << "  (MC=" << cfg.num_MC << ", tFDR=" << cfg.tFDR
+            << ", SNR=" << cfg.snr
+            << ", n=" << cfg.n << ", p=" << cfg.p << ")\n"
+            << std::string(78, '=') << "\n";
+        write(hdr.str());
+    }
 
     std::vector<std::string> labels;
     labels.reserve(rho_grid.size());
     for (double r : rho_grid)
         labels.push_back("rho=" + std::to_string(r).substr(0, 4));
 
-    print_mc_1d_method_table("EN",  labels, en_results);
-    print_mc_1d_method_table("IEN", labels, ien_results);
+    print_mc_1d_method_table("EN",  labels, en_results,  fout);
+    print_mc_1d_method_table("IEN", labels, ien_results, fout);
 
-    std::cout << std::string(78, '=') << "\n\n";
+    write(std::string(78, '=') + "\n\n");
+
+    if (!file_stem.empty()) {
+        if (txt_file.is_open()) {
+            txt_file.close();
+            std::cout << "[Info] TXT saved to: " << dir + file_stem + ".txt\n";
+        }
+        // CSV
+        std::ofstream csv(dir + file_stem + ".csv");
+        if (csv.is_open()) {
+            csv << "method,metric,rho,mean,sd\n"
+                << std::fixed << std::setprecision(6);
+            for (std::size_t i = 0; i < rho_grid.size(); ++i) {
+                const double rho = rho_grid[i];
+                csv << "EN,mean_FDP,"  << rho << "," << en_results[i].mean_fdp  << "," << en_results[i].sd_fdp  << "\n";
+                csv << "EN,mean_TPP,"  << rho << "," << en_results[i].mean_tpp  << "," << en_results[i].sd_tpp  << "\n";
+                csv << "IEN,mean_FDP," << rho << "," << ien_results[i].mean_fdp << "," << ien_results[i].sd_fdp << "\n";
+                csv << "IEN,mean_TPP," << rho << "," << ien_results[i].mean_tpp << "," << ien_results[i].sd_tpp << "\n";
+            }
+            std::cout << "[Info] CSV saved to: " << dir + file_stem + ".csv\n\n";
+        }
+    }
 }
 
 
@@ -654,13 +759,16 @@ inline std::vector<std::vector<GVSGridPointResult>> run_gvs_2d_sweep(
                                                    dat.X.rows(), dat.X.cols());
                 Eigen::Map<Eigen::VectorXd> y_map(dat.y.data(), dat.y.rows());
 
+                // Per-trial cv_seed ensures unique fold assignments when using CV_1SE/CV_MIN.
                 TRexControlParameter trex_ctrl_run = trex_ctrl;
-                if (gvs_ctrl.gvs_type == GVSType::EN)
+                TRexGVSControlParameter gvs_ctrl_trial = gvs_ctrl;
+                gvs_ctrl_trial.cv_seed = trial_seed;
+                if (gvs_ctrl_trial.gvs_type == GVSType::EN)
                     trex_ctrl_run.solver_type = SolverTypeForTRex::TENET;
                 else
                     trex_ctrl_run.solver_type = SolverTypeForTRex::TLASSO;
 
-                TRexGVSSelector selector(X_map, y_map, cfg.tFDR, gvs_ctrl,
+                TRexGVSSelector selector(X_map, y_map, cfg.tFDR, gvs_ctrl_trial,
                                          trex_ctrl_run,
                                          static_cast<int>(trial_seed),
                                          /*verbose=*/false);
@@ -764,6 +872,7 @@ inline void print_mc_matrix(
  * Generalises print_mc_rho_table() by accepting a custom parameter name for
  * the row-label prefix (e.g. "ar_coef", "rho_sc").  Row labels are formed as
  * param_name + "=" + std::to_string(v).substr(0, 4).
+ * If file_stem is non-empty, also writes a .txt and a .csv to DEMO_OUTPUT_DIR.
  *
  * @param scenario_tag  Short label printed in the header.
  * @param param_name    Label prefix for each row (max ~7 chars fits rw=12).
@@ -771,6 +880,7 @@ inline void print_mc_matrix(
  * @param en_results    EN method results per parameter point.
  * @param ien_results   IEN method results per parameter point.
  * @param cfg           Simulation config (num_MC, tFDR, snr, n, p, …).
+ * @param file_stem     Output file stem (no folder, no extension). Empty = no file output.
  */
 inline void print_mc_param_sweep_table(
     const std::string&                     scenario_tag,
@@ -778,29 +888,165 @@ inline void print_mc_param_sweep_table(
     const std::vector<double>&             param_grid,
     const std::vector<GVSGridPointResult>& en_results,
     const std::vector<GVSGridPointResult>& ien_results,
-    const GVSSimConfig&                    cfg)
+    const GVSSimConfig&                    cfg,
+    const std::string&                     file_stem = "")
 {
-    std::cout << "\n" << std::string(78, '=') << "\n"
-              << "  T-Rex+GVS MC: " << scenario_tag
-              << "  (MC=" << cfg.num_MC << ", tFDR=" << cfg.tFDR
-              << ", SNR=" << cfg.snr
-              << ", n=" << cfg.n << ", p=" << cfg.p << ")\n"
-              << std::string(78, '=') << "\n";
+    const std::string dir(DEMO_OUTPUT_DIR);
+    std::ofstream txt_file;
+    if (!file_stem.empty()) {
+        std::filesystem::create_directories(dir);
+        txt_file.open(dir + file_stem + ".txt");
+    }
+    std::ofstream* fout = txt_file.is_open() ? &txt_file : nullptr;
+
+    auto write = [&](const std::string& s) {
+        std::cout << s;
+        if (fout) *fout << s;
+    };
+
+    {
+        std::ostringstream hdr;
+        hdr << "\n" << std::string(78, '=') << "\n"
+            << "  T-Rex+GVS MC: " << scenario_tag
+            << "  (MC=" << cfg.num_MC << ", tFDR=" << cfg.tFDR
+            << ", SNR=" << cfg.snr
+            << ", n=" << cfg.n << ", p=" << cfg.p << ")\n"
+            << std::string(78, '=') << "\n";
+        write(hdr.str());
+    }
 
     std::vector<std::string> labels;
     labels.reserve(param_grid.size());
     for (double v : param_grid)
         labels.push_back(param_name + "=" + std::to_string(v).substr(0, 4));
 
-    print_mc_1d_method_table("EN",  labels, en_results);
-    print_mc_1d_method_table("IEN", labels, ien_results);
+    print_mc_1d_method_table("EN",  labels, en_results,  fout);
+    print_mc_1d_method_table("IEN", labels, ien_results, fout);
 
-    std::cout << std::string(78, '=') << "\n\n";
+    write(std::string(78, '=') + "\n\n");
+
+    if (!file_stem.empty()) {
+        if (txt_file.is_open()) {
+            txt_file.close();
+            std::cout << "[Info] TXT saved to: " << dir + file_stem + ".txt\n";
+        }
+        // CSV
+        std::ofstream csv(dir + file_stem + ".csv");
+        if (csv.is_open()) {
+            csv << "method,metric," << param_name << ",mean,sd\n"
+                << std::fixed << std::setprecision(6);
+            for (std::size_t i = 0; i < param_grid.size(); ++i) {
+                const double pv = param_grid[i];
+                csv << "EN,mean_FDP,"  << pv << "," << en_results[i].mean_fdp  << "," << en_results[i].sd_fdp  << "\n";
+                csv << "EN,mean_TPP,"  << pv << "," << en_results[i].mean_tpp  << "," << en_results[i].sd_tpp  << "\n";
+                csv << "IEN,mean_FDP," << pv << "," << ien_results[i].mean_fdp << "," << ien_results[i].sd_fdp << "\n";
+                csv << "IEN,mean_TPP," << pv << "," << ien_results[i].mean_tpp << "," << ien_results[i].sd_tpp << "\n";
+            }
+            std::cout << "[Info] CSV saved to: " << dir + file_stem + ".csv\n\n";
+        }
+    }
+}
+
+// ==============================================================================
+// Save MC 2-D tables (console + optional file/CSV)
+// ==============================================================================
+
+/**
+ * @brief Save 2-D sweep results to a .txt and .csv file in DEMO_OUTPUT_DIR.
+ *
+ * This is a pure file writer — the four console matrix prints should be
+ * done separately via `print_mc_matrix()` (as in all Part 3 sim functions).
+ * If file_stem is empty this function is a no-op.
+ *
+ * @param scenario_tag  Short label used in the file header.
+ * @param row_labels    Labels for the row axis (typically SNR levels).
+ * @param col_labels    Labels for the column axis (rho / ar_coef / rho_sc …).
+ * @param en_2d         EN result matrix indexed [row][col].
+ * @param ien_2d        IEN result matrix indexed [row][col].
+ * @param cfg           Simulation config (num_MC, tFDR, n, p, …).
+ * @param file_stem     Output file stem (no folder, no extension). Empty = no-op.
+ */
+inline void save_mc_2d_tables(
+    const std::string&                                  scenario_tag,
+    const std::vector<std::string>&                     row_labels,
+    const std::vector<std::string>&                     col_labels,
+    const std::vector<std::vector<GVSGridPointResult>>& en_2d,
+    const std::vector<std::vector<GVSGridPointResult>>& ien_2d,
+    const GVSSimConfig&                                 cfg,
+    const std::string&                                  file_stem = "")
+{
+    if (file_stem.empty()) return;
+
+    const std::string dir(DEMO_OUTPUT_DIR);
+    std::filesystem::create_directories(dir);
+
+    // TXT: write all four matrices
+    {
+        std::ofstream txt(dir + file_stem + ".txt");
+        if (txt.is_open()) {
+            txt << "\n" << std::string(78, '=') << "\n"
+                << "  T-Rex+GVS MC 2D Grid: " << scenario_tag
+                << "  (MC=" << cfg.num_MC << ", tFDR=" << cfg.tFDR
+                << ", n=" << cfg.n << ", p=" << cfg.p << ")\n"
+                << std::string(78, '=') << "\n";
+
+            constexpr int rw = 12;
+            constexpr int cw = 8;
+            auto write_matrix = [&](const std::string& title,
+                                    const std::vector<std::vector<GVSGridPointResult>>& vals,
+                                    bool tpp) {
+                txt << "\n  " << title << "\n"
+                    << "  " << std::string(rw + static_cast<int>(col_labels.size()) * cw, '-') << "\n";
+                txt << "  " << std::left << std::setw(rw) << "";
+                for (const auto& cl : col_labels)
+                    txt << std::right << std::setw(cw) << cl;
+                txt << "\n";
+                for (std::size_t r = 0; r < vals.size() && r < row_labels.size(); ++r) {
+                    txt << "  " << std::left << std::setw(rw) << row_labels[r];
+                    for (std::size_t c = 0; c < vals[r].size() && c < col_labels.size(); ++c) {
+                        const double val = tpp ? vals[r][c].mean_tpp : vals[r][c].mean_fdp;
+                        txt << std::right << std::fixed << std::setprecision(4)
+                            << std::setw(cw) << val;
+                    }
+                    txt << "\n";
+                }
+                txt << "\n";
+            };
+
+            write_matrix("mean_TPP [EN]",  en_2d,  true);
+            write_matrix("mean_FDP [EN]",  en_2d,  false);
+            write_matrix("mean_TPP [IEN]", ien_2d, true);
+            write_matrix("mean_FDP [IEN]", ien_2d, false);
+
+            std::cout << "[Info] TXT saved to: " << dir + file_stem + ".txt\n";
+        }
+    }
+
+    // CSV: tidy long format — method, metric, row_label, col_label, mean, sd
+    {
+        std::ofstream csv(dir + file_stem + ".csv");
+        if (csv.is_open()) {
+            csv << "method,metric,row_label,col_label,mean,sd\n"
+                << std::fixed << std::setprecision(6);
+            for (std::size_t i = 0; i < en_2d.size() && i < row_labels.size(); ++i) {
+                for (std::size_t j = 0; j < en_2d[i].size() && j < col_labels.size(); ++j) {
+                    csv << "EN,mean_FDP,"  << row_labels[i] << "," << col_labels[j]
+                        << "," << en_2d[i][j].mean_fdp << "," << en_2d[i][j].sd_fdp << "\n";
+                    csv << "EN,mean_TPP,"  << row_labels[i] << "," << col_labels[j]
+                        << "," << en_2d[i][j].mean_tpp << "," << en_2d[i][j].sd_tpp << "\n";
+                    csv << "IEN,mean_FDP," << row_labels[i] << "," << col_labels[j]
+                        << "," << ien_2d[i][j].mean_fdp << "," << ien_2d[i][j].sd_fdp << "\n";
+                    csv << "IEN,mean_TPP," << row_labels[i] << "," << col_labels[j]
+                        << "," << ien_2d[i][j].mean_tpp << "," << ien_2d[i][j].sd_tpp << "\n";
+                }
+            }
+            std::cout << "[Info] CSV saved to: " << dir + file_stem + ".csv\n\n";
+        }
+    }
 }
 
 
 // ==============================================================================
-} // namespace gvs_demo
+} /* End of namespace gvs_demo */
 // ==============================================================================
-
-#endif // DEMOS_TREX_SELECTOR_METHODS_GVS_SIMULATION_UTILS_HPP
+#endif /* End of DEMOS_TREX_SELECTOR_METHODS_GVS_SIMULATION_UTILS_HPP */

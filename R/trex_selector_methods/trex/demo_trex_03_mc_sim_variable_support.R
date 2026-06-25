@@ -33,10 +33,8 @@ this_dir_ <- tryCatch(
 )
 
 source(file.path(this_dir_, "..", "support_generators.R"))
-source(file.path(this_dir_, "dgp_gauss_snr.R"))
 source(file.path(this_dir_, "..", "simulation_utils.R"))
-source(file.path(this_dir_, "trex_sim_common.R"))
-source(file.path(this_dir_, "trex_helpers.R"))
+source(file.path(this_dir_, "trex_sim_utils.R"))
 
 
 # ==============================================================================
@@ -47,7 +45,7 @@ OUT_DIR <- file.path(this_dir_, "simulation_results")
 dir.create(OUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
 num_cores <- 6L
-NUM_MC <- 500L
+NUM_MC <- 200L
 run_trex_03 <- TRUE
 
 

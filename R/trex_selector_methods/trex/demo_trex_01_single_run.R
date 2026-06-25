@@ -35,8 +35,7 @@ this_dir_ <- tryCatch(
   }
 )
 source(file.path(this_dir_, "..", "support_generators.R"))
-source(file.path(this_dir_, "dgp_gauss_snr.R"))
-source(file.path(this_dir_, "trex_helpers.R"))
+source(file.path(this_dir_, "trex_sim_utils.R"))
 
 # ==============================================================================
 # Global Simulation Parameters

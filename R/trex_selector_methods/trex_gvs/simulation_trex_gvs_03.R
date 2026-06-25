@@ -1,10 +1,10 @@
 # ==============================================================================
-# simulation_trex_gvs_03.R
+# simulation_trex_gvs_04.R
 # ==============================================================================
 #
-# T-Rex+GVS Monte Carlo simulations for the unequal-blocks DGP.
-# Three contiguous blocks of sizes 20, 50, and 80 = 150 active variables.
-# Variables within each block share a latent factor (equi-correlation rho).
+# T-Rex+GVS Monte Carlo simulations for the mixed-blocks DGP.
+# 3 active blocks (sizes 20, 50, 80 = 150 active) + 1 inactive block (size 65),
+# placed in a random order separated by white-noise gaps.
 #
 #  Part 2: MC simulation sweeping SNR. Compares EN vs IEN.
 #          Fixed: sd_x=sqrt(0.01), n=200, p=500, tFDR=0.1, K=20, 200 MC.
@@ -20,7 +20,7 @@
 #                rho in {0.30, 0.50, 0.70, 0.90, 0.95, 0.99}.
 #          Outputs TPP/FDP matrices for EN and IEN.
 #
-# Single-run demo (Part 1) is in demo_trex_gvs_03.R.
+# Single-run demo (Part 1) is in demo_trex_gvs_04.R.
 #
 # ==============================================================================
 
@@ -47,13 +47,13 @@ this_dir_ <- local({
 
 log_dir <- file.path(this_dir_, "..", "logs")
 dir.create(log_dir, showWarnings = FALSE, recursive = TRUE)
-con_log <- file(file.path(log_dir, "simulation_trex_gvs_03.log"), open = "wt")
+con_log <- file(file.path(log_dir, "simulation_trex_gvs_04.log"), open = "wt")
 sink(con_log, split = FALSE)
 on.exit({ sink(); close(con_log) }, add = TRUE)
 
 source(file.path(this_dir_, "support_generators.R"))
 source(file.path(this_dir_, "simulation_utils.R"))
-source(file.path(this_dir_, "dgp_unequal_blocks.R"))
+source(file.path(this_dir_, "dgp_mixed_blocks.R"))
 
 
 # ==============================================================================
@@ -79,13 +79,13 @@ MC_BASE <- list(
 # ==============================================================================
 
 if (run_part_2) {
-  trx_gvs_03_02 <- function() {
+  trx_gvs_04_02 <- function() {
 
     snr_grid <- c(0.1, 0.2, 0.5, 1.0, 2.0, 5.0)
 
     .run_snr_sweep <- function(GVS_type) {
       cat(strrep("=", 70), "\n")
-      cat("Unequal-Blocks GVS MC \u2014 SNR sweep\n")
+      cat("Mixed-Blocks GVS MC \u2014 SNR sweep\n")
       cat(sprintf("tFDR: %.2f  |  GVS_type: %s  |  sd_x: %.4f  (rho~%.2f)\n",
                   MC_BASE$tFDR, GVS_type, MC_BASE$sd_x,
                   1 / (1 + MC_BASE$sd_x^2)))
@@ -96,7 +96,7 @@ if (run_part_2) {
       lapply(snr_grid, function(snr_val) {
         cat(sprintf("\n  [SNR = %.2f]  running %d MC trials ...\n",
                     snr_val, MC_BASE$num_MC))
-        r <- .run_mc_unequal_blocks(
+        r <- .run_mc_mixed_blocks(
           n        = MC_BASE$n,
           p        = MC_BASE$p,
           snr      = snr_val,
@@ -122,7 +122,7 @@ if (run_part_2) {
     .print_table(res_ien, "SNR")
   }
 
-  trx_gvs_03_02()
+  trx_gvs_04_02()
 
 }  # end Part 2
 # ==============================================================================
@@ -133,13 +133,13 @@ if (run_part_2) {
 # ==============================================================================
 
 if (run_part_3) {
-  trx_gvs_03_03 <- function() {
+  trx_gvs_04_03 <- function() {
 
     rho_grid <- c(0.10, 0.20, 0.30, 0.50, 0.70, 0.80, 0.90, 0.95, 0.99)
 
     .run_rho_sweep <- function(GVS_type) {
       cat(strrep("=", 70), "\n")
-      cat("Unequal-Blocks GVS MC \u2014 rho sweep\n")
+      cat("Mixed-Blocks GVS MC \u2014 rho sweep\n")
       cat(sprintf("tFDR: %.2f  |  GVS_type: %s  |  SNR: %.2f\n",
                   MC_BASE$tFDR, GVS_type, MC_BASE$snr))
       cat(sprintf("n=%d  p=%d  rho swept  %d MC\n",
@@ -150,7 +150,7 @@ if (run_part_3) {
         sd_x_val <- sqrt((1 - rho_val) / rho_val)
         cat(sprintf("\n  [rho = %.2f  sd_x = %.4f]  running %d MC trials ...\n",
                     rho_val, sd_x_val, MC_BASE$num_MC))
-        r <- .run_mc_unequal_blocks(
+        r <- .run_mc_mixed_blocks(
           n        = MC_BASE$n,
           p        = MC_BASE$p,
           snr      = MC_BASE$snr,
@@ -176,7 +176,7 @@ if (run_part_3) {
     .print_table(res_ien, "rho", "%-6.2f")
   }
 
-  trx_gvs_03_03()
+  trx_gvs_04_03()
 
 }  # end Part 3
 # ==============================================================================
@@ -187,7 +187,7 @@ if (run_part_3) {
 # ==============================================================================
 
 if (run_part_4) {
-  trx_gvs_03_04 <- function() {
+  trx_gvs_04_04 <- function() {
 
     snr_grid <- c(0.2, 0.5, 1.0, 2.0, 5.0)
     rho_grid <- c(0.30, 0.50, 0.70, 0.90, 0.95, 0.99)
@@ -204,7 +204,7 @@ if (run_part_4) {
     mat_FDP_ien <- mat_TPP_en
 
     cat(strrep("=", 70), "\n")
-    cat("Unequal-Blocks GVS MC  |  Part 4: SNR x rho sweep\n")
+    cat("Mixed-Blocks GVS MC  |  Part 4: SNR x rho sweep\n")
     cat(sprintf("n=%d, p=%d, %d MC, tFDR=%.2f, corr_max=%.2f\n",
                 MC_BASE$n, MC_BASE$p, MC_BASE$num_MC,
                 MC_BASE$tFDR, MC_BASE$corr_max))
@@ -226,7 +226,7 @@ if (run_part_4) {
                           cell_idx, total_cells, snr_val, rho_val, sd_x_val)
 
         cat(sprintf("%s  [EN]  running %d MC trials ...\n", prefix, MC_BASE$num_MC))
-        r_en <- .run_mc_unequal_blocks(
+        r_en <- .run_mc_mixed_blocks(
           n        = MC_BASE$n,
           p        = MC_BASE$p,
           snr      = snr_val,
@@ -245,7 +245,7 @@ if (run_part_4) {
                     prefix, r_en$mean_TPP, r_en$mean_FDP))
 
         cat(sprintf("%s  [IEN] running %d MC trials ...\n", prefix, MC_BASE$num_MC))
-        r_ien <- .run_mc_unequal_blocks(
+        r_ien <- .run_mc_mixed_blocks(
           n        = MC_BASE$n,
           p        = MC_BASE$p,
           snr      = snr_val,
@@ -271,10 +271,10 @@ if (run_part_4) {
     .print_matrix(mat_FDP_ien, "mean_FDP [IEN] (rows: SNR, cols: rho)")
   }
 
-  trx_gvs_03_04()
+  trx_gvs_04_04()
 
 }  # end Part 4
 # ==============================================================================
 
 
-cat("\nUnequal-blocks GVS MC simulations complete.\n")
+cat("\nMixed-blocks GVS MC simulations complete.\n")

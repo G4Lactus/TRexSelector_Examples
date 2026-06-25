@@ -43,9 +43,8 @@ this_dir_ <- tryCatch(
     if (length(file_arg) > 0) dirname(normalizePath(sub("--file=", "", file_arg[1]))) else "."
   }
 )
-source(file.path(this_dir_, "dgp_gauss_snr.R"))
 source(file.path(this_dir_, "..", "simulation_utils.R"))
-source(file.path(this_dir_, "trex_sim_common.R"))
+source(file.path(this_dir_, "trex_sim_utils.R"))
 
 
 # ==============================================================================

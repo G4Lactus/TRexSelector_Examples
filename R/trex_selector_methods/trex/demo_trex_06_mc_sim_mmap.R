@@ -46,9 +46,8 @@ this_dir_ <- tryCatch(
   }
 )
 source(file.path(this_dir_, "..", "support_generators.R"))
-source(file.path(this_dir_, "dgp_gauss_snr.R"))
 source(file.path(this_dir_, "..", "simulation_utils.R"))
-source(file.path(this_dir_, "trex_sim_common.R"))
+source(file.path(this_dir_, "trex_sim_utils.R"))
 
 
 # ==============================================================================
@@ -227,8 +226,8 @@ trex_06_part_b <- function(num_MC = NUM_MC, high_dim = TRUE) {
 # ==============================================================================
 # Main
 # -------------
-# Run parts C and D
+# Run parts A and B
 # ==============================================================================
-if (run_part_c) trex_06_part_a(NUM_MC, high_dim = TRUE)
-if (run_part_d) trex_06_part_b(NUM_MC, high_dim = TRUE)
+if (run_part_a) trex_06_part_a(NUM_MC, high_dim = TRUE)
+if (run_part_b) trex_06_part_b(NUM_MC, high_dim = TRUE)
 cat("\ndemo_trex_06_mmap_mc_sim.R complete.\n")

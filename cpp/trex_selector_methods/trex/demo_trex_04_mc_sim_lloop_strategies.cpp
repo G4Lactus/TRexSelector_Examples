@@ -109,8 +109,7 @@ static std::vector<LLoopStrategyInfo> make_lloop_strategies() {
         //{"DIRECT",             LLoopStrategy::DIRECT},
         {"SKIPL_5p",           LLoopStrategy::SKIPL, 5},
         {"SKIPL_10p",          LLoopStrategy::SKIPL, 10},
-        {"SKIPL_20p",          LLoopStrategy::SKIPL, 20},
-        {"SKIPL_50p",          LLoopStrategy::SKIPL, 50}
+        {"SKIPL_20p",          LLoopStrategy::SKIPL, 20}
     };
 }
 

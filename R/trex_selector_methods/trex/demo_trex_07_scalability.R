@@ -2,8 +2,10 @@
 # demo_trex_07_scalability.R
 # ==============================================================================
 #
-# Classical T-Rex Selector demo. In part 7 we benchmark the scalability of the
-# classical T-Rex Selector.
+# Part 7 of the classical T-Rex selector demos. This part demonstrates
+# a Monte Carlo (MC) simulation to benchmark the scalability of the
+# T-Rex selector's implementation.
+#
 # We compare the in-memory execution against the chunked, memory-mapped
 # out-of-core execution over an exponentially increasing grid of n and p.
 #
@@ -32,9 +34,7 @@ this_dir_ <- tryCatch(
     if (length(file_arg) > 0) dirname(normalizePath(sub("--file=", "", file_arg[1]))) else "."
   }
 )
-source(file.path(this_dir_, "dgp_gauss_snr.R"))
-source(file.path(this_dir_, "dgp_chunked.R"))
-source(file.path(this_dir_, "trex_sim_common.R"))
+source(file.path(this_dir_, "trex_sim_utils.R"))
 
 # =============================================================================
 # Global Simulation Parameters

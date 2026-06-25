@@ -1,29 +1,26 @@
 # ==============================================================================
-# simulation_trex_gvs_07.R
+# simulation_trex_gvs_10.R
 # ==============================================================================
 #
-# T-Rex+GVS Monte Carlo simulations for the negative-traps DGP.
-# Group 1 (indices 1-100):   active, +Z1/-Z1, beta = +3/-3.  s = 100.
-# Group 2 (indices 101-200): inactive Trap 1, +Z2/-Z2.
-# Noise   (indices 201-300): white noise.
-# Group 3 (indices 301-360): inactive Trap 2, +Z3/-Z3.
-# Noise   (indices 361-500): white noise.
+# T-Rex+GVS Monte Carlo simulations for the block-structured AR(1) DGP.
+# 4 blocks (sizes 20, 50, 80, 65): 3 active (beta=3), 1 inactive trap.
+# Shuffled into p=500 columns with white-noise gaps. Active set: s = 150.
+# Within-block AR(1): Cor(X_j, X_k) = rho^|j-k|.
 #
 #  Part 2: MC simulation sweeping SNR. Compares EN vs IEN.
-#          Fixed: sd_x=sqrt(0.01), n=200, p=500, tFDR=0.1, K=20, 200 MC.
+#          Fixed: rho=0.85, n=200, p=500, tFDR=0.1, K=20, 200 MC.
 #          SNR grid: {0.1, 0.2, 0.5, 1.0, 2.0, 5.0}.
 #
-#  Part 3: MC simulation sweeping within-group noise sd_x (= rho strength).
+#  Part 3: MC simulation sweeping AR(1) coefficient rho.
 #          Fixed: SNR=2.0, n=200, p=500, tFDR=0.1, K=20, 200 MC.
 #          rho grid: {0.10, 0.20, 0.30, 0.50, 0.70, 0.80, 0.90, 0.95, 0.99}.
-#          sd_x derived as sqrt((1 - rho) / rho).
 #
 #  Part 4: 2D phase-transition sweep: SNR x rho.
 #          Grid: SNR in {0.2, 0.5, 1.0, 2.0, 5.0},
 #                rho in {0.30, 0.50, 0.70, 0.90, 0.95, 0.99}.
 #          Outputs TPP/FDP matrices for EN and IEN.
 #
-# Single-run demo (Part 1) is in demo_trex_gvs_07.R.
+# Single-run demo (Part 1) is in demo_trex_gvs_10.R.
 #
 # ==============================================================================
 
@@ -50,13 +47,13 @@ this_dir_ <- local({
 
 log_dir <- file.path(this_dir_, "..", "logs")
 dir.create(log_dir, showWarnings = FALSE, recursive = TRUE)
-con_log <- file(file.path(log_dir, "simulation_trex_gvs_07.log"), open = "wt")
+con_log <- file(file.path(log_dir, "simulation_trex_gvs_10.log"), open = "wt")
 sink(con_log, split = FALSE)
 on.exit({ sink(); close(con_log) }, add = TRUE)
 
 source(file.path(this_dir_, "support_generators.R"))
 source(file.path(this_dir_, "simulation_utils.R"))
-source(file.path(this_dir_, "dgp_neg_traps.R"))
+source(file.path(this_dir_, "dgp_ar1_blocks.R"))
 
 
 # ==============================================================================
@@ -66,7 +63,7 @@ source(file.path(this_dir_, "dgp_neg_traps.R"))
 MC_BASE <- list(
   n        = 200L,
   p        = 500L,
-  sd_x     = sqrt(0.01),
+  rho      = 0.85,
   snr      = 2.0,
   tFDR     = 0.1,
   K        = 20L,
@@ -82,16 +79,15 @@ MC_BASE <- list(
 # ==============================================================================
 
 if (run_part_2) {
-  trx_gvs_07_02 <- function() {
+  trx_gvs_10_02 <- function() {
 
     snr_grid <- c(0.1, 0.2, 0.5, 1.0, 2.0, 5.0)
 
     .run_snr_sweep <- function(GVS_type) {
       cat(strrep("=", 70), "\n")
-      cat("Neg-Traps GVS MC \u2014 SNR sweep\n")
-      cat(sprintf("tFDR: %.2f  |  GVS_type: %s  |  sd_x: %.4f  (rho~%.2f)\n",
-                  MC_BASE$tFDR, GVS_type, MC_BASE$sd_x,
-                  1 / (1 + MC_BASE$sd_x^2)))
+      cat("AR(1)-Blocks GVS MC \u2014 SNR sweep\n")
+      cat(sprintf("tFDR: %.2f  |  GVS_type: %s  |  rho: %.2f\n",
+                  MC_BASE$tFDR, GVS_type, MC_BASE$rho))
       cat(sprintf("n=%d  p=%d  SNR swept  %d MC\n",
                   MC_BASE$n, MC_BASE$p, MC_BASE$num_MC))
       cat(strrep("=", 70), "\n\n")
@@ -99,11 +95,11 @@ if (run_part_2) {
       lapply(snr_grid, function(snr_val) {
         cat(sprintf("\n  [SNR = %.2f]  running %d MC trials ...\n",
                     snr_val, MC_BASE$num_MC))
-        r <- .run_mc_neg_traps(
+        r <- .run_mc_ar1_blocks(
           n        = MC_BASE$n,
           p        = MC_BASE$p,
           snr      = snr_val,
-          sd_x     = MC_BASE$sd_x,
+          rho      = MC_BASE$rho,
           tFDR     = MC_BASE$tFDR,
           K        = MC_BASE$K,
           num_MC   = MC_BASE$num_MC,
@@ -125,7 +121,7 @@ if (run_part_2) {
     .print_table(res_ien, "SNR")
   }
 
-  trx_gvs_07_02()
+  trx_gvs_10_02()
 
 }  # end Part 2
 # ==============================================================================
@@ -136,13 +132,13 @@ if (run_part_2) {
 # ==============================================================================
 
 if (run_part_3) {
-  trx_gvs_07_03 <- function() {
+  trx_gvs_10_03 <- function() {
 
     rho_grid <- c(0.10, 0.20, 0.30, 0.50, 0.70, 0.80, 0.90, 0.95, 0.99)
 
     .run_rho_sweep <- function(GVS_type) {
       cat(strrep("=", 70), "\n")
-      cat("Neg-Traps GVS MC \u2014 rho sweep\n")
+      cat("AR(1)-Blocks GVS MC \u2014 rho sweep\n")
       cat(sprintf("tFDR: %.2f  |  GVS_type: %s  |  SNR: %.2f\n",
                   MC_BASE$tFDR, GVS_type, MC_BASE$snr))
       cat(sprintf("n=%d  p=%d  rho swept  %d MC\n",
@@ -150,14 +146,13 @@ if (run_part_3) {
       cat(strrep("=", 70), "\n\n")
 
       lapply(rho_grid, function(rho_val) {
-        sd_x_val <- sqrt((1 - rho_val) / rho_val)
-        cat(sprintf("\n  [rho = %.2f  sd_x = %.4f]  running %d MC trials ...\n",
-                    rho_val, sd_x_val, MC_BASE$num_MC))
-        r <- .run_mc_neg_traps(
+        cat(sprintf("\n  [rho = %.2f]  running %d MC trials ...\n",
+                    rho_val, MC_BASE$num_MC))
+        r <- .run_mc_ar1_blocks(
           n        = MC_BASE$n,
           p        = MC_BASE$p,
           snr      = MC_BASE$snr,
-          sd_x     = sd_x_val,
+          rho      = rho_val,
           tFDR     = MC_BASE$tFDR,
           K        = MC_BASE$K,
           num_MC   = MC_BASE$num_MC,
@@ -179,7 +174,7 @@ if (run_part_3) {
     .print_table(res_ien, "rho", "%-6.2f")
   }
 
-  trx_gvs_07_03()
+  trx_gvs_10_03()
 
 }  # end Part 3
 # ==============================================================================
@@ -190,7 +185,7 @@ if (run_part_3) {
 # ==============================================================================
 
 if (run_part_4) {
-  trx_gvs_07_04 <- function() {
+  trx_gvs_10_04 <- function() {
 
     snr_grid <- c(0.2, 0.5, 1.0, 2.0, 5.0)
     rho_grid <- c(0.30, 0.50, 0.70, 0.90, 0.95, 0.99)
@@ -207,7 +202,7 @@ if (run_part_4) {
     mat_FDP_ien <- mat_TPP_en
 
     cat(strrep("=", 70), "\n")
-    cat("Neg-Traps GVS MC  |  Part 4: SNR x rho sweep\n")
+    cat("AR(1)-Blocks GVS MC  |  Part 4: SNR x rho sweep\n")
     cat(sprintf("n=%d, p=%d, %d MC, tFDR=%.2f, corr_max=%.2f\n",
                 MC_BASE$n, MC_BASE$p, MC_BASE$num_MC,
                 MC_BASE$tFDR, MC_BASE$corr_max))
@@ -223,17 +218,16 @@ if (run_part_4) {
       snr_val <- snr_grid[i_snr]
       for (i_rho in seq_len(n_rho)) {
         rho_val  <- rho_grid[i_rho]
-        sd_x_val <- sqrt((1 - rho_val) / rho_val)
         cell_idx <- cell_idx + 1L
-        prefix <- sprintf("  [%d/%d] SNR=%.2f  rho=%.2f  sd_x=%.4f",
-                          cell_idx, total_cells, snr_val, rho_val, sd_x_val)
+        prefix <- sprintf("  [%d/%d] SNR=%.2f  rho=%.2f",
+                          cell_idx, total_cells, snr_val, rho_val)
 
         cat(sprintf("%s  [EN]  running %d MC trials ...\n", prefix, MC_BASE$num_MC))
-        r_en <- .run_mc_neg_traps(
+        r_en <- .run_mc_ar1_blocks(
           n        = MC_BASE$n,
           p        = MC_BASE$p,
           snr      = snr_val,
-          sd_x     = sd_x_val,
+          rho      = rho_val,
           tFDR     = MC_BASE$tFDR,
           K        = MC_BASE$K,
           num_MC   = MC_BASE$num_MC,
@@ -248,11 +242,11 @@ if (run_part_4) {
                     prefix, r_en$mean_TPP, r_en$mean_FDP))
 
         cat(sprintf("%s  [IEN] running %d MC trials ...\n", prefix, MC_BASE$num_MC))
-        r_ien <- .run_mc_neg_traps(
+        r_ien <- .run_mc_ar1_blocks(
           n        = MC_BASE$n,
           p        = MC_BASE$p,
           snr      = snr_val,
-          sd_x     = sd_x_val,
+          rho      = rho_val,
           tFDR     = MC_BASE$tFDR,
           K        = MC_BASE$K,
           num_MC   = MC_BASE$num_MC,
@@ -274,10 +268,10 @@ if (run_part_4) {
     .print_matrix(mat_FDP_ien, "mean_FDP [IEN] (rows: SNR, cols: rho)")
   }
 
-  trx_gvs_07_04()
+  trx_gvs_10_04()
 
 }  # end Part 4
 # ==============================================================================
 
 
-cat("\nNeg-traps GVS MC simulations complete.\n")
+cat("\nAR(1)-blocks GVS MC simulations complete.\n")
