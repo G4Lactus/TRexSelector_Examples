@@ -5,17 +5,23 @@
  * @file demo_trex_gvs_01_mc_sim_hastie_en_blocks.cpp
  *
  * @brief MC simulation: T-Rex+GVS on the Hastie DGP.
+ *  This scenario evaluates grouped-signal recovery under strong equicorrelation,
+ *  not sparse within-group support identification.
+ *  Within-group correlation is controlled through sd_x, with rho = 1 / (1 + sd_x^2).
+ *
  *
  * @details
  *  Five parts, each in its own function:
  *    sim_hastie_part1() — SNR sweep (fixed sd_x = sqrt(0.01))
  *    sim_hastie_part2() — rho sweep (fixed SNR = 2.0, sd_x derived from rho)
  *    sim_hastie_part3() — 2-D SNR × rho grid
- *    sim_hastie_part4() — lambda2_method comparison: GCV / CV_1SE / CV_MIN
+ *    sim_hastie_part4() — lambda2_method comparison: CV_1SE_SVD / CV_1SE_CCD
  *    sim_hastie_part5() — hc_linkage comparison: Single / Complete / Average / WPGMA
  *
- *  DGP: 3 equicorrelated groups of 50 variables, all active (s = 150).
- *  Selector: K=20, tFDR=0.1, corr_max=0.98, EN+IEN compared throughout.
+ * DGP: three equicorrelated groups of 50 variables each, all active (s = 150),
+ *      plus 350 null white-noise variables; p = 500 and n = 200.
+ *  Selector: K=20, tFDR=0.1, corr_max=0.98, lambda2=CV_1SE_CCD.
+ *  Methods compared in Parts 1–3: EN (TENET), EN (TENET_AUG), IEN.
  *  MC: 200 trials per grid point.
  */
 // ==============================================================================
@@ -26,12 +32,20 @@
 
 // ==============================================================================
 
+// Namespace usage
 using namespace gvs_demo;
 
 
 // ==============================================================================
 //  Part 1 — SNR sweep
 // ==============================================================================
+
+/**
+ * @brief Run an MC SNR sweep on the Hastie DGP at fixed within-group correlation.
+ *
+ * Uses sd_x = sqrt(0.01) (rho ≈ 0.99) and compares EN (TENET), EN (TENET_AUG),
+ * and IEN across the SNR grid; prints and saves mean FDP/TPP tables.
+ */
 
 static void sim_hastie_part1(const GVSSimConfig& cfg, const std::string& tag)
 {
@@ -46,13 +60,21 @@ static void sim_hastie_part1(const GVSSimConfig& cfg, const std::string& tag)
 
     TRexGVSControlParameter gvs_ctrl_en;
     gvs_ctrl_en.gvs_type       = GVSType::EN;
-    gvs_ctrl_en.lambda2_method = LambdaSelectionMethod::GCV;
+    gvs_ctrl_en.lambda2_method = LambdaSelectionMethod::CV_1SE_CCD;
     gvs_ctrl_en.corr_max       = cfg.corr_max;
     gvs_ctrl_en.hc_linkage     = hac::LinkageMethod::Single;
+    gvs_ctrl_en.en_solver      = ENSolverType::TENET;
+
+    TRexGVSControlParameter gvs_ctrl_en_aug;
+    gvs_ctrl_en_aug.gvs_type       = GVSType::EN;
+    gvs_ctrl_en_aug.lambda2_method = LambdaSelectionMethod::CV_1SE_CCD;
+    gvs_ctrl_en_aug.corr_max       = cfg.corr_max;
+    gvs_ctrl_en_aug.hc_linkage     = hac::LinkageMethod::Single;
+    gvs_ctrl_en_aug.en_solver      = ENSolverType::TENET_AUG;
 
     TRexGVSControlParameter gvs_ctrl_ien;
     gvs_ctrl_ien.gvs_type       = GVSType::IEN;
-    gvs_ctrl_ien.lambda2_method = LambdaSelectionMethod::GCV;
+    gvs_ctrl_ien.lambda2_method = LambdaSelectionMethod::CV_1SE_CCD;
     gvs_ctrl_ien.corr_max       = cfg.corr_max;
     gvs_ctrl_ien.hc_linkage     = hac::LinkageMethod::Single;
 
@@ -63,19 +85,31 @@ static void sim_hastie_part1(const GVSSimConfig& cfg, const std::string& tag)
         "  tFDR=" + std::to_string(cfg.tFDR).substr(0, 3) +
         "  sd_x=sqrt(0.01)");
 
-    auto en_snr  = run_gvs_snr_sweep(
-        snr_fn, snr_grid, cfg, gvs_ctrl_en,  trex_ctrl, "EN");
+    auto en_snr     = run_gvs_snr_sweep(
+        snr_fn, snr_grid, cfg, gvs_ctrl_en,     trex_ctrl, "EN");
 
-    auto ien_snr = run_gvs_snr_sweep(
-        snr_fn, snr_grid, cfg, gvs_ctrl_ien, trex_ctrl, "IEN");
+    auto en_aug_snr = run_gvs_snr_sweep(
+        snr_fn, snr_grid, cfg, gvs_ctrl_en_aug, trex_ctrl, "EN+AUG");
 
-    print_mc_snr_table(tag, snr_grid, en_snr, ien_snr, cfg, "gvs_" + tag + "_snr");
+    auto ien_snr    = run_gvs_snr_sweep(
+        snr_fn, snr_grid, cfg, gvs_ctrl_ien,    trex_ctrl, "IEN");
+
+    print_mc_snr_table(tag, snr_grid, en_snr, en_aug_snr, ien_snr,
+                       cfg, "gvs_" + tag + "_snr");
 }
+
 
 
 // ==============================================================================
 //  Part 2 — rho sweep
 // ==============================================================================
+
+/**
+ * @brief Run an MC rho sweep on the Hastie DGP at fixed SNR.
+ *
+ * Converts each target rho to sd_x = sqrt((1 - rho) / rho), then compares
+ * EN (TENET), EN (TENET_AUG), and IEN across the rho grid.
+ */
 
 static void sim_hastie_part2(const GVSSimConfig& cfg, const std::string& tag)
 {
@@ -92,13 +126,21 @@ static void sim_hastie_part2(const GVSSimConfig& cfg, const std::string& tag)
 
     TRexGVSControlParameter gvs_ctrl_en;
     gvs_ctrl_en.gvs_type       = GVSType::EN;
-    gvs_ctrl_en.lambda2_method = LambdaSelectionMethod::GCV;
+    gvs_ctrl_en.lambda2_method = LambdaSelectionMethod::CV_1SE_CCD;
     gvs_ctrl_en.corr_max       = cfg.corr_max;
     gvs_ctrl_en.hc_linkage     = hac::LinkageMethod::Single;
+    gvs_ctrl_en.en_solver      = ENSolverType::TENET;
+
+    TRexGVSControlParameter gvs_ctrl_en_aug;
+    gvs_ctrl_en_aug.gvs_type       = GVSType::EN;
+    gvs_ctrl_en_aug.lambda2_method = LambdaSelectionMethod::CV_1SE_CCD;
+    gvs_ctrl_en_aug.corr_max       = cfg.corr_max;
+    gvs_ctrl_en_aug.hc_linkage     = hac::LinkageMethod::Single;
+    gvs_ctrl_en_aug.en_solver      = ENSolverType::TENET_AUG;
 
     TRexGVSControlParameter gvs_ctrl_ien;
     gvs_ctrl_ien.gvs_type       = GVSType::IEN;
-    gvs_ctrl_ien.lambda2_method = LambdaSelectionMethod::GCV;
+    gvs_ctrl_ien.lambda2_method = LambdaSelectionMethod::CV_1SE_CCD;
     gvs_ctrl_ien.corr_max       = cfg.corr_max;
     gvs_ctrl_ien.hc_linkage     = hac::LinkageMethod::Single;
 
@@ -106,19 +148,31 @@ static void sim_hastie_part2(const GVSSimConfig& cfg, const std::string& tag)
         "Part 2: rho Sweep  |  " + tag +
         "  (SNR=" + std::to_string(cfg.snr).substr(0, 3) + ")");
 
-    auto en_rho  = run_gvs_rho_sweep(
-        rho_fn, rho_grid, cfg, gvs_ctrl_en,  trex_ctrl, "EN");
+    auto en_rho     = run_gvs_rho_sweep(
+        rho_fn, rho_grid, cfg, gvs_ctrl_en,     trex_ctrl, "EN");
 
-    auto ien_rho = run_gvs_rho_sweep(
-        rho_fn, rho_grid, cfg, gvs_ctrl_ien, trex_ctrl, "IEN");
+    auto en_aug_rho = run_gvs_rho_sweep(
+        rho_fn, rho_grid, cfg, gvs_ctrl_en_aug, trex_ctrl, "EN+AUG");
 
-    print_mc_rho_table(tag, rho_grid, en_rho, ien_rho, cfg, "gvs_" + tag + "_rho");
+    auto ien_rho    = run_gvs_rho_sweep(
+        rho_fn, rho_grid, cfg, gvs_ctrl_ien,    trex_ctrl, "IEN");
+
+    print_mc_rho_table(tag, rho_grid, en_rho, en_aug_rho,
+                       ien_rho, cfg, "gvs_" + tag + "_rho");
 }
+
 
 
 // ==============================================================================
 //  Part 3 — 2-D SNR × rho sweep
 // ==============================================================================
+
+/**
+ * @brief Run a 2-D MC sweep over SNR and rho on the Hastie DGP.
+ *
+ * Evaluates EN (TENET), EN (TENET_AUG), and IEN on an SNR × rho grid, then
+ * prints and saves matrix summaries for mean TPP and mean FDP.
+ */
 
 static void sim_hastie_part3(const GVSSimConfig& cfg, const std::string& tag)
 {
@@ -136,25 +190,37 @@ static void sim_hastie_part3(const GVSSimConfig& cfg, const std::string& tag)
 
     TRexGVSControlParameter gvs_ctrl_en;
     gvs_ctrl_en.gvs_type       = GVSType::EN;
-    gvs_ctrl_en.lambda2_method = LambdaSelectionMethod::GCV;
+    gvs_ctrl_en.lambda2_method = LambdaSelectionMethod::CV_1SE_CCD;
     gvs_ctrl_en.corr_max       = cfg.corr_max;
     gvs_ctrl_en.hc_linkage     = hac::LinkageMethod::Single;
+    gvs_ctrl_en.en_solver      = ENSolverType::TENET;
+
+    TRexGVSControlParameter gvs_ctrl_en_aug;
+    gvs_ctrl_en_aug.gvs_type       = GVSType::EN;
+    gvs_ctrl_en_aug.lambda2_method = LambdaSelectionMethod::CV_1SE_CCD;
+    gvs_ctrl_en_aug.corr_max       = cfg.corr_max;
+    gvs_ctrl_en_aug.hc_linkage     = hac::LinkageMethod::Single;
+    gvs_ctrl_en_aug.en_solver      = ENSolverType::TENET_AUG;
 
     TRexGVSControlParameter gvs_ctrl_ien;
     gvs_ctrl_ien.gvs_type       = GVSType::IEN;
-    gvs_ctrl_ien.lambda2_method = LambdaSelectionMethod::GCV;
+    gvs_ctrl_ien.lambda2_method = LambdaSelectionMethod::CV_1SE_CCD;
     gvs_ctrl_ien.corr_max       = cfg.corr_max;
     gvs_ctrl_ien.hc_linkage     = hac::LinkageMethod::Single;
 
     cdiag::print_section_header("Part 3: 2-D SNR x rho  |  " + tag);
 
-    auto en_2d  = run_gvs_2d_sweep(
+    auto en_2d     = run_gvs_2d_sweep(
         dgp_2d, snr_grid_2d, rho_grid_2d, cfg,
-        gvs_ctrl_en,  trex_ctrl, "EN");
+        gvs_ctrl_en,     trex_ctrl, "EN");
 
-    auto ien_2d = run_gvs_2d_sweep(
+    auto en_aug_2d = run_gvs_2d_sweep(
         dgp_2d, snr_grid_2d, rho_grid_2d, cfg,
-        gvs_ctrl_ien, trex_ctrl, "IEN");
+        gvs_ctrl_en_aug, trex_ctrl, "EN+AUG");
+
+    auto ien_2d    = run_gvs_2d_sweep(
+        dgp_2d, snr_grid_2d, rho_grid_2d, cfg,
+        gvs_ctrl_ien,    trex_ctrl, "IEN");
 
     std::vector<std::string> snr_labels, rho_labels;
     for (double s : snr_grid_2d)
@@ -162,21 +228,34 @@ static void sim_hastie_part3(const GVSSimConfig& cfg, const std::string& tag)
     for (double r : rho_grid_2d)
         rho_labels.push_back("rho=" + std::to_string(r).substr(0, 4));
 
-    print_mc_matrix("mean_TPP [EN]",  snr_labels,
-                    rho_labels, en_2d,  true);
-    print_mc_matrix("mean_FDP [EN]",  snr_labels,
-                    rho_labels, en_2d,  false);
-    print_mc_matrix("mean_TPP [IEN]", snr_labels,
-                    rho_labels, ien_2d, true);
-    print_mc_matrix("mean_FDP [IEN]", snr_labels,
-                    rho_labels, ien_2d, false);
-    save_mc_2d_tables(tag, snr_labels, rho_labels, en_2d, ien_2d, cfg, "gvs_" + tag + "_2d");
+    print_mc_matrix("mean_TPP [EN]",     snr_labels,
+                    rho_labels, en_2d,     true);
+    print_mc_matrix("mean_FDP [EN]",     snr_labels,
+                    rho_labels, en_2d,     false);
+    print_mc_matrix("mean_TPP [EN+AUG]", snr_labels,
+                    rho_labels, en_aug_2d, true);
+    print_mc_matrix("mean_FDP [EN+AUG]", snr_labels,
+                    rho_labels, en_aug_2d, false);
+    print_mc_matrix("mean_TPP [IEN]",    snr_labels,
+                    rho_labels, ien_2d,    true);
+    print_mc_matrix("mean_FDP [IEN]",    snr_labels,
+                    rho_labels, ien_2d,    false);
+    save_mc_2d_tables(tag, snr_labels, rho_labels, en_2d,
+                      en_aug_2d, ien_2d, cfg, "gvs_" + tag + "_2d");
 }
+
 
 
 // ==============================================================================
 //  Part 4 — lambda2_method comparison
 // ==============================================================================
+
+/**
+ * @brief Compare lambda2 selection methods at a fixed Hastie operating point.
+ *
+ * Runs EN and IEN at SNR = 2.0 and rho = 0.7, comparing CV_1SE_SVD against
+ * CV_1SE_CCD while holding the rest of the selector settings fixed.
+ */
 
 static void sim_hastie_part4(const GVSSimConfig& cfg, const std::string& tag)
 {
@@ -193,11 +272,10 @@ static void sim_hastie_part4(const GVSSimConfig& cfg, const std::string& tag)
     auto trex_ctrl = make_gvs_trex_control(cfg.K);
 
     const std::vector<LambdaSelectionMethod> methods = {
-        LambdaSelectionMethod::GCV,
-        LambdaSelectionMethod::CV_1SE,
-        LambdaSelectionMethod::CV_MIN
+        LambdaSelectionMethod::CV_1SE_SVD,
+        LambdaSelectionMethod::CV_1SE_CCD
     };
-    const std::vector<std::string> method_labels = {"GCV", "CV_1SE", "CV_MIN"};
+    const std::vector<std::string> method_labels = {"CV_1SE_SVD", "CV_1SE_CCD"};
 
     cdiag::print_section_header(
         "Part 4: lambda2_method Comparison  |  " + tag +
@@ -205,7 +283,8 @@ static void sim_hastie_part4(const GVSSimConfig& cfg, const std::string& tag)
         "  SNR=" + std::to_string(fixed_snr).substr(0, 3) +
         "  rho=" + std::to_string(fixed_rho).substr(0, 3) +
         "  s=150  MC=" + std::to_string(cfg.num_MC) +
-        "  tFDR=" + std::to_string(cfg.tFDR).substr(0, 3));
+        "  tFDR=" + std::to_string(cfg.tFDR).substr(0, 3) +
+        "  methods: CV_1SE_SVD / CV_1SE_CCD");
 
     std::vector<GVSGridPointResult> en_results, ien_results;
     en_results.reserve(methods.size());
@@ -217,6 +296,7 @@ static void sim_hastie_part4(const GVSSimConfig& cfg, const std::string& tag)
         gvs_ctrl_en.lambda2_method = methods[i];
         gvs_ctrl_en.corr_max       = cfg.corr_max;
         gvs_ctrl_en.hc_linkage     = hac::LinkageMethod::Single;
+        gvs_ctrl_en.en_solver      = ENSolverType::TENET;
 
         en_results.push_back(
             run_gvs_mc_trials(dgp_fn, 0.0, cfg.num_MC,
@@ -290,10 +370,17 @@ static void sim_hastie_part4(const GVSSimConfig& cfg, const std::string& tag)
 //  Part 5 — hc_linkage comparison
 // ==============================================================================
 
+/**
+ * @brief Compare HAC linkage rules at a fixed Hastie operating point.
+ *
+ * Runs EN and IEN at SNR = 2.0 and rho = 0.7, comparing Single, Complete,
+ * Average, and WPGMA linkage with lambda2 fixed at CV_1SE_CCD.
+ */
+
 static void sim_hastie_part5(const GVSSimConfig& cfg, const std::string& tag)
 {
     // Same fixed operating point as Part 4: SNR=2.0, rho=0.7.
-    // GCV used throughout to isolate the linkage effect from lambda selection.
+    // CV_1SE_CCD used throughout to isolate the linkage effect from lambda selection.
     constexpr double fixed_snr = 2.0;
     constexpr double fixed_rho = 0.7;
     const double     fixed_sdx = std::sqrt((1.0 - fixed_rho) / fixed_rho);
@@ -320,7 +407,7 @@ static void sim_hastie_part5(const GVSSimConfig& cfg, const std::string& tag)
         "  rho=" + std::to_string(fixed_rho).substr(0, 3) +
         "  s=150  MC=" + std::to_string(cfg.num_MC) +
         "  tFDR=" + std::to_string(cfg.tFDR).substr(0, 3) +
-        "  lambda2=GCV");
+        "  lambda2=CV_1SE_CCD");
 
     std::vector<GVSGridPointResult> en_results, ien_results;
     en_results.reserve(linkages.size());
@@ -329,9 +416,10 @@ static void sim_hastie_part5(const GVSSimConfig& cfg, const std::string& tag)
     for (std::size_t i = 0; i < linkages.size(); ++i) {
         TRexGVSControlParameter gvs_ctrl_en;
         gvs_ctrl_en.gvs_type       = GVSType::EN;
-        gvs_ctrl_en.lambda2_method = LambdaSelectionMethod::CV_1SE;
+        gvs_ctrl_en.lambda2_method = LambdaSelectionMethod::CV_1SE_CCD;
         gvs_ctrl_en.corr_max       = cfg.corr_max;
         gvs_ctrl_en.hc_linkage     = linkages[i];
+        gvs_ctrl_en.en_solver      = ENSolverType::TENET;
 
         en_results.push_back(
             run_gvs_mc_trials(dgp_fn, 0.0, cfg.num_MC,
@@ -341,7 +429,7 @@ static void sim_hastie_part5(const GVSSimConfig& cfg, const std::string& tag)
 
         TRexGVSControlParameter gvs_ctrl_ien;
         gvs_ctrl_ien.gvs_type       = GVSType::IEN;
-        gvs_ctrl_ien.lambda2_method = LambdaSelectionMethod::CV_1SE;
+        gvs_ctrl_ien.lambda2_method = LambdaSelectionMethod::CV_1SE_CCD;
         gvs_ctrl_ien.corr_max       = cfg.corr_max;
         gvs_ctrl_ien.hc_linkage     = linkages[i];
 
@@ -407,6 +495,8 @@ static void sim_hastie_part5(const GVSSimConfig& cfg, const std::string& tag)
 int main()
 {
     std::cout.setf(std::ios::unitbuf);
+    omp_set_num_threads(6);
+    std::cout << "Running with " << omp_get_max_threads() << " threads\n\n";
 
     // ==========================================================================
     //  Simulation parameters

@@ -1,191 +1,347 @@
 // ==============================================================================
-// sim_trex_gvs_03_mixed_blocks.cpp
+// demo_trex_gvs_03_mc_sim_mixed_blocks.cpp
 // ==============================================================================
 /**
- * @file sim_trex_gvs_03_mixed_blocks.cpp
+ * @file demo_trex_gvs_03_mc_sim_mixed_blocks.cpp
  *
- * @brief MC simulation: T-Rex+GVS on the mixed-blocks DGP.
+ * @brief MC simulation: T-Rex+GVS on the mixed-blocks DGP, with two benchmark
+ * presets sharing the same underlying generator.
  *
  * @details
- *  Three parts, each in its own function:
- *    sim_mixed_blocks_part1() — SNR sweep (fixed sd_x = sqrt(0.01))
- *    sim_mixed_blocks_part2() — rho sweep (fixed SNR = 2.0, sd_x derived from rho)
- *    sim_mixed_blocks_part3() — 2-D SNR × rho grid
+ * This file merges the former "mixed-blocks" and "equicorr-blocks" drivers into
+ * a single implementation. Both presets use make_mixed_blocks_dgp(), i.e. a
+ * four-block Gaussian design with block sizes {20, 50, 80, 65}, three active
+ * blocks (total support size s = 150), and one inactive equicorrelated trap
+ * block, placed in random order with random noise gaps.
  *
- *  DGP: four blocks {20,50,80,65} in random order; first three active (s=150).
- *  Selector: K=20, tFDR=0.1, corr_max=0.98, single-linkage HAC, GCV lambda₂.
- *  MC: 200 trials per grid point.
+ * Presets:
+ * 1. Mixed-Blocks
+ *    - Part 1: SNR sweep at fixed sd_x = sqrt(0.01)   (rho ≈ 0.99)
+ *    - Part 2: rho sweep at fixed SNR = 2.0
+ *    - Part 3: 2-D SNR × rho grid
+ *
+ * 2. Mixed-Blocks-Rho075
+ *    - Part 1: SNR sweep at fixed rho = 0.75
+ *    - Part 2: rho sweep at fixed SNR = 2.0
+ *    - Part 3: 2-D SNR × rho grid with slightly expanded rho coverage
+ *
+ * Shared selector settings:
+ * - K = 20
+ * - tFDR = 0.1
+ * - corr_max = 0.98
+ * - single-linkage HAC
+ * - lambda2 = CV_1SE_CCD
+ *
+ * Methods compared:
+ * - EN (TENET)
+ * - EN (TENET_AUG)
+ * - IEN
+ *
+ * MC:
+ * - 200 trials per grid point
  */
 // ==============================================================================
 
 #include "trex_gvs_dgps.hpp"
 #include "trex_gvs_simulation_utils.hpp"
 
-
 // ==============================================================================
 
 using namespace gvs_demo;
 
+// =============================================================================
+// Benchmark presets
+// =============================================================================
 
-// ==============================================================================
-//  Part 1 — SNR sweep
-// ==============================================================================
+enum class MixedBlocksMode {
+  DEFAULT_SD_X,
+  FIXED_RHO_075
+};
 
-static void sim_mixed_blocks_part1(const GVSSimConfig& cfg, const std::string& tag)
-{
-    const std::vector<double> snr_grid = {0.1, 0.2, 0.5, 1.0, 2.0, 5.0};
+struct MixedBlocksPreset {
+  MixedBlocksMode mode;
+  std::string scenario_tag;
+  std::string file_stem_prefix;
 
-    GVSDGPFactory snr_fn = [&cfg](double snr, unsigned seed) {
-        return make_mixed_blocks_dgp(cfg.n, cfg.p, snr, cfg.sd_x, seed);
-    };
+  double fixed_sd_x_for_snr = 0.1;
+  double fixed_rho_for_snr = 0.75;
+  double fixed_snr_for_rho = 2.0;
 
-    auto trex_ctrl = make_gvs_trex_control(cfg.K);
+  std::vector<double> snr_grid_1d;
+  std::vector<double> rho_grid_1d;
+  std::vector<double> snr_grid_2d;
+  std::vector<double> rho_grid_2d;
+};
 
-    TRexGVSControlParameter gvs_ctrl_en;
-    gvs_ctrl_en.gvs_type       = GVSType::EN;
-    gvs_ctrl_en.lambda2_method = LambdaSelectionMethod::GCV;
-    gvs_ctrl_en.corr_max       = cfg.corr_max;
-    gvs_ctrl_en.hc_linkage     = hac::LinkageMethod::Single;
+struct MixedBlocksMethodSet {
+  TRexControlParameter trex_ctrl;
+  TRexGVSControlParameter en;
+  TRexGVSControlParameter en_aug;
+  TRexGVSControlParameter ien;
+};
 
-    TRexGVSControlParameter gvs_ctrl_ien;
-    gvs_ctrl_ien.gvs_type       = GVSType::IEN;
-    gvs_ctrl_ien.lambda2_method = LambdaSelectionMethod::GCV;
-    gvs_ctrl_ien.corr_max       = cfg.corr_max;
-    gvs_ctrl_ien.hc_linkage     = hac::LinkageMethod::Single;
+// =============================================================================
+// Preset builders
+// =============================================================================
 
-    cdiag::print_section_header(
-        "Part 1: SNR Sweep  |  " + tag +
-        "\nn=" + std::to_string(cfg.n) + "  p=" + std::to_string(cfg.p) +
-        "  s=150  MC=" + std::to_string(cfg.num_MC) +
-        "  tFDR=" + std::to_string(cfg.tFDR).substr(0, 3) +
-        "  sd_x=sqrt(0.01)");
-
-    auto en_snr  = run_gvs_snr_sweep(snr_fn, snr_grid, cfg, gvs_ctrl_en,  trex_ctrl, "EN");
-    auto ien_snr = run_gvs_snr_sweep(snr_fn, snr_grid, cfg, gvs_ctrl_ien, trex_ctrl, "IEN");
-    print_mc_snr_table(tag, snr_grid, en_snr, ien_snr, cfg, "gvs_" + tag + "_snr");
+static MixedBlocksPreset make_default_sd_x_preset() {
+  MixedBlocksPreset p;
+  p.mode = MixedBlocksMode::DEFAULT_SD_X;
+  p.scenario_tag = "Mixed-Blocks";
+  p.file_stem_prefix = "gvs_mixed_blocks";
+  p.fixed_sd_x_for_snr = std::sqrt(0.01);
+  p.fixed_snr_for_rho = 2.0;
+  p.snr_grid_1d = {0.1, 0.2, 0.5, 1.0, 2.0, 5.0};
+  p.rho_grid_1d = {0.10, 0.20, 0.30, 0.50, 0.70, 0.80, 0.90, 0.95, 0.99};
+  p.snr_grid_2d = {0.2, 0.5, 1.0, 2.0, 5.0};
+  p.rho_grid_2d = {0.30, 0.50, 0.70, 0.90, 0.95, 0.99};
+  return p;
 }
 
-
-// ==============================================================================
-//  Part 2 — rho sweep
-// ==============================================================================
-
-static void sim_mixed_blocks_part2(const GVSSimConfig& cfg, const std::string& tag)
-{
-    const std::vector<double> rho_grid = {0.10, 0.20, 0.30, 0.50, 0.70,
-                                           0.80, 0.90, 0.95, 0.99};
-
-    GVSRhoDGPFactory rho_fn = [&cfg](double rho, unsigned seed) {
-        const double sd_x = std::sqrt((1.0 - rho) / rho);
-        return make_mixed_blocks_dgp(cfg.n, cfg.p, cfg.snr, sd_x, seed);
-    };
-
-    auto trex_ctrl = make_gvs_trex_control(cfg.K);
-
-    TRexGVSControlParameter gvs_ctrl_en;
-    gvs_ctrl_en.gvs_type       = GVSType::EN;
-    gvs_ctrl_en.lambda2_method = LambdaSelectionMethod::GCV;
-    gvs_ctrl_en.corr_max       = cfg.corr_max;
-    gvs_ctrl_en.hc_linkage     = hac::LinkageMethod::Single;
-
-    TRexGVSControlParameter gvs_ctrl_ien;
-    gvs_ctrl_ien.gvs_type       = GVSType::IEN;
-    gvs_ctrl_ien.lambda2_method = LambdaSelectionMethod::GCV;
-    gvs_ctrl_ien.corr_max       = cfg.corr_max;
-    gvs_ctrl_ien.hc_linkage     = hac::LinkageMethod::Single;
-
-    cdiag::print_section_header(
-        "Part 2: rho Sweep  |  " + tag +
-        "  (SNR=" + std::to_string(cfg.snr).substr(0, 3) + ")");
-
-    auto en_rho  = run_gvs_rho_sweep(rho_fn, rho_grid, cfg, gvs_ctrl_en,  trex_ctrl, "EN");
-    auto ien_rho = run_gvs_rho_sweep(rho_fn, rho_grid, cfg, gvs_ctrl_ien, trex_ctrl, "IEN");
-    print_mc_rho_table(tag, rho_grid, en_rho, ien_rho, cfg, "gvs_" + tag + "_rho");
+static MixedBlocksPreset make_fixed_rho_preset() {
+  MixedBlocksPreset p;
+  p.mode = MixedBlocksMode::FIXED_RHO_075;
+  p.scenario_tag = "Mixed-Blocks-Rho075";
+  p.file_stem_prefix = "gvs_mixed_blocks_rho075";
+  p.fixed_rho_for_snr = 0.75;
+  p.fixed_snr_for_rho = 2.0;
+  p.snr_grid_1d = {0.1, 0.2, 0.5, 1.0, 2.0, 5.0};
+  p.rho_grid_1d = {0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 0.95, 0.99};
+  p.snr_grid_2d = {0.2, 0.5, 1.0, 2.0, 5.0};
+  p.rho_grid_2d = {0.30, 0.50, 0.70, 0.85, 0.90, 0.99};
+  return p;
 }
 
+// =============================================================================
+// Shared method controls
+// =============================================================================
 
-// ==============================================================================
-//  Part 3 — 2-D SNR × rho sweep
-// ==============================================================================
+static MixedBlocksMethodSet make_method_set(const GVSSimConfig& cfg) {
+  MixedBlocksMethodSet ms;
+  ms.trex_ctrl = make_gvs_trex_control(cfg.K);
 
-static void sim_mixed_blocks_part3(const GVSSimConfig& cfg, const std::string& tag)
-{
-    const std::vector<double> snr_grid_2d = {0.2, 0.5, 1.0, 2.0, 5.0};
-    const std::vector<double> rho_grid_2d = {0.30, 0.50, 0.70, 0.90, 0.95, 0.99};
+  ms.en.gvs_type = GVSType::EN;
+  ms.en.lambda2_method = LambdaSelectionMethod::CV_1SE_CCD;
+  ms.en.corr_max = cfg.corr_max;
+  ms.en.hc_linkage = hac::LinkageMethod::Single;
+  ms.en.en_solver = ENSolverType::TENET;
 
-    GVS2DDGPFactory dgp_2d = [&cfg](double snr, double rho, unsigned seed) {
-        const double sd_x = std::sqrt((1.0 - rho) / rho);
-        return make_mixed_blocks_dgp(cfg.n, cfg.p, snr, sd_x, seed);
-    };
+  ms.en_aug = ms.en;
+  ms.en_aug.en_solver = ENSolverType::TENET_AUG;
 
-    auto trex_ctrl = make_gvs_trex_control(cfg.K);
+  ms.ien.gvs_type = GVSType::IEN;
+  ms.ien.lambda2_method = LambdaSelectionMethod::CV_1SE_CCD;
+  ms.ien.corr_max = cfg.corr_max;
+  ms.ien.hc_linkage = hac::LinkageMethod::Single;
 
-    TRexGVSControlParameter gvs_ctrl_en;
-    gvs_ctrl_en.gvs_type       = GVSType::EN;
-    gvs_ctrl_en.lambda2_method = LambdaSelectionMethod::GCV;
-    gvs_ctrl_en.corr_max       = cfg.corr_max;
-    gvs_ctrl_en.hc_linkage     = hac::LinkageMethod::Single;
-
-    TRexGVSControlParameter gvs_ctrl_ien;
-    gvs_ctrl_ien.gvs_type       = GVSType::IEN;
-    gvs_ctrl_ien.lambda2_method = LambdaSelectionMethod::GCV;
-    gvs_ctrl_ien.corr_max       = cfg.corr_max;
-    gvs_ctrl_ien.hc_linkage     = hac::LinkageMethod::Single;
-
-    cdiag::print_section_header("Part 3: 2-D SNR x rho  |  " + tag);
-
-    auto en_2d  = run_gvs_2d_sweep(dgp_2d, snr_grid_2d, rho_grid_2d, cfg,
-                                    gvs_ctrl_en,  trex_ctrl, "EN");
-    auto ien_2d = run_gvs_2d_sweep(dgp_2d, snr_grid_2d, rho_grid_2d, cfg,
-                                    gvs_ctrl_ien, trex_ctrl, "IEN");
-
-    std::vector<std::string> snr_labels, rho_labels;
-    for (double s : snr_grid_2d)
-        snr_labels.push_back("snr=" + std::to_string(s).substr(0, 4));
-    for (double r : rho_grid_2d)
-        rho_labels.push_back("rho=" + std::to_string(r).substr(0, 4));
-
-    print_mc_matrix("mean_TPP [EN]",  snr_labels, rho_labels, en_2d,  true);
-    print_mc_matrix("mean_FDP [EN]",  snr_labels, rho_labels, en_2d,  false);
-    print_mc_matrix("mean_TPP [IEN]", snr_labels, rho_labels, ien_2d, true);
-    print_mc_matrix("mean_FDP [IEN]", snr_labels, rho_labels, ien_2d, false);
-    save_mc_2d_tables(tag, snr_labels, rho_labels, en_2d, ien_2d, cfg, "gvs_" + tag + "_2d");
+  return ms;
 }
 
+// =============================================================================
+// Helpers
+// =============================================================================
 
-// ==============================================================================
-//  main
-// ==============================================================================
+static double resolve_fixed_sd_x_for_snr(const MixedBlocksPreset& preset) {
+  if (preset.mode == MixedBlocksMode::DEFAULT_SD_X) {
+    return preset.fixed_sd_x_for_snr;
+  }
+  return std::sqrt((1.0 - preset.fixed_rho_for_snr) / preset.fixed_rho_for_snr);
+}
 
-int main()
-{
-    std::cout.setf(std::ios::unitbuf);
+static std::string make_part1_header_suffix(const MixedBlocksPreset& preset) {
+  if (preset.mode == MixedBlocksMode::DEFAULT_SD_X) {
+    return "sd_x=sqrt(0.01)";
+  }
+  return "rho=0.75 (fixed)";
+}
 
-    // ==========================================================================
-    //  Simulation parameters
-    // ==========================================================================
+// =============================================================================
+// Part 1 — SNR sweep
+// =============================================================================
 
-    GVSSimConfig cfg;
-    cfg.n         = 200;
-    cfg.p         = 500;
-    cfg.sd_x      = 0.1;
-    cfg.tFDR      = 0.1;
-    cfg.K         = 20;
-    cfg.num_MC    = 200;
-    cfg.base_seed = 2026;
-    cfg.corr_max  = 0.98;
-    cfg.snr       = 2.0;    // fixed SNR for Part 2 (rho sweep)
+/**
+ * @brief Run an MC SNR sweep on the mixed-blocks DGP using the selected preset.
+ *
+ * For DEFAULT_SD_X, fixes sd_x = sqrt(0.01). For FIXED_RHO_075, fixes rho=0.75
+ * and converts to sd_x = sqrt((1-rho)/rho). Compares EN (TENET), EN (TENET_AUG),
+ * and IEN across the SNR grid.
+ */
+static void run_part1_snr_sweep(const GVSSimConfig& cfg,
+                                const MixedBlocksPreset& preset,
+                                const MixedBlocksMethodSet& ms) {
+  const double fixed_sd_x = resolve_fixed_sd_x_for_snr(preset);
 
-    const std::string scenario_tag = "Mixed-Blocks";
+  GVSDGPFactory snr_fn = [&cfg, fixed_sd_x](double snr, unsigned seed) {
+    return make_mixed_blocks_dgp(cfg.n, cfg.p, snr, fixed_sd_x, seed);
+  };
 
-    // ==========================================================================
-    //  Run simulations
-    // ==========================================================================
+  cdiag::print_section_header(
+      "Part 1: SNR Sweep | " + preset.scenario_tag +
+      "\nn=" + std::to_string(cfg.n) + " p=" + std::to_string(cfg.p) +
+      " s=150 MC=" + std::to_string(cfg.num_MC) +
+      " tFDR=" + std::to_string(cfg.tFDR).substr(0, 3) + " " +
+      make_part1_header_suffix(preset));
 
-    sim_mixed_blocks_part1(cfg, scenario_tag);
-    sim_mixed_blocks_part2(cfg, scenario_tag);
-    sim_mixed_blocks_part3(cfg, scenario_tag);
+  auto en = run_gvs_snr_sweep(
+      snr_fn, preset.snr_grid_1d, cfg, ms.en, ms.trex_ctrl, "EN");
+  auto en_aug = run_gvs_snr_sweep(
+      snr_fn, preset.snr_grid_1d, cfg, ms.en_aug, ms.trex_ctrl, "EN+AUG");
+  auto ien = run_gvs_snr_sweep(
+      snr_fn, preset.snr_grid_1d, cfg, ms.ien, ms.trex_ctrl, "IEN");
 
-    std::cout << scenario_tag << " GVS MC simulations complete.\n";
-    return 0;
+  print_mc_snr_table(
+      preset.scenario_tag,
+      preset.snr_grid_1d,
+      en,
+      en_aug,
+      ien,
+      cfg,
+      preset.file_stem_prefix + "_snr");
+}
+
+// =============================================================================
+// Part 2 — rho sweep
+// =============================================================================
+
+/**
+ * @brief Run an MC rho sweep on the mixed-blocks DGP at fixed SNR.
+ *
+ * Converts each target rho to sd_x = sqrt((1 - rho) / rho), then compares
+ * EN (TENET), EN (TENET_AUG), and IEN across the rho grid.
+ */
+static void run_part2_rho_sweep(const GVSSimConfig& cfg,
+                                const MixedBlocksPreset& preset,
+                                const MixedBlocksMethodSet& ms) {
+  GVSRhoDGPFactory rho_fn = [&cfg](double rho, unsigned seed) {
+    const double sd_x = std::sqrt((1.0 - rho) / rho);
+    return make_mixed_blocks_dgp(cfg.n, cfg.p, cfg.snr, sd_x, seed);
+  };
+
+  cdiag::print_section_header(
+      "Part 2: rho Sweep | " + preset.scenario_tag +
+      " (SNR=" + std::to_string(cfg.snr).substr(0, 3) + ")");
+
+  auto en = run_gvs_rho_sweep(
+      rho_fn, preset.rho_grid_1d, cfg, ms.en, ms.trex_ctrl, "EN");
+  auto en_aug = run_gvs_rho_sweep(
+      rho_fn, preset.rho_grid_1d, cfg, ms.en_aug, ms.trex_ctrl, "EN+AUG");
+  auto ien = run_gvs_rho_sweep(
+      rho_fn, preset.rho_grid_1d, cfg, ms.ien, ms.trex_ctrl, "IEN");
+
+  print_mc_rho_table(
+      preset.scenario_tag,
+      preset.rho_grid_1d,
+      en,
+      en_aug,
+      ien,
+      cfg,
+      preset.file_stem_prefix + "_rho");
+}
+
+// =============================================================================
+// Part 3 — 2-D SNR × rho sweep
+// =============================================================================
+
+/**
+ * @brief Run a 2-D MC sweep over SNR and rho on the mixed-blocks DGP.
+ *
+ * Evaluates EN (TENET), EN (TENET_AUG), and IEN on an SNR × rho grid, then
+ * prints and saves matrix summaries for mean FDP and mean TPP.
+ */
+static void run_part3_2d_sweep(const GVSSimConfig& cfg,
+                               const MixedBlocksPreset& preset,
+                               const MixedBlocksMethodSet& ms) {
+  GVS2DDGPFactory dgp_2d = [&cfg](double snr, double rho, unsigned seed) {
+    const double sd_x = std::sqrt((1.0 - rho) / rho);
+    return make_mixed_blocks_dgp(cfg.n, cfg.p, snr, sd_x, seed);
+  };
+
+  cdiag::print_section_header("Part 3: 2-D SNR x rho | " + preset.scenario_tag);
+
+  auto en = run_gvs_2d_sweep(
+      dgp_2d, preset.snr_grid_2d, preset.rho_grid_2d, cfg,
+      ms.en, ms.trex_ctrl, "EN");
+  auto en_aug = run_gvs_2d_sweep(
+      dgp_2d, preset.snr_grid_2d, preset.rho_grid_2d, cfg,
+      ms.en_aug, ms.trex_ctrl, "EN+AUG");
+  auto ien = run_gvs_2d_sweep(
+      dgp_2d, preset.snr_grid_2d, preset.rho_grid_2d, cfg,
+      ms.ien, ms.trex_ctrl, "IEN");
+
+  std::vector<std::string> snr_labels, rho_labels;
+  for (double s : preset.snr_grid_2d) {
+    snr_labels.push_back("snr=" + std::to_string(s).substr(0, 4));
+  }
+  for (double r : preset.rho_grid_2d) {
+    rho_labels.push_back("rho=" + std::to_string(r).substr(0, 4));
+  }
+
+  print_mc_matrix("mean_FDP [EN]", snr_labels, rho_labels, en, false);
+  print_mc_matrix("mean_TPP [EN]", snr_labels, rho_labels, en, true);
+  print_mc_matrix("mean_FDP [EN+AUG]", snr_labels, rho_labels, en_aug, false);
+  print_mc_matrix("mean_TPP [EN+AUG]", snr_labels, rho_labels, en_aug, true);
+  print_mc_matrix("mean_FDP [IEN]", snr_labels, rho_labels, ien, false);
+  print_mc_matrix("mean_TPP [IEN]", snr_labels, rho_labels, ien, true);
+
+  save_mc_2d_tables(
+      preset.scenario_tag,
+      snr_labels,
+      rho_labels,
+      en,
+      en_aug,
+      ien,
+      cfg,
+      preset.file_stem_prefix + "_2d");
+}
+
+// =============================================================================
+// Top-level benchmark driver
+// =============================================================================
+
+/**
+ * @brief Run one mixed-blocks benchmark preset through all three parts.
+ */
+static void run_mixed_blocks_benchmark(const GVSSimConfig& base_cfg,
+                                       const MixedBlocksPreset& preset) {
+  GVSSimConfig cfg = base_cfg;
+  cfg.snr = preset.fixed_snr_for_rho;
+
+  const auto ms = make_method_set(cfg);
+
+  cdiag::print_section_header(
+      "Mixed-blocks benchmark | " + preset.scenario_tag +
+      "\nDGP = make_mixed_blocks_dgp"
+      "\nblocks = {20, 50, 80, 65}, active = {0,1,2}, inactive trap = {3}");
+
+  run_part1_snr_sweep(cfg, preset, ms);
+  run_part2_rho_sweep(cfg, preset, ms);
+  run_part3_2d_sweep(cfg, preset, ms);
+
+  std::cout << preset.scenario_tag << " GVS MC simulations complete.\n";
+}
+
+// =============================================================================
+// main
+// =============================================================================
+
+int main() {
+  std::cout.setf(std::ios::unitbuf);
+  omp_set_num_threads(6);
+  std::cout << "Running with " << omp_get_max_threads() << " threads\n\n";
+
+  GVSSimConfig cfg;
+  cfg.n = 200;
+  cfg.p = 500;
+  cfg.tFDR = 0.1;
+  cfg.K = 20;
+  cfg.num_MC = 200;
+  cfg.base_seed = 2026;
+  cfg.corr_max = 0.98;
+  cfg.snr = 2.0;
+
+  run_mixed_blocks_benchmark(cfg, make_default_sd_x_preset());
+  run_mixed_blocks_benchmark(cfg, make_fixed_rho_preset());
+
+  std::cout << "All mixed-blocks benchmark presets complete.\n";
+  return 0;
 }

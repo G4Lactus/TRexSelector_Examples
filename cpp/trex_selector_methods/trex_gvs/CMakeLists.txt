@@ -23,27 +23,24 @@ add_demo_target(demo_trex_gvs_04_mc_sim_neg_traps
     T_REX_SELECTOR_LIBS
 )
 
-add_demo_target(demo_trex_gvs_05_mc_sim_equicorr_blocks
-    demo_trex_gvs_05_mc_sim_equicorr_blocks.cpp
+add_demo_target(demo_trex_gvs_05_mc_sim_t3_blocks
+    demo_trex_gvs_05_mc_sim_t3_blocks.cpp
     T_REX_SELECTOR_LIBS
 )
 
-add_demo_target(demo_trex_gvs_06_mc_sim_t3_blocks
-    demo_trex_gvs_06_mc_sim_t3_blocks.cpp
+add_demo_target(demo_trex_gvs_06_mc_sim_ar1_blocks
+    demo_trex_gvs_06_mc_sim_ar1_blocks.cpp
     T_REX_SELECTOR_LIBS
 )
 
-add_demo_target(demo_trex_gvs_07_mc_sim_ar1_blocks
-    demo_trex_gvs_07_mc_sim_ar1_blocks.cpp
+add_demo_target(demo_trex_gvs_07_mc_sim_arma_blocks
+    demo_trex_gvs_07_mc_sim_arma_blocks.cpp
     T_REX_SELECTOR_LIBS
 )
 
-add_demo_target(demo_trex_gvs_08_mc_sim_arma_blocks
-    demo_trex_gvs_08_mc_sim_arma_blocks.cpp
+add_demo_target(demo_trex_gvs_08_mc_sim_block_bench
+    demo_trex_gvs_08_mc_sim_block_bench.cpp
     T_REX_SELECTOR_LIBS
 )
 
-add_demo_target(demo_trex_gvs_09_mc_sim_block_bench
-    demo_trex_gvs_09_mc_sim_block_bench.cpp
-    T_REX_SELECTOR_LIBS
-)
+

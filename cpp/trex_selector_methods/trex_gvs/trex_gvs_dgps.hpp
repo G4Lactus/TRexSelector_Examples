@@ -29,7 +29,6 @@
 
 // std includes
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <cstddef>
 #include <numeric>
@@ -1778,7 +1777,7 @@ inline GVSDGPResult make_hapgen_dgp(int n, double snr,
 
 
 // ==============================================================================
-} // namespace gvs_demo
+} /* End of namespace gvs_demo */
 // ==============================================================================
 
-#endif // DEMOS_TREX_SELECTOR_METHODS_GVS_DGPS_HPP
+#endif /* End of DEMOS_TREX_SELECTOR_METHODS_GVS_DGPS_HPP */
