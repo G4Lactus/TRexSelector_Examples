@@ -1,63 +1,74 @@
 # ==============================================================================
-# demo_trex_spca_2.R
+# demo_trex_spca_02.R  --  R REFERENCE DUMP for the C++ head-to-head
 # ==============================================================================
 #
-# This script evaluates the T-Rex Sparse PCA method against ordinary PCA and an
-# oracle baseline.
+# PURPOSE
+# -------
+# The residual C++-vs-R FDR gap (~3%) on the SPCA benchmark must be explained on
+# IDENTICAL data, with the data-generating RNG and the CV-fold RNG removed as
+# confounds. Because the ground truth (the true PC1 support) is only known to the
+# generator, R is made the single source of truth here:
 #
-# 1. Data Generating Process (DGP)
-#    - Model: Sparse M-Factor Model (X = Z * V^T + E)
-#    - Dimensions: n = 50 samples, p = 100 features.
-#    - Factors (Z): M = 3 independent latent factors with decreasing
-#      standard deviations (sigma = 5, 3, 1).
-#    - Sparse Loadings (V): Each factor has p1 = 5 true active variables.
-#      To enforce overlapping support, these variables are strictly sampled
-#      from the same pool of the first 30 variables.
-#    - Noise (E): Scaled according to Signal-to-Noise Ratio (SNR) targets
-#      ranging from -10 dB to +10 dB.
+#   1. generate each dataset with the EXACT DGP of demo_trex_spca_01.R,
+#   2. dump X at full double precision (so C++ reads bit-identical inputs),
+#   3. run the EXACT "T-Rex EN" PC1 pipeline of demo_trex_spca_01.R,
+#   4. dump truth, lambda_2_lars, the R selection, and the R PC1 scores.
 #
-# 2. Evaluation Strategy
-#    - TPR & FDR (Support Recovery): Because the true factors share overlapping
-#      variables, Ordinary PCA (enforces strict orthogonality) forces
-#      the 2nd and 3rd estimated principal components to become mixed linear
-#      combinations of the true factors.
-#      To avoid penalizing algorithms for finding these "leaked" variables,
-#      TPR and FDR are strictly evaluated on the 1st PC (PC1)
-#      where the dominant factor (sigma = 5) isolates cleanly.
-#    - Percentage of Explained Variance (PEV): Evaluated cumulatively across
-#      all M components. Because sparse principal components lose strict
-#      orthogonality, PEV is adjusted using the QR decomposition of the
-#      estimated score matrix (Z_est) as defined in the paper.
+# The C++ side (demo_trex_spca_05_rdump_pipeline) then loads these same X files
+# and, with --use-r-lambda2, reuses R's lambda_2 per trial so the ONLY remaining
+# difference is the T-Rex selector itself.
 #
-# 3. Paper Visualizations
-#    While this script sweeps across SNR values to output console metrics,
-#    the original paper plots these relationships across multiple axes:
-#      * Fig 1/2: TPR & FDR vs. SNR (dB)
-#      * Fig 3a:  Cumulative PEV vs. SNR (dB)
-#      * Fig 3b:  Cumulative PEV vs. Number of true active loadings (p1)
-#      * Fig 3c:  Cumulative PEV vs. Target FDR (alpha)
+# OUTPUT FILES (written into ./rdump next to this script):
+#   X_<mc>.csv     n x p centered design, comma-separated, NO header (full precision)
+#   truth.csv      "mc,indices"        PC1 true support, dash-joined, 0-based
+#   r_lambda2.csv  "mc,lambda2"        R lambda_2_lars per trial
+#   r_results.csv  "mc,k,fdr,tpr,indices"   R selection (indices dash-joined, 0-based)
+#   r_pc1.csv      mc, then n PC1 scores (full precision) -- to verify PCA match
 #
-#
-# NOTE ON T-REX+GVS with ELASTIC NET PARAMETERIZATION:
-# --------------------------------------------------------
-# To recover the highly correlated overlapping variables without
-# reverting to Lasso-style selection (picking 1 out of 5), the internal
-# selector is the TRex+GVS selector operating an Elastic Net base selector.
-# We rely on the internal cross-validation (lambda_2 = 0) to
-# autonomously capture the grouping effect.
+# NOTE: this OVERWRITES the existing X_*.csv in rdump/ (previously C++-generated).
+#       After running this, RE-RUN the C++ demo so cpp_pipeline.csv reflects R's X:
+#         demo_trex_spca_05_rdump_pipeline --use-r-lambda2 --n <num_MC>
 # ==============================================================================
 
 library(TRexSelector)
-library(elasticnet)
-library(parallel)
+library(glmnet)
 
 # ------------------------------------------------------------------------------
-# 1. Data Generating Process (Sparse M-Factor Model)
+# Resolve this script's directory (works under Rscript and source())
+# ------------------------------------------------------------------------------
+get_script_dir <- function() {
+  args <- commandArgs(trailingOnly = FALSE)
+  file_arg <- grep("^--file=", args, value = TRUE)
+  if (length(file_arg) > 0) {
+    return(dirname(normalizePath(sub("^--file=", "", file_arg[1]))))
+  }
+  if (!is.null(sys.frames()[[1]]$ofile)) {
+    return(dirname(normalizePath(sys.frames()[[1]]$ofile)))
+  }
+  getwd()
+}
+
+# ------------------------------------------------------------------------------
+# Configuration  (mirror demo_trex_spca_01.R; single SNR for a focused diff)
+# ------------------------------------------------------------------------------
+n            <- 50
+p            <- 100
+p1           <- 5
+M            <- 3
+overlap_pool <- 30
+target_fdr   <- 0.10
+num_MC       <- 100
+snr_db       <- as.numeric(Sys.getenv("RDUMP_SNR_DB", "-7"))  # worst-gap operating point; override via env
+seed_base    <- 42      # set.seed(seed_base + mc*1000 + snr_db), as in demo_01
+
+out_dir <- file.path(get_script_dir(), Sys.getenv("RDUMP_DIR", "rdump"))
+dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+
+# ------------------------------------------------------------------------------
+# DGP -- byte-for-byte identical to demo_trex_spca_01.R
 # ------------------------------------------------------------------------------
 dgp_sparse_factor_model <- function(n = 50, p = 100, p1 = 5, M = 3,
-                                    target_snr_db = 0,
-                                    overlap_pool = 30) {
-
+                                    target_snr_db = 0, overlap_pool = 30) {
   Z <- matrix(0, nrow = n, ncol = M)
   factor_stds <- c(5.0, 3.0, 1.0)
   for (m in 1:M) {
@@ -87,249 +98,149 @@ dgp_sparse_factor_model <- function(n = 50, p = 100, p1 = 5, M = 3,
 }
 
 # ------------------------------------------------------------------------------
-# 2. Utils Evaluator
+# Helpers
 # ------------------------------------------------------------------------------
-evaluate_spca <- function(X, V_est, Z_est, V_true) {
-  n <- nrow(X)
-  p <- ncol(X)
-  M <- ncol(V_est)
+# Full-precision CSV dump (17 significant digits round-trips IEEE double exactly).
+write_matrix_full <- function(X, path) {
+  Xc <- format(X, digits = 17, trim = TRUE, scientific = TRUE)
+  write.table(Xc, file = path, sep = ",",
+              row.names = FALSE, col.names = FALSE, quote = FALSE)
+}
 
-  true_supp_pc1 <- which(V_true[, 1] != 0)
-  est_supp_pc1  <- which(abs(V_est[, 1]) > 1e-12)
+dash <- function(idx0) paste(idx0, collapse = "-")
 
-  tp <- length(intersect(true_supp_pc1, est_supp_pc1))
-  tpr <- ifelse(length(true_supp_pc1) == 0, 0.0,
-                tp / max(1, length(true_supp_pc1)))
-  fdr <- ifelse(length(est_supp_pc1) == 0, 0.0,
-                (length(est_supp_pc1) - tp) / max(1, length(est_supp_pc1)))
+# ------------------------------------------------------------------------------
+# Main loop
+# ------------------------------------------------------------------------------
+cat("================================================================\n")
+cat("  R reference dump for C++ head-to-head  (T-Rex EN, PC1)\n")
+cat("================================================================\n")
+cat(sprintf("  out_dir : %s\n", out_dir))
+cat(sprintf("  n=%d p=%d p1=%d M=%d SNR=%ddB tFDR=%.2f num_MC=%d\n\n",
+            n, p, p1, M, snr_db, target_fdr, num_MC))
 
-  qr_Z <- qr(Z_est)
-  R <- qr.R(qr_Z)
+truth_rows     <- character(num_MC)
+lam2_rows      <- character(num_MC)
+res_rows       <- character(num_MC)   # type = "lar"   (default; what R's trex uses)
+res_rows_lasso <- character(num_MC)   # type = "lasso" (LARS-LASSO; can drop variables)
+pc1_rows       <- character(num_MC)
 
-  total_var <- sum(X^2) / (n - 1)
-  cum_pev <- numeric(M)
-  cum_ev <- 0
+sum_k <- 0; sum_fdr <- 0; sum_tpr <- 0; sum_lam2 <- 0
+sum_k_l <- 0; sum_fdr_l <- 0; sum_tpr_l <- 0   # lasso accumulators
 
-  for (m in 1:M) {
-    r_mm <- R[m, m]
-    cum_ev <- cum_ev + (r_mm^2) / (n - 1)
-    cum_pev[m] <- cum_ev / total_var
-  }
+for (mc in 0:(num_MC - 1)) {
+  set.seed(seed_base + mc * 1000 + snr_db)
+  d      <- dgp_sparse_factor_model(n, p, p1, M, snr_db, overlap_pool)
+  X      <- d$X
+  V_true <- d$V
 
-  list(TPR = tpr, FDR = fdr, PEV = cum_pev)
+  # ---- dump the design (full precision, headerless) ----
+  write_matrix_full(X, file.path(out_dir, sprintf("X_%d.csv", mc)))
+
+  # ---- PC1 truth (0-based) ----
+  true_supp1 <- which(V_true[, 1] != 0)          # 1-based
+  truth_rows[mc + 1] <- paste0(mc, ",", dash(true_supp1 - 1L))
+
+  # ---- ordinary PCA -> PC1 score (== demo_01) ----
+  svd_X <- svd(X)
+  V_ord <- svd_X$v[, 1:M]
+  Z_ord <- X %*% V_ord
+  y1    <- Z_ord[, 1]
+  pc1_rows[mc + 1] <- paste0(mc, ",",
+                             paste(format(y1, digits = 17, trim = TRUE,
+                                          scientific = TRUE), collapse = ","))
+
+  # ---- lambda_2_lars via cv.glmnet (== demo_01 recipe) ----
+  cvfit <- glmnet::cv.glmnet(x = X, y = y1, intercept = FALSE,
+                             standardize = TRUE, alpha = 0,
+                             type.measure = "mse", family = "gaussian",
+                             nfolds = 10)
+  lam2 <- cvfit$lambda.1se * ncol(X) / 2          # n*(1-alpha)/2, alpha=0, n=ncol(X)
+  lam2_rows[mc + 1] <- paste0(mc, ",", format(lam2, digits = 17,
+                                              trim = TRUE, scientific = TRUE))
+
+  # ---- T-Rex+GVS (Elastic Net) selection on PC1 (== demo_01) ----
+  # Run BOTH solver types on the SAME X, y1, lambda2 so the ONLY difference is
+  # the inner forward-selection algorithm:
+  #   type = "lar"   -> LARS  (pure forward; never drops a variable) = R/trex default
+  #   type = "lasso" -> LARS-LASSO (can drop variables on sign change) = C++ TENET_AUG
+  trex_res <- TRexSelector::trex(X = X, y = y1, tFDR = target_fdr,
+                                 method = "trex+GVS", GVS_type = "EN", type = "lar",
+                                 lambda_2_lars = lam2, verbose = FALSE)
+
+  active_set <- which(trex_res$selected_var > .Machine$double.eps)   # 1-based
+  k  <- length(active_set)
+  tp <- length(intersect(true_supp1, active_set))
+  tpr <- if (length(true_supp1) == 0) 0 else tp / length(true_supp1)
+  fdr <- if (k == 0) 0 else (k - tp) / k
+
+  vthr <- if (is.null(trex_res$v_thresh))   NA else trex_res$v_thresh[1]
+  rthr <- if (is.null(trex_res$rho_thresh)) NA else trex_res$rho_thresh[1]
+  res_rows[mc + 1] <- paste0(mc, ",", k, ",",
+                             format(fdr, digits = 6), ",",
+                             format(tpr, digits = 6), ",",
+                             trex_res$T_stop, ",", trex_res$num_dummies, ",",
+                             format(vthr, digits = 8), ",",
+                             format(rthr, digits = 8), ",",
+                             dash(active_set - 1L))
+
+  sum_k <- sum_k + k; sum_fdr <- sum_fdr + fdr
+  sum_tpr <- sum_tpr + tpr; sum_lam2 <- sum_lam2 + lam2
+
+  # ---- same selection, but with type = "lasso" (LARS-LASSO) ----
+  trex_res_l <- TRexSelector::trex(X = X, y = y1, tFDR = target_fdr,
+                                   method = "trex+GVS", GVS_type = "EN", type = "lasso",
+                                   lambda_2_lars = lam2, verbose = FALSE)
+
+  active_set_l <- which(trex_res_l$selected_var > .Machine$double.eps)  # 1-based
+  k_l  <- length(active_set_l)
+  tp_l <- length(intersect(true_supp1, active_set_l))
+  tpr_l <- if (length(true_supp1) == 0) 0 else tp_l / length(true_supp1)
+  fdr_l <- if (k_l == 0) 0 else (k_l - tp_l) / k_l
+
+  vthr_l <- if (is.null(trex_res_l$v_thresh))   NA else trex_res_l$v_thresh[1]
+  rthr_l <- if (is.null(trex_res_l$rho_thresh)) NA else trex_res_l$rho_thresh[1]
+  res_rows_lasso[mc + 1] <- paste0(mc, ",", k_l, ",",
+                                   format(fdr_l, digits = 6), ",",
+                                   format(tpr_l, digits = 6), ",",
+                                   trex_res_l$T_stop, ",", trex_res_l$num_dummies, ",",
+                                   format(vthr_l, digits = 8), ",",
+                                   format(rthr_l, digits = 8), ",",
+                                   dash(active_set_l - 1L))
+
+  sum_k_l <- sum_k_l + k_l; sum_fdr_l <- sum_fdr_l + fdr_l
+  sum_tpr_l <- sum_tpr_l + tpr_l
+
+  if ((mc + 1) %% 10 == 0) cat(sprintf("  ... %d / %d trials\n", mc + 1, num_MC))
 }
 
 # ------------------------------------------------------------------------------
-# 3. Main Monte Carlo Simulation (Parallelized)
+# Write dumps
 # ------------------------------------------------------------------------------
-n <- 50
-p <- 100
-p1 <- 5
-M <- 3
-target_fdr <- 0.10
-num_MC <- 200
-snr_db_seq <- c(-10, -7, -5, -3, 0, 3, 5, 7, 10)
+writeLines(c("mc,indices",           truth_rows), file.path(out_dir, "truth.csv"))
+writeLines(c("mc,lambda2",           lam2_rows),  file.path(out_dir, "r_lambda2.csv"))
+writeLines(c("mc,k,fdr,tpr,T_stop,num_dummies,v_thresh,rho_thresh,indices", res_rows),
+           file.path(out_dir, "r_results.csv"))
+writeLines(c("mc,k,fdr,tpr,T_stop,num_dummies,v_thresh,rho_thresh,indices", res_rows_lasso),
+           file.path(out_dir, "r_results_lasso.csv"))
+writeLines(pc1_rows,                               file.path(out_dir, "r_pc1.csv"))
 
-num_cores <- 8
-is_unix <- .Platform$OS.type == "unix"
-
-cat("========================================================\n")
-cat(sprintf("  T-Rex SPCA MC Simulation (%d cores)\n", num_cores))
-cat("========================================================\n\n")
-
-# Initialize Windows Cluster once to avoid overhead
-if (!is_unix) {
-  cl <- makeCluster(num_cores)
-  on.exit(stopCluster(cl))
-  clusterEvalQ(cl, {
-    library(TRexSelector)
-    library(elasticnet)
-  })
-  clusterExport(cl, varlist = c("n", "p", "p1", "M", "target_fdr",
-                                "dgp_sparse_factor_model", "evaluate_spca"),
-                envir = environment())
-}
-
-for (snr in snr_db_seq) {
-  cat(sprintf("Running SNR = %3d dB...\n", snr))
-
-  if (!is_unix) {
-    clusterExport(cl, "snr", envir = environment())
-  }
-
-  one_trial <- function(mc) {
-    set.seed(42 + mc * 1000 + snr)
-    data <- dgp_sparse_factor_model(n, p, p1, M, snr)
-    X <- data$X
-    V_true <- data$V
-
-    # Expanded to 24 elements to accommodate 8 distinct methods
-    res <- numeric(24)
-    names(res) <- c(
-      "ord_TPR", "ord_FDR", "ord_PEV",
-      "oracle_TPR", "oracle_FDR", "oracle_PEV",
-      "en_spca_TPR",  "en_spca_FDR",  "en_spca_PEV",
-      "oracle_spca_TPR", "oracle_spca_FDR", "oracle_spca_PEV",
-      "en_act_TPR", "en_act_FDR", "en_act_PEV",
-      "en_thr_TPR", "en_thr_FDR", "en_thr_PEV",
-      "ien_act_TPR", "ien_act_FDR", "ien_act_PEV",
-      "ien_thr_TPR", "ien_thr_FDR", "ien_thr_PEV"
-    )
-
-    # ---------------------------------------------------------
-    # Method 1: Ordinary PCA
-    # ---------------------------------------------------------
-    svd_X <- svd(X)
-    V_ord <- svd_X$v[, 1:M]
-    Z_ord <- X %*% V_ord
-
-    ev <- evaluate_spca(X, V_ord, Z_ord, V_true)
-    res["ord_TPR"] <- ev$TPR
-    res["ord_FDR"] <- ev$FDR
-    res["ord_PEV"] <- ev$PEV[M]
-
-    # ---------------------------------------------------------
-    # Method 2: Oracle Thresholded PCA
-    # ---------------------------------------------------------
-    V_oracle <- matrix(0, nrow = p, ncol = M)
-    for (m in 1:M) {
-      v_m <- V_ord[, m]
-      thresh <- sort(abs(v_m), decreasing = TRUE)[p1]
-      v_m[abs(v_m) < thresh] <- 0
-      V_oracle[, m] <- v_m / sqrt(sum(v_m^2))
-    }
-    ev <- evaluate_spca(X, V_oracle, X %*% V_oracle, V_true)
-    res["oracle_TPR"] <- ev$TPR
-    res["oracle_FDR"] <- ev$FDR
-    res["oracle_PEV"] <- ev$PEV[M]
-
-    # ---------------------------------------------------------
-    # Method 3: Zou et al. (2006) Elastic Net SPCA
-    # ---------------------------------------------------------
-    en_res <- elasticnet::spca(X, K = M, para = rep(p1, M),
-                               type = "predictor",
-                               sparse = "varnum",
-                               trace = FALSE)
-    V_en_spca <- en_res$loadings
-    Z_en_spca <- X %*% V_en_spca
-
-    ev_en_spca <- evaluate_spca(X, V_en_spca, Z_en_spca, V_true)
-    res["en_spca_TPR"] <- ev_en_spca$TPR
-    res["en_spca_FDR"] <- ev_en_spca$FDR
-    res["en_spca_PEV"] <- ev_en_spca$PEV[M]
-
-    # ---------------------------------------------------------
-    # Method 4: Oracle SPCA
-    # ---------------------------------------------------------
-    V_oracle_spca <- matrix(0, p, M)
-    for (m in 1:M) {
-      y_m <- Z_ord[, m]
-
-      # 1. Force heavy Ridge penalty to activate grouping
-      en_fit <- elasticnet::enet(x = X, y = y_m,
-                                 lambda = 1000,
-                                 normalize = FALSE, trace = FALSE)
-
-      # 2. First step where p1 variables are active
-      active_counts <- apply(en_fit$beta, 1, function(b) sum(abs(b) > 1e-12))
-      step_idx <- which(active_counts >= p1)[1]
-
-      # Fallback to the end of the path if they never reach p1
-      if (is.na(step_idx)) step_idx <- length(active_counts)
-
-      # 3. Extract the physical coefficients
-      beta_en <- en_fit$beta[step_idx, ]
-
-      # 4. Strict Cardinality Enforcement: Prune down to exactly p1 variables
-      thresh <- sort(abs(beta_en), decreasing = TRUE)[p1]
-      beta_en[abs(beta_en) < thresh] <- 0
-
-      if (sum(beta_en^2) > 0) {
-        V_oracle_spca[, m] <- beta_en / sqrt(sum(beta_en^2))
-      }
-    }
-
-    ev_oracle_spca <- evaluate_spca(X, V_oracle_spca, X %*% V_oracle_spca, V_true)
-    res["oracle_spca_TPR"] <- ev_oracle_spca$TPR
-    res["oracle_spca_FDR"] <- ev_oracle_spca$FDR
-    res["oracle_spca_PEV"] <- ev_oracle_spca$PEV[M]
-
-    # ---------------------------------------------------------
-    # Method 5: T-Rex SPCA (Elastic Net GVS, ActiveSet)
-    # ---------------------------------------------------------
-    sel_en_act <- TRexSPCASelector$new(X, trex_spca_control(mode = "ActiveSet", gvs_type = "EN"))
-    sel_en_act$select(M, target_fdr)
-
-    ev_en_a <- evaluate_spca(X, sel_en_act$V, sel_en_act$Z, V_true)
-    res["en_act_TPR"] <- ev_en_a$TPR
-    res["en_act_FDR"] <- ev_en_a$FDR
-    res["en_act_PEV"] <- ev_en_a$PEV[M]
-
-    # ---------------------------------------------------------
-    # Method 6: T-Rex SPCA (Elastic Net GVS, Thresholded)
-    # ---------------------------------------------------------
-    sel_en_thr <- TRexSPCASelector$new(X, trex_spca_control(mode = "Thresholded", gvs_type = "EN"))
-    sel_en_thr$select(M, target_fdr)
-
-    ev_en_t <- evaluate_spca(X, sel_en_thr$V, sel_en_thr$Z, V_true)
-    res["en_thr_TPR"] <- ev_en_t$TPR
-    res["en_thr_FDR"] <- ev_en_t$FDR
-    res["en_thr_PEV"] <- ev_en_t$PEV[M]
-
-    # ---------------------------------------------------------
-    # Method 7: T-Rex SPCA (Inclusive Elastic Net GVS, ActiveSet)
-    # ---------------------------------------------------------
-    sel_ien_act <- TRexSPCASelector$new(X, trex_spca_control(mode = "ActiveSet", gvs_type = "IEN"))
-    sel_ien_act$select(M, target_fdr)
-
-    ev_ien_a <- evaluate_spca(X, sel_ien_act$V, sel_ien_act$Z, V_true)
-    res["ien_act_TPR"] <- ev_ien_a$TPR
-    res["ien_act_FDR"] <- ev_ien_a$FDR
-    res["ien_act_PEV"] <- ev_ien_a$PEV[M]
-
-    # ---------------------------------------------------------
-    # Method 8: T-Rex SPCA (Inclusive Elastic Net GVS, Thresholded)
-    # ---------------------------------------------------------
-    sel_ien_thr <- TRexSPCASelector$new(X, trex_spca_control(mode = "Thresholded", gvs_type = "IEN"))
-    sel_ien_thr$select(M, target_fdr)
-
-    ev_ien_t <- evaluate_spca(X, sel_ien_thr$V, sel_ien_thr$Z, V_true)
-    res["ien_thr_TPR"] <- ev_ien_t$TPR
-    res["ien_thr_FDR"] <- ev_ien_t$FDR
-    res["ien_thr_PEV"] <- ev_ien_t$PEV[M]
-
-    return(res)
-  }
-
-  # Execute parallel MC trials
-  if (is_unix) {
-    res_list <- mclapply(seq_len(num_MC), one_trial, mc.cores = num_cores, mc.preschedule = FALSE)
-  } else {
-    res_list <- parLapply(cl, seq_len(num_MC), one_trial)
-  }
-
-
-  # Aggregate results
-  # -----------------------------------
-  res_mat <- do.call(rbind, res_list)
-  avg <- colMeans(res_mat)
-
-  # Print results
-  # -----------------------------------
-  cat(sprintf("  -> Ord PCA        | TPR: %5.1f%% | FDR: %5.1f%% | PEV(M=3): %5.1f%%\n",
-              avg["ord_TPR"] * 100, avg["ord_FDR"] * 100, avg["ord_PEV"] * 100))
-  cat(sprintf("  -> Oracle PCA     | TPR: %5.1f%% | FDR: %5.1f%% | PEV(M=3): %5.1f%%\n",
-              avg["oracle_TPR"] * 100, avg["oracle_FDR"] * 100, avg["oracle_PEV"] * 100))
-  cat(sprintf("  -> Zou EN SPCA    | TPR: %5.1f%% | FDR: %5.1f%% | PEV(M=3): %5.1f%%\n",
-              avg["en_spca_TPR"] * 100, avg["en_spca_FDR"] * 100, avg["en_spca_PEV"] * 100))
-  cat(sprintf("  -> Oracle SPCA    | TPR: %5.1f%% | FDR: %5.1f%% | PEV(M=3): %5.1f%%\n",
-              avg["oracle_spca_TPR"] * 100, avg["oracle_spca_FDR"] * 100, avg["oracle_spca_PEV"] * 100))
-  cat(sprintf("  -> T-Rex EN Act   | TPR: %5.1f%% | FDR: %5.1f%% | PEV(M=3): %5.1f%%\n",
-              avg["en_act_TPR"] * 100, avg["en_act_FDR"] * 100, avg["en_act_PEV"] * 100))
-  cat(sprintf("  -> T-Rex EN Thr   | TPR: %5.1f%% | FDR: %5.1f%% | PEV(M=3): %5.1f%%\n",
-              avg["en_thr_TPR"] * 100, avg["en_thr_FDR"] * 100, avg["en_thr_PEV"] * 100))
-  cat(sprintf("  -> T-Rex IEN Act  | TPR: %5.1f%% | FDR: %5.1f%% | PEV(M=3): %5.1f%%\n",
-              avg["ien_act_TPR"] * 100, avg["ien_act_FDR"] * 100, avg["ien_act_PEV"] * 100))
-  cat(sprintf("  -> T-Rex IEN Thr  | TPR: %5.1f%% | FDR: %5.1f%% | PEV(M=3): %5.1f%%\n\n",
-              avg["ien_thr_TPR"] * 100, avg["ien_thr_FDR"] * 100, avg["ien_thr_PEV"] * 100))
-}
+# ------------------------------------------------------------------------------
+# Summary
+# ------------------------------------------------------------------------------
+cat("\n----------------------------------------------------------------\n")
+cat("  type = 'lar'  (LARS, R/trex default):\n")
+cat(sprintf("    R mean k    : %.3f\n", sum_k    / num_MC))
+cat(sprintf("    R mean FDR  : %.4f\n", sum_fdr  / num_MC))
+cat(sprintf("    R mean TPR  : %.4f\n", sum_tpr  / num_MC))
+cat("  type = 'lasso' (LARS-LASSO, can drop variables):\n")
+cat(sprintf("    R mean k    : %.3f\n", sum_k_l   / num_MC))
+cat(sprintf("    R mean FDR  : %.4f\n", sum_fdr_l / num_MC))
+cat(sprintf("    R mean TPR  : %.4f\n", sum_tpr_l / num_MC))
+cat(sprintf("  R mean lambda2: %.1f\n", sum_lam2 / num_MC))
+cat(sprintf("\n  wrote: X_0..%d.csv, truth.csv, r_lambda2.csv, r_results.csv, r_results_lasso.csv, r_pc1.csv\n",
+            num_MC - 1))
+cat(sprintf("         into %s\n", out_dir))
+cat("\n  NEXT (C++ head-to-head on identical X + identical lambda2):\n")
+cat("    demo_trex_spca_05_rdump_pipeline --use-r-lambda2 --n 100\n")
+cat("  then diff cpp_pipeline.csv vs r_results.csv (mean k, FDR, selections).\n")

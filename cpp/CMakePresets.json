@@ -4,23 +4,23 @@
         {
             "name": "debug",
             "displayName": "Debug",
-            "description": "Debug build — links against installed TRexSelector in ../TRexSelector/install",
+            "description": "Debug build — links against installed TRexSelector in ../../TRexSelector/cpp/install",
             "binaryDir": "${sourceDir}/build/debug",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-                "CMAKE_PREFIX_PATH": "${sourceDir}/../TRexSelector/install"
+                "CMAKE_PREFIX_PATH": "${sourceDir}/../../TRexSelector/cpp/install"
             }
         },
         {
             "name": "release",
             "displayName": "Release",
-            "description": "Release build — links against installed TRexSelector in ../TRexSelector/install",
+            "description": "Release build — links against installed TRexSelector in ../../TRexSelector/cpp/install",
             "binaryDir": "${sourceDir}/build/release",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-                "CMAKE_PREFIX_PATH": "${sourceDir}/../TRexSelector/install"
+                "CMAKE_PREFIX_PATH": "${sourceDir}/../../TRexSelector/cpp/install"
             }
         }
     ],

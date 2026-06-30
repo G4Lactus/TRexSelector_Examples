@@ -24,7 +24,7 @@
 #include <tsolvers/linear_model/omp_based/tncgmp_solver.hpp>
 
 // ml_methods includes
-#include <ml_methods/standardization/lp_norm_scaler.hpp>
+#include <ml_methods/scaler_methods/lp_norm_scaler.hpp>
 
 // utils includes
 #include <utils/memmap/memory_mapped_matrix.hpp>
@@ -40,7 +40,7 @@
 
 namespace datagen = trex::utils::datageneration::datagen;
 namespace memmap = trex::utils::memmap;
-namespace scaler = trex::ml_methods::standardization;
+namespace scaler = trex::ml_methods::scaler_methods;
 namespace omp_utils = trex::utils::openmp;
 namespace cdiagnost = trex::utils::eval::cdiagnostics;
 namespace rates = trex::utils::eval::rates;

@@ -91,6 +91,8 @@ namespace spca_sim {
 // Namespace aliases
 namespace pca_ns = trex::ml_methods::pca;
 using trex::trex_selector_methods::trex_gvs::LambdaSelectionMethod;
+using trex::trex_selector_methods::trex_gvs::ENSolverType;
+using trex::trex_selector_methods::utils::data_normalizer::ScalingMode;
 using trex::trex_selector_methods::trex_spca::TRexSPCA;
 using trex::trex_selector_methods::trex_spca::TRexSPCAControlParameter;
 using trex::trex_selector_methods::trex_spca::TRexSPCAResult;
@@ -127,7 +129,7 @@ struct FactorModelData {
 /**
  * @brief Synthetic data generator for the sparse factor model.
  *
- * @details Generates data from the model X = Z * V^T + E (column-centered),
+ * @details Generates data from the model X = Z * V^T + E,
  *  where Z (n x M) has column-wise N(0, sigma_m^2) factors with
  *  sigma = {5, 3, 1} (falling back to 1 for M > 3), V (p x M) has sparse
  *  loadings (exactly p1 non-zeros per column drawn without replacement from a
@@ -221,9 +223,8 @@ public:
         data.E = E_raw * noise_scaling_factor;
 
 
-        // 5. Assemble and column-center X
+        // 5. Assemble X
         data.X = S + data.E;
-        data.X.rowwise() -= data.X.colwise().mean();
 
         const double final_noise_var = (data.E.array() - data.E.mean()).square().sum()
                                      / static_cast<double>(data.E.size() - 1);
@@ -268,9 +269,9 @@ using SPCADGPFactory = std::function<FactorModelData(unsigned seed)>;
  * All per-component metrics are averaged over M components within one MC trial.
  */
 struct SPCASingleResult {
-    double tpr = 0.0;  ///< Mean TPR over M components
-    double fdr = 0.0;  ///< Mean FDR over M components
-    double pev = 0.0;  ///< Final cumulative percentage explained variance
+    double tpr = 0.0;  ///< TPR of PC1's support only (see evaluate_spca for rationale)
+    double fdr = 0.0;  ///< FDR of PC1's support only (see evaluate_spca for rationale)
+    double pev = 0.0;  ///< Cumulative percentage of explained variance across all M components
 };
 
 /** @brief MC-aggregated result for one grid point (method × SNR). */
@@ -292,17 +293,19 @@ struct SPCAGridPointResult {
  * @brief Compute per-trial sparse PCA metrics from estimated loadings and scores.
  *
  * @details
- *  - TPR per component: fraction of true active variables that are recovered.
- *  - FDR per component: fraction of estimated active variables that are false.
- *  - Cumulative PEV: computed via QR decomposition of Z_est.
- *  TPR and FDR are averaged over M components.
+ *  - TPR / FDR are evaluated strictly on the **first** principal component (PC1).
+ *    PCs 2 and 3 are omitted because PCA's orthogonality constraint mixes their
+ *    loading supports across factors, making per-component support recovery
+ *    metrics ambiguous beyond the first PC.
+ *  - Cumulative PEV is computed via QR decomposition of Z_est across all M components.
  *
- * @param X       Centered observation matrix (n x p).
+ * @param X       Centered observation matrix (n x p). Must be the same X that was
+ *                used to produce Z_est (no additional preprocessing applied here).
  * @param V_est   Estimated sparse loading matrix (p x M).
  * @param Z_est   Estimated score matrix (n x M).
  * @param V_true  True loading matrix (p x M); non-zeros mark the true active set.
  *
- * @return SPCASingleResult with mean TPR, mean FDR, and cumulative PEV.
+ * @return SPCASingleResult: PC1 support TPR and FDR, plus cumulative PEV.
  */
 inline SPCASingleResult evaluate_spca(
     const Eigen::MatrixXd& X,
@@ -323,8 +326,12 @@ inline SPCASingleResult evaluate_spca(
 
     std::vector<Eigen::Index> true_supp_pc1, est_supp_pc1;
     for (Eigen::Index i = 0; i < p; ++i) {
-        if (V_true(i, 0) != 0.0)    true_supp_pc1.push_back(i);
-        if (std::abs(V_est(i, 0)) > 1e-12)    est_supp_pc1.push_back(i);
+        if (V_true(i, 0) != 0.0) {
+            true_supp_pc1.push_back(i);
+        }
+        if (std::abs(V_est(i, 0)) > 1e-12) {
+            est_supp_pc1.push_back(i);
+        }
     }
 
     int tp = 0;
@@ -359,6 +366,38 @@ inline SPCASingleResult evaluate_spca(
 
     // Return the isolated PC1 recovery metrics and the total cumulative PEV
     return {pc1_tpr, pc1_fdr, final_pev};
+}
+
+
+// ==============================================================================
+// Preprocessing
+// ==============================================================================
+
+/**
+ * @brief Standardize columns of X in place (z-score: centre + unit variance).
+ *
+ * @details Subtracts each column mean, then divides by the column sample
+ *          standard deviation (denominator n-1). Columns whose sd falls below
+ *          `eps` are only centred (divisor forced to 1) to avoid blow-up on
+ *          (near-)constant columns. Applying this single standardization before
+ *          every method puts OrdPCA, OraclePCA and TRexSPCA (EN / ENaug) on a
+ *          common correlation-PCA footing, removing scaling bias from the
+ *          comparison.
+ *
+ * @param X   Observation matrix (n x p), modified in place.
+ * @param eps Threshold below which a column sd is treated as zero. Default 1e-12.
+ */
+inline void standardize_columns(Eigen::MatrixXd& X, double eps = 1e-12)
+{
+    const Eigen::Index n = X.rows();
+    if (n < 2) return;
+    X.rowwise() -= X.colwise().mean();
+    return; // TEMP: center-only A/B test (skip variance normalization)
+    const Eigen::RowVectorXd sd =
+        (X.colwise().squaredNorm() / static_cast<double>(n - 1)).cwiseSqrt();
+    for (Eigen::Index j = 0; j < X.cols(); ++j) {
+        if (sd(j) > eps) X.col(j) /= sd(j);
+    }
 }
 
 
@@ -415,14 +454,24 @@ inline SPCAGridPointResult aggregate_mc(
 /**
  * @brief Run num_MC parallel T-Rex SPCA trials.
  *
+ * @details Data flow per trial:
+ *          - make_data() returns raw FactorModelData (X = Z V^T + E, uncentered).
+ *          - The pipeline centers X once (covariance-PCA convention); this same
+ *            centered X is shared by the selector and by evaluate_spca().
+ *          - TRexSPCA re-centers internally (a no-op on already-centered X) and
+ *            restores X before returning, so dat.X stays centered for evaluation.
+ *
  * @param num_MC            Number of Monte Carlo trials.
  * @param progress_label    Label printed in start/done lines.
  * @param make_data         Factory: seed → FactorModelData (called per trial).
  *                          Must capture all parameters by value for OMP safety.
  * @param tFDR              Target FDR for T-Rex SPCA.
  * @param mode              Loading assembly mode (ActiveSet or Thresholded).
- * @param base_seed_offset  Base seed; trial mc uses base_seed_offset + mc.
+ * @param base_seed_offset  Base seed; trial mc uses base_seed_offset + mc * 1000.
  * @param lambda_2          Ridge penalty; 0 = auto-compute via CV (default).
+ * @param en_solver         EN solver variant (TENET or TENET_AUG; default TENET_AUG).
+ * @param scaling_mode      Column scaling for X/dummies inside the per-PC
+ *                          T-Rex selector (L2 or ZSCORE; default L2).
  *
  * @return SPCAGridPointResult with avg/sd TPR, FDR and avg PEV.
  */
@@ -433,8 +482,11 @@ inline SPCAGridPointResult run_mc_trials_trex_spca(
     double                tFDR,
     SPCAMode              mode,
     unsigned              base_seed_offset,
-    double                lambda_2    = 0.0)
-{
+    double                lambda_2    = 0.0,
+    ENSolverType          en_solver   = ENSolverType::TENET,
+    ScalingMode           scaling_mode = ScalingMode::L2
+) {
+
     const int iMC = static_cast<int>(num_MC);
     std::vector<double> tpr_vec(num_MC, 0.0);
     std::vector<double> fdr_vec(num_MC, 0.0);
@@ -445,17 +497,26 @@ inline SPCAGridPointResult run_mc_trials_trex_spca(
 
     #pragma omp parallel for schedule(dynamic)
     for (int mc = 0; mc < iMC; ++mc) {
-        const unsigned seed = base_seed_offset + static_cast<unsigned>(mc);
+        std::random_device rd{};
+        const unsigned seed = base_seed_offset + static_cast<unsigned>(mc) * 1000u + rd();
+
+
         auto dat = make_data(seed);
+
+        // Pipeline preprocessing: standardize X once (z-score). All methods and
+        // all metrics share this single standardized X (correlation-PCA footing).
+        standardize_columns(dat.X);
 
         TRexSPCAControlParameter ctrl;
         ctrl.mode                    = mode;
-        ctrl.gvs_ctrl.lambda2_method = LambdaSelectionMethod::CV_1SE;
-        ctrl.gvs_ctrl.lambda_2       = lambda_2;   // 0 → auto-compute; > 0 → fixed
+        ctrl.en_solver               = en_solver;
+        ctrl.trex_ctrl.scaling_mode  = scaling_mode;
+        ctrl.gvs_ctrl.lambda2_method = LambdaSelectionMethod::CV_1SE_CCD;
+        ctrl.gvs_ctrl.lambda_2       = lambda_2;   // 0: auto-compute; > 0: fixed
 
         Eigen::Map<Eigen::MatrixXd> X_map(dat.X.data(), dat.X.rows(), dat.X.cols());
         TRexSPCA       spca(X_map, dat.V.cols(), tFDR, ctrl,
-                            static_cast<int>(seed)
+                            rd() //static_cast<int>(seed)
                         );
         TRexSPCAResult res = spca.select();
 
@@ -476,10 +537,14 @@ inline SPCAGridPointResult run_mc_trials_trex_spca(
  *          so FDR ≈ (p - p1) / p and TPR = 1 regardless of SNR.
  *          The metric of interest is the cumulative PEV.
  *
+ *          Data flow: make_data() returns raw data; the pipeline centers X once
+ *          (covariance-PCA convention). PCA is then constructed with center=false
+ *          (X is already centered), and evaluate_spca() shares the same centered X.
+ *
  * @param num_MC            Number of Monte Carlo trials.
  * @param progress_label    Label printed in start/done lines.
  * @param make_data         Factory: seed → FactorModelData.
- * @param base_seed_offset  Base seed; trial mc uses base_seed_offset + mc.
+ * @param base_seed_offset  Base seed; trial mc uses base_seed_offset + mc * 1000.
  *
  * @return SPCAGridPointResult with avg/sd TPR, FDR and avg PEV.
  */
@@ -495,18 +560,21 @@ inline SPCAGridPointResult run_mc_trials_pca(
     std::vector<double> pev_vec(num_MC, 0.0);
 
     std::cout << "  " << progress_label
-              << " \u2014 Running " << num_MC << " MC trials ...\n" << std::flush;
+              << " — Running " << num_MC << " MC trials ...\n" << std::flush;
 
     #pragma omp parallel for schedule(dynamic)
     for (int mc = 0; mc < iMC; ++mc) {
-        const unsigned seed = base_seed_offset + static_cast<unsigned>(mc);
+        const unsigned seed = base_seed_offset + static_cast<unsigned>(mc) * 1000u;
         auto dat = make_data(seed);
 
-        // X is already column-centered by the data generator
-        pca_ns::PCA     pca_solver(false);
-        pca_ns::PCAResult res = pca_solver.fit(dat.X, dat.V.cols());
+        // Pipeline preprocessing: standardize X once (z-score), shared by all methods.
+        standardize_columns(dat.X);
 
-        const auto m   = evaluate_spca(dat.X, res.V, res.Z, dat.V);
+        // X is already standardized → center=false, normalize=false; correlation PCA.
+        pca_ns::PCA       pca(dat.X, dat.V.cols(), /*center=*/false, /*normalize=*/false);
+        pca_ns::PCAResult res = pca.fit();
+
+        const auto m = evaluate_spca(dat.X, res.V, res.Z, dat.V);
         tpr_vec[mc] = m.tpr;
         fdr_vec[mc] = m.fdr;
         pev_vec[mc] = m.pev;
@@ -524,11 +592,16 @@ inline SPCAGridPointResult run_mc_trials_pca(
  *          the true support cardinality. This provides an upper bound on what
  *          any data-driven thresholding method can achieve.
  *
+ *          Data flow: make_data() returns raw data; the pipeline centers X once
+ *          (covariance-PCA convention). PCA is constructed with center=false
+ *          (X is already centered). The oracle score matrix Z_oracle = X * V_oracle
+ *          and evaluate_spca() share the same centered X.
+ *
  * @param num_MC            Number of Monte Carlo trials.
  * @param progress_label    Label printed in start/done lines.
  * @param make_data         Factory: seed → FactorModelData.
  * @param p1                Oracle threshold: true active loadings per factor.
- * @param base_seed_offset  Base seed; trial mc uses base_seed_offset + mc.
+ * @param base_seed_offset  Base seed; trial mc uses base_seed_offset + mc * 1000.
  *
  * @return SPCAGridPointResult with avg/sd TPR, FDR and avg PEV.
  */
@@ -545,18 +618,22 @@ inline SPCAGridPointResult run_mc_trials_oracle_pca(
     std::vector<double> pev_vec(num_MC, 0.0);
 
     std::cout << "  " << progress_label
-              << " \u2014 Running " << num_MC << " MC trials ...\n" << std::flush;
+              << " — Running " << num_MC << " MC trials ...\n" << std::flush;
 
     #pragma omp parallel for schedule(dynamic)
     for (int mc = 0; mc < iMC; ++mc) {
-        const unsigned seed = base_seed_offset + static_cast<unsigned>(mc);
+        const unsigned seed = base_seed_offset + static_cast<unsigned>(mc) * 1000u;
         auto dat = make_data(seed);
+
+        // Pipeline preprocessing: standardize X once (z-score), shared by all methods.
+        standardize_columns(dat.X);
 
         const Eigen::Index p = dat.X.cols();
         const Eigen::Index M = dat.V.cols();
 
-        pca_ns::PCA       pca_solver(false);
-        pca_ns::PCAResult ord = pca_solver.fit(dat.X, M);
+        // X is already standardized → center=false, normalize=false; correlation PCA.
+        pca_ns::PCA       pca(dat.X, M, /*center=*/false, /*normalize=*/false);
+        pca_ns::PCAResult ord = pca.fit();
 
         // Threshold: keep top p1 entries per loading vector, then normalize
         Eigen::MatrixXd V_oracle = Eigen::MatrixXd::Zero(p, M);

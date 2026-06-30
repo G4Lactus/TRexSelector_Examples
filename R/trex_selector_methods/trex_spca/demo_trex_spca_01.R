@@ -163,15 +163,18 @@ for (snr in snr_db_seq) {
     X <- data$X
     V_true <- data$V
 
-    # Expanded to 24 elements to accommodate 8 distinct methods
-    res <- numeric(24)
+    # Expanded to accommodate 8 distinct methods + per-PC lambda_2_lars diagnostics
+    res <- numeric(27)
     names(res) <- c(
       "ord_TPR", "ord_FDR", "ord_PEV",
       "oracle_TPR", "oracle_FDR", "oracle_PEV",
       "en_spca_TPR",  "en_spca_FDR",  "en_spca_PEV",
       "oracle_spca_TPR", "oracle_spca_FDR", "oracle_spca_PEV",
       "en_act_TPR", "en_act_FDR", "en_act_PEV",
-      "en_thr_TPR", "en_thr_FDR", "en_thr_PEV"
+      "en_thr_TPR", "en_thr_FDR", "en_thr_PEV",
+      "en_lam2_pc1", "en_lam2_pc2", "en_lam2_pc3",
+      "en_n_sel_pc1", "en_n_sel_pc2", "en_n_sel_pc3",
+      "en_lam2_avg", "en_lam2_sd", "en_n_sel_avg"
     )
 
     # ---------------------------------------------------------
@@ -259,18 +262,29 @@ for (snr in snr_db_seq) {
     # ---------------------------------------------------------
     # Method 5 & 6: T-Rex SPCA (Elastic Net GVS)
     # ---------------------------------------------------------
-    V_en_active <- matrix(0, p, M)
-    V_en_thresh <- matrix(0, p, M)
+    V_en_active  <- matrix(0, p, M)
+    V_en_thresh  <- matrix(0, p, M)
+    lam2_per_pc  <- numeric(M)
+    n_sel_per_pc <- integer(M)
 
     for (m in 1:M) {
       y_m <- Z_ord[, m]
 
+      # Replicate lm_dummy.R CV step (alpha=0, intercept=FALSE) to capture lambda_2_lars
+      cvfit_m <- glmnet::cv.glmnet(x = X, y = y_m, intercept = FALSE,
+                                   standardize = TRUE, alpha = 0,
+                                   type.measure = "mse", family = "gaussian",
+                                   nfolds = 10)
+      lam2_m <- cvfit_m$lambda.1se * ncol(X) / 2   # n*(1-alpha)/2, alpha=0, n=ncol(X)
+      lam2_per_pc[m] <- lam2_m
+
       trex_res_en <- TRexSelector::trex(X = X, y = y_m, tFDR = target_fdr,
                                         method = "trex+GVS", GVS_type = "EN",
-                                        lambda_2_lars = NULL, verbose = FALSE)
+                                        lambda_2_lars = lam2_m, verbose = FALSE)
 
       active_set <- which(trex_res_en$selected_var > .Machine$double.eps)
       k <- length(active_set)
+      n_sel_per_pc[m] <- k
 
       if (k > 0) {
         v_m <- V_ord[, m]
@@ -296,6 +310,15 @@ for (snr in snr_db_seq) {
     res["en_thr_FDR"] <- ev_en_t$FDR
     res["en_thr_PEV"] <- ev_en_t$PEV[M]
 
+    res["en_lam2_pc1"]  <- lam2_per_pc[1]
+    res["en_lam2_pc2"]  <- lam2_per_pc[2]
+    res["en_lam2_pc3"]  <- lam2_per_pc[3]
+    res["en_n_sel_pc1"] <- n_sel_per_pc[1]
+    res["en_n_sel_pc2"] <- n_sel_per_pc[2]
+    res["en_n_sel_pc3"] <- n_sel_per_pc[3]
+    res["en_lam2_avg"]  <- mean(lam2_per_pc)
+    res["en_lam2_sd"]   <- sd(lam2_per_pc)
+    res["en_n_sel_avg"] <- mean(n_sel_per_pc)
 
     return(res)
   }
@@ -327,4 +350,10 @@ for (snr in snr_db_seq) {
               avg["en_act_TPR"] * 100, avg["en_act_FDR"] * 100, avg["en_act_PEV"] * 100))
   cat(sprintf("  -> T-Rex EN Thr   | TPR: %5.1f%% | FDR: %5.1f%% | PEV(M=3): %5.1f%%\n",
               avg["en_thr_TPR"] * 100, avg["en_thr_FDR"] * 100, avg["en_thr_PEV"] * 100))
+  cat(sprintf("  -> lambda_2_lars  | PC1: %10.3f | PC2: %10.3f | PC3: %10.3f | Avg: %10.3f (SD: %.3f)\n",
+              avg["en_lam2_pc1"], avg["en_lam2_pc2"], avg["en_lam2_pc3"],
+              avg["en_lam2_avg"], avg["en_lam2_sd"]))
+  cat(sprintf("  -> n_selected     | PC1: %10.3f | PC2: %10.3f | PC3: %10.3f | Avg: %10.3f\n",
+              avg["en_n_sel_pc1"], avg["en_n_sel_pc2"], avg["en_n_sel_pc3"],
+              avg["en_n_sel_avg"]))
 }

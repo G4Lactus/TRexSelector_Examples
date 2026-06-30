@@ -51,3 +51,5 @@ add_demo_target(demo_ts_12_tafs
     demo_ts_12_tafs.cpp
     T_ALGORITHM_LIBS
 )
+
+add_subdirectory(validation)
