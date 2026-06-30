@@ -1003,6 +1003,388 @@ inline std::vector<SolverInfo> default_solvers() {
 }
 
 // ==============================================================================
+// 2D parameter sweep with two full support-type matrices (CappedSpread + Random)
+// ==============================================================================
+
+/**
+ * @brief Save a 2D parameter sweep (CappedSpread and Random as full matrices)
+ *        to console, TXT, and CSV.
+ *
+ * Both support types produce a full [n_row × n_col] result matrix.
+ * Writes one block per solver with four sub-tables per support type:
+ * mean_TPP, sd_TPP, mean_FDP, sd_FDP.
+ *
+ * @param scenario_tag       Short identifier used in filenames.
+ * @param row_label          Name of the row parameter (e.g. "Kappa").
+ * @param col_label          Name of the column parameter (e.g. "Rho").
+ * @param row_grid           Row parameter values.
+ * @param col_grid           Column parameter values.
+ * @param num_MC             Number of Monte Carlo trials per cell.
+ * @param solvers            Ordered solver list.
+ * @param tpp_cs_map         mean TPP, CappedSpread: solver → MatrixXd [n_row × n_col].
+ * @param fdp_cs_map         mean FDP, CappedSpread.
+ * @param sd_tpp_cs_map      sd  TPP, CappedSpread.
+ * @param sd_fdp_cs_map      sd  FDP, CappedSpread.
+ * @param tpp_rand_map       mean TPP, Random.
+ * @param fdp_rand_map       mean FDP, Random.
+ * @param sd_tpp_rand_map    sd  TPP, Random.
+ * @param sd_fdp_rand_map    sd  FDP, Random.
+ * @param header_extra       Extra info line printed after the main header.
+ * @param output_dir         Output directory (default: DEMO_OUTPUT_DIR).
+ */
+inline void save_and_print_2d_two_support_results(
+    const std::string&                              scenario_tag,
+    const std::string&                              row_label,
+    const std::string&                              col_label,
+    const std::vector<double>&                      row_grid,
+    const std::vector<double>&                      col_grid,
+    std::size_t                                     num_MC,
+    const std::vector<SolverInfo>&                  solvers,
+    const std::map<std::string, Eigen::MatrixXd>&   tpp_cs_map,
+    const std::map<std::string, Eigen::MatrixXd>&   fdp_cs_map,
+    const std::map<std::string, Eigen::MatrixXd>&   sd_tpp_cs_map,
+    const std::map<std::string, Eigen::MatrixXd>&   sd_fdp_cs_map,
+    const std::map<std::string, Eigen::MatrixXd>&   tpp_rand_map,
+    const std::map<std::string, Eigen::MatrixXd>&   fdp_rand_map,
+    const std::map<std::string, Eigen::MatrixXd>&   sd_tpp_rand_map,
+    const std::map<std::string, Eigen::MatrixXd>&   sd_fdp_rand_map,
+    const std::string&                              header_extra = "",
+    const std::string&                              output_dir   = DEMO_OUTPUT_DIR)
+{
+    std::filesystem::create_directories(output_dir);
+    const std::string txt_path = output_dir + "da_trex_mc_" + scenario_tag + ".txt";
+    const std::string csv_path = output_dir + "da_trex_mc_" + scenario_tag + ".csv";
+
+    std::ofstream out_file(txt_path);
+
+    auto print_dual = [&](const std::string& text) {
+        std::cout << text;
+        if (out_file.is_open()) out_file << text;
+    };
+
+    const auto n_row = row_grid.size();
+    const auto n_col = col_grid.size();
+
+    constexpr int rlw = 12;  // row-label width
+    constexpr int cw  = 9;   // column width
+
+    // Format a double as integer string if it is a whole number
+    auto fmt_val = [](double v) -> std::string {
+        if (v == std::floor(v) && std::abs(v) < 1e6) {
+            std::ostringstream o; o << static_cast<int>(v); return o.str();
+        }
+        std::ostringstream o;
+        o << std::fixed << std::setprecision(2) << v;
+        return o.str();
+    };
+
+    // Column header row + separator line
+    auto make_col_header = [&]() -> std::string {
+        std::ostringstream h;
+        h << std::string(rlw, ' ');
+        for (double cv : col_grid)
+            h << std::right << std::setw(cw) << (col_label + "=" + fmt_val(cv));
+        h << "\n" << "  " << std::string(rlw + cw * n_col, '-') << "\n";
+        return h.str();
+    };
+
+    // Print one labelled matrix (rows = row_grid, cols = col_grid)
+    auto print_matrix_block = [&](const std::string& label,
+                                  const Eigen::MatrixXd& mat) {
+        std::ostringstream block;
+        block << "  " << label << "\n" << make_col_header();
+        for (std::size_t ir = 0; ir < n_row; ++ir) {
+            const std::string rl_str = row_label + "=" + fmt_val(row_grid[ir]);
+            block << "  " << std::left << std::setw(rlw) << rl_str;
+            for (std::size_t ic = 0; ic < n_col; ++ic)
+                block << std::right << std::fixed << std::setprecision(4)
+                      << std::setw(cw)
+                      << mat(static_cast<Eigen::Index>(ir),
+                             static_cast<Eigen::Index>(ic));
+            block << "\n";
+        }
+        block << "\n";
+        print_dual(block.str());
+    };
+
+    // ── Header ───────────────────────────────────────────────────────────────
+    {
+        std::ostringstream hdr;
+        hdr << "\n" << std::string(78, '=') << "\n"
+            << "  DA-TRex MC: " << scenario_tag
+            << "  (MC=" << num_MC << ")\n";
+        if (!header_extra.empty())
+            hdr << "  " << header_extra << "\n";
+        hdr << std::string(78, '=') << "\n\n";
+        print_dual(hdr.str());
+    }
+
+    // ── Per-solver blocks ────────────────────────────────────────────────────
+    for (const auto& sv : solvers) {
+        const auto& nm = sv.name;
+        {
+            std::ostringstream sep;
+            sep << std::string(78, '-') << "\n"
+                << "  Solver: " << nm << "\n"
+                << std::string(78, '-') << "\n\n";
+            print_dual(sep.str());
+        }
+
+        print_dual("  [CappedSpread]\n\n");
+        print_matrix_block("mean_TPP", tpp_cs_map.at(nm));
+        print_matrix_block("sd_TPP",   sd_tpp_cs_map.at(nm));
+        print_matrix_block("mean_FDP", fdp_cs_map.at(nm));
+        print_matrix_block("sd_FDP",   sd_fdp_cs_map.at(nm));
+
+        print_dual("  [Random]\n\n");
+        print_matrix_block("mean_TPP", tpp_rand_map.at(nm));
+        print_matrix_block("sd_TPP",   sd_tpp_rand_map.at(nm));
+        print_matrix_block("mean_FDP", fdp_rand_map.at(nm));
+        print_matrix_block("sd_FDP",   sd_fdp_rand_map.at(nm));
+    }
+
+    print_dual(std::string(78, '=') + "\n\n");
+
+    if (out_file.is_open()) {
+        std::cout << "[Info] TXT saved to: " << txt_path << "\n";
+        out_file.close();
+    }
+
+    // ── CSV (tidy long format) ────────────────────────────────────────────────
+    std::ofstream csv_file(csv_path);
+    if (csv_file.is_open()) {
+        auto sanitize = [](std::string s) {
+            for (char& c : s) if (c == ' ') c = '_';
+            return s;
+        };
+        const std::string csv_row = sanitize(row_label);
+        const std::string csv_col = sanitize(col_label);
+
+        csv_file << "solver,support_type,metric,"
+                 << csv_row << "," << csv_col << ",value\n"
+                 << std::fixed << std::setprecision(6);
+
+        auto write_block = [&](const std::string& nm,
+                                const std::string& support_type,
+                                const std::map<std::string, Eigen::MatrixXd>& tpp_m,
+                                const std::map<std::string, Eigen::MatrixXd>& fdp_m,
+                                const std::map<std::string, Eigen::MatrixXd>& sd_tpp_m,
+                                const std::map<std::string, Eigen::MatrixXd>& sd_fdp_m) {
+            for (std::size_t ir = 0; ir < n_row; ++ir) {
+                for (std::size_t ic = 0; ic < n_col; ++ic) {
+                    const double     rv = row_grid[ir];
+                    const double     cv = col_grid[ic];
+                    const Eigen::Index ri = static_cast<Eigen::Index>(ir);
+                    const Eigen::Index ci = static_cast<Eigen::Index>(ic);
+                    csv_file << nm << "," << support_type << ",mean_TPP," << rv << "," << cv << "," << tpp_m.at(nm)(ri, ci)    << "\n";
+                    csv_file << nm << "," << support_type << ",sd_TPP,"   << rv << "," << cv << "," << sd_tpp_m.at(nm)(ri, ci) << "\n";
+                    csv_file << nm << "," << support_type << ",mean_FDP," << rv << "," << cv << "," << fdp_m.at(nm)(ri, ci)    << "\n";
+                    csv_file << nm << "," << support_type << ",sd_FDP,"   << rv << "," << cv << "," << sd_fdp_m.at(nm)(ri, ci) << "\n";
+                }
+            }
+        };
+
+        for (const auto& sv : solvers) {
+            write_block(sv.name, "CappedSpread",
+                        tpp_cs_map,   fdp_cs_map,   sd_tpp_cs_map,   sd_fdp_cs_map);
+            write_block(sv.name, "Random",
+                        tpp_rand_map, fdp_rand_map, sd_tpp_rand_map, sd_fdp_rand_map);
+        }
+        std::cout << "[Info] CSV saved to: " << csv_path << "\n\n";
+    }
+}
+
+
+// ==============================================================================
+// 2D Gap × Rho saving utility
+// ==============================================================================
+
+/**
+ * @brief Save a 2D Gap × Rho MC sweep result to console, TXT, and CSV.
+ *
+ * Writes one block per solver containing mean_TPP, sd_TPP, mean_FDP, sd_FDP
+ * matrices.  Columns are the gap values (CappedSpread section) plus a final
+ * "Random" column; rows are rho values.
+ *
+ * @param scenario_tag      Short identifier used in the output filenames.
+ * @param gap_grid          Gap values swept (columns for CappedSpread section).
+ * @param rho_grid          Rho values swept (rows).
+ * @param kappa_boundary    kappa = ceil(log(0.02)/log(rho)) per rho entry.
+ * @param num_MC            Number of Monte Carlo trials per grid cell.
+ * @param solvers           Ordered solver list (determines block order).
+ * @param tpp_cs_map        mean TPP, CappedSpread: solver → MatrixXd [n_rho × n_gap].
+ * @param fdp_cs_map        mean FDP, CappedSpread.
+ * @param sd_tpp_cs_map     sd  TPP, CappedSpread.
+ * @param sd_fdp_cs_map     sd  FDP, CappedSpread.
+ * @param tpp_rand_map      mean TPP, Random: solver → VectorXd [n_rho].
+ * @param fdp_rand_map      mean FDP, Random.
+ * @param sd_tpp_rand_map   sd  TPP, Random.
+ * @param sd_fdp_rand_map   sd  FDP, Random.
+ * @param header_extra      Extra info line printed after the main header.
+ * @param output_dir        Output directory (default: DEMO_OUTPUT_DIR).
+ */
+inline void save_and_print_2d_gap_rho_results(
+    const std::string&                              scenario_tag,
+    const std::vector<int>&                         gap_grid,
+    const std::vector<double>&                      rho_grid,
+    const std::vector<int>&                         kappa_boundary,
+    std::size_t                                     num_MC,
+    const std::vector<SolverInfo>&                  solvers,
+    const std::map<std::string, Eigen::MatrixXd>&   tpp_cs_map,
+    const std::map<std::string, Eigen::MatrixXd>&   fdp_cs_map,
+    const std::map<std::string, Eigen::MatrixXd>&   sd_tpp_cs_map,
+    const std::map<std::string, Eigen::MatrixXd>&   sd_fdp_cs_map,
+    const std::map<std::string, Eigen::VectorXd>&   tpp_rand_map,
+    const std::map<std::string, Eigen::VectorXd>&   fdp_rand_map,
+    const std::map<std::string, Eigen::VectorXd>&   sd_tpp_rand_map,
+    const std::map<std::string, Eigen::VectorXd>&   sd_fdp_rand_map,
+    const std::string&                              header_extra = "",
+    const std::string&                              output_dir   = DEMO_OUTPUT_DIR)
+{
+    std::filesystem::create_directories(output_dir);
+    const std::string txt_path = output_dir + "da_trex_mc_" + scenario_tag + ".txt";
+    const std::string csv_path = output_dir + "da_trex_mc_" + scenario_tag + ".csv";
+
+    std::ofstream out_file(txt_path);
+
+    auto print_dual = [&](const std::string& text) {
+        std::cout << text;
+        if (out_file.is_open()) out_file << text;
+    };
+
+    const auto n_rho = rho_grid.size();
+    const auto n_gap = gap_grid.size();
+    const int  n_cols = static_cast<int>(n_gap) + 1;   // gap cols + Random
+
+    constexpr int rw = 10;  // row-label width
+    constexpr int cw = 9;   // column width
+
+    // Build a column-header + separator string for the gap+Random layout
+    auto make_col_header = [&]() -> std::string {
+        std::ostringstream h;
+        h << std::string(rw, ' ');
+        for (int g : gap_grid)
+            h << std::right << std::setw(cw) << ("gap=" + std::to_string(g));
+        h << std::setw(cw) << "Random" << "\n";
+        h << "  " << std::string(rw + cw * n_cols, '-') << "\n";
+        return h.str();
+    };
+
+    // Print one labelled matrix (cs columns + Random column)
+    auto print_matrix_block = [&](const std::string& label,
+                                  const Eigen::MatrixXd& cs_mat,
+                                  const Eigen::VectorXd& rand_vec) {
+        std::ostringstream block;
+        block << "  " << label << "\n" << make_col_header();
+        for (std::size_t ir = 0; ir < n_rho; ++ir) {
+            std::ostringstream rl;
+            rl << "rho=" << std::fixed << std::setprecision(1) << rho_grid[ir];
+            block << "  " << std::left << std::setw(rw) << rl.str();
+            for (std::size_t ig = 0; ig < n_gap; ++ig)
+                block << std::right << std::fixed << std::setprecision(4)
+                      << std::setw(cw)
+                      << cs_mat(static_cast<Eigen::Index>(ir),
+                                static_cast<Eigen::Index>(ig));
+            block << std::right << std::fixed << std::setprecision(4)
+                  << std::setw(cw)
+                  << rand_vec(static_cast<Eigen::Index>(ir)) << "\n";
+        }
+        block << "\n";
+        print_dual(block.str());
+    };
+
+    // ── Header ──────────────────────────────────────────────────────────────
+    {
+        std::ostringstream hdr;
+        hdr << "\n" << std::string(78, '=') << "\n"
+            << "  DA-TRex MC: " << scenario_tag
+            << "  (MC=" << num_MC << ")\n";
+        if (!header_extra.empty())
+            hdr << "  " << header_extra << "\n";
+        hdr << std::string(78, '=') << "\n\n";
+        print_dual(hdr.str());
+    }
+
+    // ── Kappa boundary ───────────────────────────────────────────────────────
+    {
+        std::ostringstream kb;
+        kb << "  DA+AR1 correction window: kappa = ceil(log(0.02) / log(rho))\n\n";
+        kb << "  " << std::left << std::setw(10) << "rho";
+        for (double r : rho_grid)
+            kb << std::right << std::fixed << std::setprecision(1) << std::setw(6) << r;
+        kb << "\n";
+        kb << "  " << std::left << std::setw(10) << "kappa";
+        for (int k : kappa_boundary)
+            kb << std::right << std::setw(6) << k;
+        kb << "\n\n";
+        print_dual(kb.str());
+    }
+
+    // ── Per-solver blocks ────────────────────────────────────────────────────
+    for (const auto& sv : solvers) {
+        const auto& nm = sv.name;
+        {
+            std::ostringstream sep;
+            sep << std::string(78, '-') << "\n"
+                << "  Solver: " << nm << "\n"
+                << std::string(78, '-') << "\n\n";
+            print_dual(sep.str());
+        }
+        print_matrix_block("mean_TPP", tpp_cs_map.at(nm),    tpp_rand_map.at(nm));
+        print_matrix_block("sd_TPP",   sd_tpp_cs_map.at(nm), sd_tpp_rand_map.at(nm));
+        print_matrix_block("mean_FDP", fdp_cs_map.at(nm),    fdp_rand_map.at(nm));
+        print_matrix_block("sd_FDP",   sd_fdp_cs_map.at(nm), sd_fdp_rand_map.at(nm));
+    }
+
+    print_dual(std::string(78, '=') + "\n\n");
+
+    if (out_file.is_open()) {
+        std::cout << "[Info] TXT saved to: " << txt_path << "\n";
+        out_file.close();
+    }
+
+    // ── CSV (tidy long format) ────────────────────────────────────────────────
+    std::ofstream csv_file(csv_path);
+    if (csv_file.is_open()) {
+        csv_file << "solver,metric,rho,support_type,gap,value\n"
+                 << std::fixed << std::setprecision(6);
+        for (const auto& sv : solvers) {
+            const auto& nm = sv.name;
+            for (std::size_t ir = 0; ir < n_rho; ++ir) {
+                const double     rv = rho_grid[ir];
+                const Eigen::Index ri = static_cast<Eigen::Index>(ir);
+
+                // CappedSpread entries (one per gap value)
+                for (std::size_t ig = 0; ig < n_gap; ++ig) {
+                    const Eigen::Index gi = static_cast<Eigen::Index>(ig);
+                    const int gv = gap_grid[ig];
+                    csv_file << nm << ",mean_TPP," << rv << ",CappedSpread," << gv
+                             << "," << tpp_cs_map.at(nm)(ri, gi)    << "\n";
+                    csv_file << nm << ",sd_TPP,"   << rv << ",CappedSpread," << gv
+                             << "," << sd_tpp_cs_map.at(nm)(ri, gi) << "\n";
+                    csv_file << nm << ",mean_FDP," << rv << ",CappedSpread," << gv
+                             << "," << fdp_cs_map.at(nm)(ri, gi)    << "\n";
+                    csv_file << nm << ",sd_FDP,"   << rv << ",CappedSpread," << gv
+                             << "," << sd_fdp_cs_map.at(nm)(ri, gi) << "\n";
+                }
+
+                // Random entries (gap column left empty)
+                csv_file << nm << ",mean_TPP," << rv << ",Random,,"
+                         << tpp_rand_map.at(nm)(ri)    << "\n";
+                csv_file << nm << ",sd_TPP,"   << rv << ",Random,,"
+                         << sd_tpp_rand_map.at(nm)(ri) << "\n";
+                csv_file << nm << ",mean_FDP," << rv << ",Random,,"
+                         << fdp_rand_map.at(nm)(ri)    << "\n";
+                csv_file << nm << ",sd_FDP,"   << rv << ",Random,,"
+                         << sd_fdp_rand_map.at(nm)(ri) << "\n";
+            }
+        }
+        std::cout << "[Info] CSV saved to: " << csv_path << "\n\n";
+    }
+}
+
+
+// ==============================================================================
 } /* End of namespace da_sim */
 // ==============================================================================
 
