@@ -5,6 +5,7 @@
  * @file demo_mlm_01_scaler.cpp
  *
  * @brief Demonstration of ZScoreScaler and LpNormScaler usage.
+ *
  * Organiation:
  * ------------
  * |-- ml_methods/
@@ -21,8 +22,8 @@
 #include <Eigen/Dense>
 
 // TRex Selector includes
-#include <ml_methods/standardization/lp_norm_scaler.hpp>
-#include <ml_methods/standardization/z_score_scaler.hpp>
+#include <ml_methods/scaler_methods/lp_norm_scaler.hpp>
+#include <ml_methods/scaler_methods/z_score_scaler.hpp>
 #include <utils/openmp/utils_openmp.hpp>
 #include <utils/memmap/memory_mapped_matrix.hpp>
 #include <utils/eval_metrics/utils_eval_cdiagnostics.hpp>
@@ -31,7 +32,7 @@
 // Namespace aliases
 // ============================================================================
 
-namespace scaler = trex::ml_methods::standardization;
+namespace scaler = trex::ml_methods::scaler_methods;
 namespace omp_utils = trex::utils::openmp;
 namespace memmap = trex::utils::memmap;
 namespace cdiagnostics = trex::utils::eval::cdiagnostics;
@@ -172,7 +173,11 @@ void demo_scaler_serialization() {
     Eigen::Map<Eigen::MatrixXd> X_map(X.data(), n, p);
 
     // Step 2. Fit and save
-    std::string filename = "scaler_test.bin";
+#ifdef TREX_DEMO_SCALER_SER_PATH
+    const std::string filename = TREX_DEMO_SCALER_SER_PATH;
+#else
+    const std::string filename = "scaler_test.bin";
+#endif
     scaler::ZScoreScaler scaler;
     scaler.fit(X_map);
     scaler.save(filename);
@@ -212,7 +217,11 @@ void demo_scaler_on_mmap_matrix() {
     std::cout << "Creating memory-mapped matrix...\n";
     const Eigen::Index n = 20'000, p = 100'000;
     std::cout << "Matrix size: " << n << " x " << p << "\n";
-    std::string mmap_filename = "mmap_matrix.bin";
+#ifdef TREX_DEMO_MMAP_PATH
+    const std::string mmap_filename = TREX_DEMO_MMAP_PATH;
+#else
+    const std::string mmap_filename = "mmap_matrix.bin";
+#endif
     memmap::MemoryMappedMatrix<double> mmap_matrix(
         mmap_filename, n, p, memmap::AccessMode::ReadWrite);
     auto X_map = mmap_matrix.getMap();
