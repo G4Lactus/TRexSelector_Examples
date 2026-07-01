@@ -18,6 +18,7 @@ notes/
 deprecated/
 .cache/
 .github/
+documentation/
 
 ################################
 ############ C/C++ #############
