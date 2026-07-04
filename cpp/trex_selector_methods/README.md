@@ -13,11 +13,11 @@ Each variant addresses a different variable-selection scenario — the classical
 | Category | Folder | Purpose |
 |----------|--------|---------|
 | **Classical T-Rex** | [trex/](trex/README.md) | Terminating Random Experiments Selector — baseline FDR-controlled variable selection in low- and high-dimensional Gaussian linear models |
-| **Dependency-Aware T-Rex (DA-TRex)** | `trex_da/` *(README pending)* | Variable selection under correlated/dependent design structures: AR(1) Toeplitz, equicorrelated, banded nearest-neighbor, and hierarchical block-covariance designs |
+| **Dependency-Aware T-Rex (DA-TRex)** | [trex_da/](trex_da/README.md) | Variable selection under correlated/dependent design structures: AR(1) Toeplitz, equicorrelated, banded nearest-neighbor, and hierarchical block-covariance designs |
 | **Grouped Variable Selection (T-Rex+GVS)** | [trex_gvs/](trex_gvs/README.md) | Group-structured selection via elastic-net-based and HAC-clustering-based grouping (EN, EN-AUG, IEN) across equicorrelated, scattered, and block-covariance patterns |
 | **Screening (Screen-TRex)** | [trex_screening/](trex_screening/README.md) | Ultra-high-dimensional pre-screening ahead of T-Rex selection, with in-memory, memory-mapped, and biobank-scale variants |
 | **Sparse PCA (T-Rex SPCA)** | [trex_spca/](trex_spca/README.md) | Sparse PCA via T-Rex+GVS applied to loading matrices, benchmarked against ordinary PCA and oracle-thresholded baselines |
-| **Validation** | `validation/` *(README pending)* | Cross-checks of C++ selector variants against R reference outputs (currently covers `trex`, `trex_gvs`, and `trex_spca`) |
+| **Validation** | [validation/](validation/README.md) | Cross-checks of C++ selector variants against R reference outputs (currently covers `trex`, `trex_da`, `trex_gvs`, and `trex_spca`) |
 
 ---
 
