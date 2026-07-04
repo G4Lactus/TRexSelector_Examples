@@ -82,7 +82,7 @@ static void sim_hastie_part1(const GVSSimConfig& cfg, const std::string& tag)
         "Part 1: SNR Sweep  |  " + tag +
         "\nn=" + std::to_string(cfg.n) + "  p=" + std::to_string(cfg.p) +
         "  s=150  MC=" + std::to_string(cfg.num_MC) +
-        "  tFDR=" + std::to_string(cfg.tFDR).substr(0, 3) +
+        "  tFDR=" + fmt_num(cfg.tFDR) +
         "  sd_x=sqrt(0.01)");
 
     auto en_snr     = run_gvs_snr_sweep(
@@ -146,7 +146,7 @@ static void sim_hastie_part2(const GVSSimConfig& cfg, const std::string& tag)
 
     cdiag::print_section_header(
         "Part 2: rho Sweep  |  " + tag +
-        "  (SNR=" + std::to_string(cfg.snr).substr(0, 3) + ")");
+        "  (SNR=" + fmt_num(cfg.snr) + ")");
 
     auto en_rho     = run_gvs_rho_sweep(
         rho_fn, rho_grid, cfg, gvs_ctrl_en,     trex_ctrl, "EN");
@@ -224,9 +224,9 @@ static void sim_hastie_part3(const GVSSimConfig& cfg, const std::string& tag)
 
     std::vector<std::string> snr_labels, rho_labels;
     for (double s : snr_grid_2d)
-        snr_labels.push_back("snr=" + std::to_string(s).substr(0, 4));
+        snr_labels.push_back("snr=" + fmt_num(s));
     for (double r : rho_grid_2d)
-        rho_labels.push_back("rho=" + std::to_string(r).substr(0, 4));
+        rho_labels.push_back("rho=" + fmt_num(r));
 
     print_mc_matrix("mean_TPP [EN]",     snr_labels,
                     rho_labels, en_2d,     true);
@@ -280,10 +280,10 @@ static void sim_hastie_part4(const GVSSimConfig& cfg, const std::string& tag)
     cdiag::print_section_header(
         "Part 4: lambda2_method Comparison  |  " + tag +
         "\nn=" + std::to_string(cfg.n) + "  p=" + std::to_string(cfg.p) +
-        "  SNR=" + std::to_string(fixed_snr).substr(0, 3) +
-        "  rho=" + std::to_string(fixed_rho).substr(0, 3) +
+        "  SNR=" + fmt_num(fixed_snr) +
+        "  rho=" + fmt_num(fixed_rho) +
         "  s=150  MC=" + std::to_string(cfg.num_MC) +
-        "  tFDR=" + std::to_string(cfg.tFDR).substr(0, 3) +
+        "  tFDR=" + fmt_num(cfg.tFDR) +
         "  methods: CV_1SE_SVD / CV_1SE_CCD");
 
     std::vector<GVSGridPointResult> en_results, ien_results;
@@ -403,10 +403,10 @@ static void sim_hastie_part5(const GVSSimConfig& cfg, const std::string& tag)
     cdiag::print_section_header(
         "Part 5: hc_linkage Comparison  |  " + tag +
         "\nn=" + std::to_string(cfg.n) + "  p=" + std::to_string(cfg.p) +
-        "  SNR=" + std::to_string(fixed_snr).substr(0, 3) +
-        "  rho=" + std::to_string(fixed_rho).substr(0, 3) +
+        "  SNR=" + fmt_num(fixed_snr) +
+        "  rho=" + fmt_num(fixed_rho) +
         "  s=150  MC=" + std::to_string(cfg.num_MC) +
-        "  tFDR=" + std::to_string(cfg.tFDR).substr(0, 3) +
+        "  tFDR=" + fmt_num(cfg.tFDR) +
         "  lambda2=CV_1SE_CCD");
 
     std::vector<GVSGridPointResult> en_results, ien_results;
@@ -494,13 +494,14 @@ static void sim_hastie_part5(const GVSSimConfig& cfg, const std::string& tag)
 
 int main()
 {
-    std::cout.setf(std::ios::unitbuf);
-    omp_set_num_threads(6);
-    std::cout << "Running with " << omp_get_max_threads() << " threads\n\n";
 
     // ==========================================================================
     //  Simulation parameters
     // ==========================================================================
+
+    std::cout.setf(std::ios::unitbuf);
+    omp_set_num_threads(6);
+    std::cout << "Running with " << omp_get_max_threads() << " threads\n\n";
 
     GVSSimConfig cfg;
     cfg.n         = 200;
@@ -519,11 +520,11 @@ int main()
     //  Run simulations
     // ==========================================================================
 
-    sim_hastie_part1(cfg, scenario_tag);
-    sim_hastie_part2(cfg, scenario_tag);
-    sim_hastie_part3(cfg, scenario_tag);
-    sim_hastie_part4(cfg, scenario_tag);
-    sim_hastie_part5(cfg, scenario_tag);
+    if (true) sim_hastie_part1(cfg, scenario_tag);
+    if (true) sim_hastie_part2(cfg, scenario_tag);
+    if (true) sim_hastie_part3(cfg, scenario_tag);
+    if (true) sim_hastie_part4(cfg, scenario_tag);
+    if (true) sim_hastie_part5(cfg, scenario_tag);
 
     std::cout << scenario_tag << " GVS MC simulations complete.\n";
     return 0;

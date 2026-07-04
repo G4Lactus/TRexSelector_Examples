@@ -78,7 +78,7 @@ static void sim_neg_traps_part1(const GVSSimConfig& cfg, const std::string& tag)
         "Part 1: SNR Sweep  |  " + tag +
         "\nn=" + std::to_string(cfg.n) + "  p=" + std::to_string(cfg.p) +
         "  s=100  MC=" + std::to_string(cfg.num_MC) +
-        "  tFDR=" + std::to_string(cfg.tFDR).substr(0, 3) +
+        "  tFDR=" + fmt_num(cfg.tFDR) +
         "  sd_x=sqrt(0.01)");
 
     auto en_snr     = run_gvs_snr_sweep(
@@ -139,7 +139,7 @@ static void sim_neg_traps_part2(const GVSSimConfig& cfg, const std::string& tag)
 
     cdiag::print_section_header(
         "Part 2: rho Sweep  |  " + tag +
-        "  (SNR=" + std::to_string(cfg.snr).substr(0, 3) + ")");
+        "  (SNR=" + fmt_num(cfg.snr) + ")");
 
     auto en_rho     = run_gvs_rho_sweep(
         rho_fn, rho_grid, cfg, gvs_ctrl_en,     trex_ctrl, "EN");
@@ -206,9 +206,9 @@ static void sim_neg_traps_part3(const GVSSimConfig& cfg, const std::string& tag)
 
     std::vector<std::string> snr_labels, rho_labels;
     for (double s : snr_grid_2d)
-        snr_labels.push_back("snr=" + std::to_string(s).substr(0, 4));
+        snr_labels.push_back("snr=" + fmt_num(s));
     for (double r : rho_grid_2d)
-        rho_labels.push_back("rho=" + std::to_string(r).substr(0, 4));
+        rho_labels.push_back("rho=" + fmt_num(r));
 
     print_mc_matrix("mean_TPP [EN]",     snr_labels,
                     rho_labels, en_2d,     true);
@@ -258,9 +258,9 @@ int main()
     //  Run simulations
     // ==========================================================================
 
-    sim_neg_traps_part1(cfg, scenario_tag);
-    sim_neg_traps_part2(cfg, scenario_tag);
-    sim_neg_traps_part3(cfg, scenario_tag);
+    if (true) sim_neg_traps_part1(cfg, scenario_tag);
+    if (true) sim_neg_traps_part2(cfg, scenario_tag);
+    if (true) sim_neg_traps_part3(cfg, scenario_tag);
 
     std::cout << scenario_tag << " GVS MC simulations complete.\n";
     return 0;

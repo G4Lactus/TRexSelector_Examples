@@ -214,10 +214,10 @@ static void run_block_bench_scenario(
         " G=" + std::to_string(preset.G) +
         " block=" + std::to_string(preset.block_size) +
         " active=" + std::to_string(preset.n_active_blocks) +
-        " tFDR=" + std::to_string(preset.tFDR).substr(0, 3) +
+        " tFDR=" + fmt_num(preset.tFDR) +
         " K=" + std::to_string(preset.K) +
         " MC=" + std::to_string(preset.num_MC) +
-        " corr_max=" + std::to_string(preset.corr_max).substr(0, 3));
+        " corr_max=" + fmt_num(preset.corr_max));
 
     const std::size_t n_rho = preset.rho_grid.size();
     const std::size_t n_snr = preset.snr_grid.size();
@@ -273,11 +273,21 @@ static void run_block_benchmark(const BlockBenchPreset& preset)
 
 int main()
 {
+
+    // ==========================================================================
+    //  Simulation parameters
+    // ==========================================================================
+
     std::cout.setf(std::ios::unitbuf);
     omp_set_num_threads(6);
     std::cout << "Running with " << omp_get_max_threads() << " threads\n\n";
 
-    run_block_benchmark(make_block_bench_preset());
+
+    // ==========================================================================
+    //  Run simulations
+    // ==========================================================================
+
+    if (true) run_block_benchmark(make_block_bench_preset());
 
     return 0;
 }

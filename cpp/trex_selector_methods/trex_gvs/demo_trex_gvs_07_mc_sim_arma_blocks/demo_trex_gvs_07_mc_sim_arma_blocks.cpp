@@ -144,7 +144,7 @@ static void run_arma_part1_snr_sweep(
         "\nn=" + std::to_string(cfg.n) +
         " p=" + std::to_string(cfg.p) +
         " s=150 MC=" + std::to_string(cfg.num_MC) +
-        " tFDR=" + std::to_string(cfg.tFDR).substr(0, 3) +
+        " tFDR=" + fmt_num(cfg.tFDR) +
         " ar_coef=0.8 (fixed)");
 
     auto en = run_gvs_snr_sweep(
@@ -186,7 +186,7 @@ static void run_arma_part2_arcoef_sweep(
 
     cdiag::print_section_header(
         "Part 2: ar_coef Sweep | " + preset.scenario_tag +
-        " (SNR=" + std::to_string(cfg.snr).substr(0, 3) + ")");
+        " (SNR=" + fmt_num(cfg.snr) + ")");
 
     auto en = run_gvs_rho_sweep(
         ar_fn, preset.ar_coef_grid_1d, cfg, ms.en, ms.trex_ctrl, "EN");
@@ -256,9 +256,9 @@ static void run_arma_part3_2d_sweep(
 
     std::vector<std::string> snr_labels, ar_labels;
     for (double s : preset.snr_grid_2d)
-        snr_labels.push_back("snr=" + std::to_string(s).substr(0, 4));
+        snr_labels.push_back("snr=" + fmt_num(s));
     for (double a : preset.ar_coef_grid_2d)
-        ar_labels.push_back("ac=" + std::to_string(a).substr(0, 4));
+        ar_labels.push_back("ac=" + fmt_num(a));
 
     print_mc_matrix("mean_FDP [EN]",     snr_labels, ar_labels, en,     false);
     print_mc_matrix("mean_TPP [EN]",     snr_labels, ar_labels, en,     true);
@@ -313,6 +313,11 @@ static void run_arma_blocks_benchmark(
 
 int main()
 {
+
+    // ==========================================================================
+    //  Simulation parameters
+    // ==========================================================================
+
     std::cout.setf(std::ios::unitbuf);
     omp_set_num_threads(6);
     std::cout << "Running with " << omp_get_max_threads() << " threads\n\n";
@@ -328,7 +333,12 @@ int main()
     cfg.corr_max  = 0.98;
     cfg.snr       = 2.0;   // fixed Part-2 value; overwritten in driver
 
-    run_arma_blocks_benchmark(cfg, make_arma_blocks_preset());
+
+    // ==========================================================================
+    //  Run simulations
+    // ==========================================================================
+
+    if (true) run_arma_blocks_benchmark(cfg, make_arma_blocks_preset());
 
     std::cout << "All ARMA-block benchmark simulations complete.\n";
     return 0;

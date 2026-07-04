@@ -138,7 +138,7 @@ static void run_ar1_part1_snr_sweep(const GVSSimConfig& cfg,
       "Part 1: SNR Sweep | " + preset.scenario_tag +
       "\nn=" + std::to_string(cfg.n) + " p=" + std::to_string(cfg.p) +
       " s=150 MC=" + std::to_string(cfg.num_MC) +
-      " tFDR=" + std::to_string(cfg.tFDR).substr(0, 3) +
+      " tFDR=" + fmt_num(cfg.tFDR) +
       " rho=0.85 (fixed)");
 
   auto en = run_gvs_snr_sweep(
@@ -174,7 +174,7 @@ static void run_ar1_part2_rho_sweep(const GVSSimConfig& cfg,
 
   cdiag::print_section_header(
       "Part 2: rho Sweep | " + preset.scenario_tag +
-      " (SNR=" + std::to_string(cfg.snr).substr(0, 3) + ")");
+      " (SNR=" + fmt_num(cfg.snr) + ")");
 
   auto en = run_gvs_rho_sweep(
       rho_fn, preset.rho_grid_1d, cfg, ms.en, ms.trex_ctrl, "EN");
@@ -221,10 +221,10 @@ static void run_ar1_part3_2d_sweep(const GVSSimConfig& cfg,
 
   std::vector<std::string> snr_labels, rho_labels;
   for (double s : preset.snr_grid_2d) {
-    snr_labels.push_back("snr=" + std::to_string(s).substr(0, 4));
+    snr_labels.push_back("snr=" + fmt_num(s));
   }
   for (double r : preset.rho_grid_2d) {
-    rho_labels.push_back("rho=" + std::to_string(r).substr(0, 4));
+    rho_labels.push_back("rho=" + fmt_num(r));
   }
 
   print_mc_matrix("mean_FDP [EN]", snr_labels, rho_labels, en, false);
@@ -278,6 +278,10 @@ static void run_ar1_blocks_benchmark(const GVSSimConfig& base_cfg,
 
 int main() {
 
+  // ==========================================================================
+  //  Simulation parameters
+  // ==========================================================================
+
   std::cout.setf(std::ios::unitbuf);
   omp_set_num_threads(6);
   std::cout << "Running with " << omp_get_max_threads() << " threads\n\n";
@@ -293,7 +297,11 @@ int main() {
   cfg.corr_max = 0.98;
   cfg.snr = 2.0;
 
-  run_ar1_blocks_benchmark(cfg, make_ar1_blocks_preset());
+  // ==========================================================================
+  //  Run simulations
+  // ==========================================================================
+
+  if (true) run_ar1_blocks_benchmark(cfg, make_ar1_blocks_preset());
 
   std::cout << "All AR(1)-blocks benchmark simulations complete.\n";
   return 0;

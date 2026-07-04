@@ -89,6 +89,27 @@ using trex::trex_selector_methods::utils::solver_dispatch::SolverHyperparameters
 
 
 // ==============================================================================
+// Number formatting
+// ==============================================================================
+
+/**
+ * @brief Format a double for console/title/label strings: fixed-point with at
+ *        most @p max_decimals decimals, trailing zeros (and a trailing '.')
+ *        trimmed. E.g. fmt_num(0.05) -> "0.05", fmt_num(2.0) -> "2".
+ */
+inline std::string fmt_num(double v, int max_decimals = 4) {
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(max_decimals) << v;
+    std::string s = oss.str();
+    if (s.find('.') != std::string::npos) {
+        s.erase(s.find_last_not_of('0') + 1, std::string::npos);
+        if (!s.empty() && s.back() == '.') s.pop_back();
+    }
+    return s;
+}
+
+
+// ==============================================================================
 // Simulation configuration
 // ==============================================================================
 
@@ -549,7 +570,7 @@ inline void print_mc_snr_table(
     std::vector<std::string> labels;
     labels.reserve(snr_grid.size());
     for (double s : snr_grid)
-        labels.push_back("snr=" + std::to_string(s).substr(0, 4));
+        labels.push_back("snr=" + fmt_num(s));
 
     print_mc_1d_method_table("EN",     labels, en_results,     fout);
     print_mc_1d_method_table("EN+AUG", labels, en_aug_results, fout);
@@ -684,7 +705,7 @@ inline void print_mc_rho_table(
     std::vector<std::string> labels;
     labels.reserve(rho_grid.size());
     for (double r : rho_grid)
-        labels.push_back("rho=" + std::to_string(r).substr(0, 4));
+        labels.push_back("rho=" + fmt_num(r));
 
     print_mc_1d_method_table("EN",     labels, en_results,     fout);
     print_mc_1d_method_table("EN+AUG", labels, en_aug_results, fout);
@@ -906,7 +927,7 @@ inline void print_mc_matrix(
  *
  * Generalises print_mc_rho_table() by accepting a custom parameter name for
  * the row-label prefix (e.g. "ar_coef", "rho_sc").  Row labels are formed as
- * param_name + "=" + std::to_string(v).substr(0, 4).
+ * param_name + "=" + fmt_num(v).
  * If file_stem is non-empty, also writes a .txt and a .csv to DEMO_OUTPUT_DIR.
  *
  * @param scenario_tag  Short label printed in the header.
@@ -955,7 +976,7 @@ inline void print_mc_param_sweep_table(
     std::vector<std::string> labels;
     labels.reserve(param_grid.size());
     for (double v : param_grid)
-        labels.push_back(param_name + "=" + std::to_string(v).substr(0, 4));
+        labels.push_back(param_name + "=" + fmt_num(v));
 
     print_mc_1d_method_table("EN",     labels, en_results,     fout);
     print_mc_1d_method_table("EN+AUG", labels, en_aug_results, fout);
