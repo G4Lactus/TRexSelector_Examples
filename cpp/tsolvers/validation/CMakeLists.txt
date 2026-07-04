@@ -4,7 +4,7 @@
 # ==================================================================================
 
 add_demo_target(validation_ts_01_tenet_aug_comparison
-    validation_ts_01_tenet_aug_comparison.cpp
+    validation_ts_01_tenet_aug_comparison/validation_ts_01_tenet_aug_comparison.cpp
     T_ALGORITHM_LIBS
 )
 
@@ -14,7 +14,7 @@ string(REPLACE "simulation_results/" "validation_results/" _defs "${_defs}")
 set_target_properties(validation_ts_01_tenet_aug_comparison PROPERTIES COMPILE_DEFINITIONS "${_defs}")
 
 add_demo_target(validation_ts_02_tlars_tlasso_rcompare
-    validation_ts_02_tlars_tlasso_rcompare.cpp
+    validation_ts_02_tlars_tlasso_rcompare/validation_ts_02_tlars_tlasso_rcompare.cpp
     T_ALGORITHM_LIBS
 )
 
