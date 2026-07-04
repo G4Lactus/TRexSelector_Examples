@@ -205,9 +205,35 @@ macro(add_demo_target target_name demo_file library_set)
         ${ARGN}
     )
 
+    # Route each demo's output into a simulation_results/ folder next to its
+    # own source file. Demos that live directly in the group directory (no
+    # subfolder) keep the original <group>/simulation_results/ location.
+    get_filename_component(_demo_subdir "${demo_file}" DIRECTORY)
+    if(_demo_subdir)
+        set(_demo_output_dir "${CMAKE_CURRENT_SOURCE_DIR}/${_demo_subdir}/simulation_results/")
+    else()
+        set(_demo_output_dir "${CMAKE_CURRENT_SOURCE_DIR}/simulation_results/")
+    endif()
+
     target_compile_definitions(${target_name} PRIVATE
         EIGEN_USE_BLAS
-        DEMO_OUTPUT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/simulation_results/"
+        DEMO_OUTPUT_DIR="${_demo_output_dir}"
+    )
+
+    # Mirror the source-tree layout under bin/ instead of dumping every demo
+    # executable into one flat directory, e.g.:
+    #   trex_selector_methods/trex/demo_trex_01_single_run/demo_trex_01_single_run.cpp
+    #     -> <build>/bin/trex_selector_methods/trex/demo_trex_01_single_run/
+    #   tsolvers/demo_ts_01_tlars.cpp
+    #     -> <build>/bin/tsolvers/
+    file(RELATIVE_PATH _group_rel_dir "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+    if(_demo_subdir)
+        set(_demo_bin_dir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${_group_rel_dir}/${_demo_subdir}")
+    else()
+        set(_demo_bin_dir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${_group_rel_dir}")
+    endif()
+    set_target_properties(${target_name} PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${_demo_bin_dir}"
     )
 
     # NOTE: -ffast-math implies -ffinite-math-only, which breaks std::isnan/isfinite.
