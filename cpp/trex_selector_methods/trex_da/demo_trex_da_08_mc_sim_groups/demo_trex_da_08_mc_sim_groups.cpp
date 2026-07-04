@@ -58,34 +58,40 @@ void demo_groups_mc_snr_sweep()
 
     auto groups = make_group_structure(cfg.p);
 
+     // cumulative variance masses, fine -> coarse
+    const std::vector<double> rho_levels = {0.55, 0.25, 0.10};
+    constexpr double phi_leaf = 0.50;
+
     TRexDAControlParameter da_ctrl;
     da_ctrl.prior_groups    = groups;
     da_ctrl.rho_grid_labels = rho_levels;
 
     run_snr_sweep(
-        "da_groups",
+        "da_groups_toeplitz_leaf",
         {0.1, 0.2, 0.5, 1.0, 2.0, 5.0},
         cfg.num_MC,
         cfg.tFDR,
         cfg.base_seed,
         default_solvers(),
         [&](double snr, unsigned seed) {
-            return dgp_groups(
+            return dgp_groups_toeplitz_leaf(
                 cfg.n,
                 cfg.p,
                 make_support(policy, cfg.s, cfg.p, max_gap, seed),
                 cfg.amplitude,
                 groups,
                 rho_levels,
+                phi_leaf,
                 snr,
                 seed
             );
         },
         da_ctrl,
         make_trex_control(cfg.K),
-        "Prior Groups 3-level, n=" + std::to_string(cfg.n)
+        "Prior Groups + Toeplitz leaf, n=" + std::to_string(cfg.n)
         + ", p=" + std::to_string(cfg.p)
         + ", support=" + support_policy_label(policy)
+        + ", phi_leaf=" + fmt_num(phi_leaf)
         + ", max_gap=" + std::to_string(max_gap));
 }
 
@@ -95,8 +101,10 @@ void demo_groups_mc_snr_sweep()
 // ==============================================================================
 int main() {
     std::cout.setf(std::ios::unitbuf);
+    omp_set_num_threads(6);
+    std::cout << "Running with " << omp_get_max_threads() << " threads\n\n";
 
-    if (false) demo_groups_mc_snr_sweep();
+    if (true) demo_groups_mc_snr_sweep();
 
     std::cout << "\nPrior Groups MC simulations complete.\n";
     return 0;

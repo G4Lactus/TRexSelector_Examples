@@ -10,14 +10,13 @@
  * @brief Shared infrastructure for DA-TRex MC simulations.
  *
  * Provides:
- *   - BlockSimConfig / SimConfig    — simulation parameter structs
+ *   - SimConfig                     — simulation parameter struct
  *   - SolverInfo                    — solver descriptor
  *   - Support policies              — Random, CappedSpread, Clustered, OnePerBlock
  *   - make_support()                — support generator factory
  *   - make_trex_control()           — default TRexControlParameter
  *   - make_da_bt_control()          — default DA binary tree (BT) control
  *   - run_mc_trials()               — inner MC loop
- *   - evaluate_selection()          — single-run FDP/TPP evaluation
  *   - run_snr_sweep()               — full solver × SNR MC sweep
  *   - save_and_print_grid_results() — tabular output to console + file
  */
@@ -78,22 +77,29 @@ using trex::trex_selector_methods::utils::solver_dispatch::SolverHyperparameters
 
 
 // ==============================================================================
-// Configuration
+// Number formatting
 // ==============================================================================
 
-// Base simulation parameters
-struct BlockSimConfig {
-    int  n             = 150;     // observations
-    int  p             = 500;     // predictors
-    int  G             = 5;       // active groups (blocks with an active variable)
-    int  g             = 5;       // group (block) size
-    double rho         = 0.7;     // within-block correlation
-    double snr         = 2.0;     // signal-to-noise ratio
-    double tFDR        = 0.2;     // target FDR
-    std::size_t K      = 20;      // random experiments per selector run
-    std::size_t num_MC = 200; // Monte Carlo trials
-    int base_seed      = 2026;    // base RNG seed
-};
+/**
+ * @brief Format a double for console/title/label strings: fixed-point with at
+ *        most @p max_decimals decimals, trailing zeros (and a trailing '.')
+ *        trimmed. E.g. fmt_num(0.05) -> "0.05", fmt_num(2.0) -> "2".
+ */
+inline std::string fmt_num(double v, int max_decimals = 4) {
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(max_decimals) << v;
+    std::string s = oss.str();
+    if (s.find('.') != std::string::npos) {
+        s.erase(s.find_last_not_of('0') + 1, std::string::npos);
+        if (!s.empty() && s.back() == '.') s.pop_back();
+    }
+    return s;
+}
+
+
+// ==============================================================================
+// Configuration
+// ==============================================================================
 
 // General simulation parameters
 struct SimConfig {
@@ -371,9 +377,9 @@ inline TRexControlParameter make_trex_control(std::size_t K = 20) {
     ctrl.max_dummy_multiplier     = 10;
     ctrl.use_max_T_stop           = true;
     ctrl.dummy_distribution       = dummygen::Distribution::Normal();
-    ctrl.lloop_strategy           = LLoopStrategy::HCONCAT;
+    ctrl.lloop_strategy           = LLoopStrategy::STANDARD;
     ctrl.tloop_stagnation_stop    = true;
-    ctrl.tloop_max_stagnant_steps = 5;
+    ctrl.tloop_max_stagnant_steps = 7;
     ctrl.use_memory_mapping       = false;
     return ctrl;
 }
@@ -390,14 +396,6 @@ inline TRexDAControlParameter make_da_bt_control() {
 // ==============================================================================
 // Standard MC inner loop
 // ==============================================================================
-
-/** @brief Monte Carlo trial result. */
-struct MCTrialResult {
-    double fdp = 0.0;
-    double tpp = 0.0;
-    double L   = 0.0;
-    double T   = 0.0;
-};
 
 /** @brief Aggregate (FDR, TPR, avg L, avg T, sd FDR, sd TPR) for each grid point. */
 struct GridPointResult {
@@ -421,6 +419,7 @@ using DGPFactory = std::function<DGPData(unsigned seed)>;
  * @param trex_ctrl         TRexControlParameter for the selector.
  * @param da_ctrl           TRexDAControlParameter for the selector.
  * @param base_seed_offset  Base offset for RNG seeds (each trial uses base_seed_offset + mc).
+ * @param verbose           If true, enable selector verbose output (default: false).
  *
  * @return GridPointResult with average FDR, TPR, L, T, and sd FDR, TPR across trials.
  */
@@ -431,7 +430,8 @@ inline GridPointResult run_mc_trials(
     double tFDR,
     const TRexControlParameter& trex_ctrl,
     const TRexDAControlParameter& da_ctrl,
-    unsigned base_seed_offset)
+    unsigned base_seed_offset,
+    bool verbose = false)
 {
     const int iMC = static_cast<int>(num_MC);
 
@@ -445,6 +445,10 @@ inline GridPointResult run_mc_trials(
 
     #pragma omp parallel for schedule(dynamic)
     for (int mc = 0; mc < iMC; ++mc) {
+        #ifdef _OPENMP
+        omp_set_num_threads(1);
+        #endif
+
         unsigned trial_seed = base_seed_offset + static_cast<unsigned>(mc);
         auto dat = make_data(trial_seed);
 
@@ -459,7 +463,7 @@ inline GridPointResult run_mc_trials(
                                 da_ctrl,
                                 trex_ctrl,
                                 -1,
-                                false);
+                                verbose);
         selector.select();
 
         auto sel_idx = selector.getSelectedIndices();
@@ -517,6 +521,7 @@ inline GridPointResult run_mc_trials(
  * @param tFDR              Target FDR for the selector.
  * @param trex_ctrl         TRexControlParameter for the selector.
  * @param base_seed_offset  Base offset for RNG seeds.
+ * @param verbose           If true, enable selector verbose output (default: false).
  *
  * @return GridPointResult with average FDR, TPR, L, T, and sd FDR, TPR across trials.
  */
@@ -526,7 +531,8 @@ inline GridPointResult run_mc_trials_base(
     const DGPFactory& make_data,
     double tFDR,
     const TRexControlParameter& trex_ctrl,
-    unsigned base_seed_offset)
+    unsigned base_seed_offset,
+    bool verbose = false)
 {
     const int iMC = static_cast<int>(num_MC);
 
@@ -553,7 +559,7 @@ inline GridPointResult run_mc_trials_base(
                                 tFDR,
                                 trex_ctrl,
                                 -1,
-                                false);
+                                verbose);
         selector.select();
 
         auto sel_idx = selector.getSelectedIndices();
@@ -735,66 +741,6 @@ inline void save_and_print_grid_results(
 
 
 // ==============================================================================
-// Single-run evaluation
-// ==============================================================================
-
-/** @brief Metrics from a single selector run. */
-struct SingleRunMetrics {
-    std::string name;
-    int  n_selected = 0;
-    int  TP         = 0;
-    int  FP         = 0;
-    double TPP      = 0.0;
-    double FDP      = 0.0;
-};
-
-
-/**
- * @brief Evaluate selection against true support.
- *  @param name          Name of the selector.
- *  @param selected      Indices of selected features.
- *  @param true_support  Indices of true support features.
- *
- *  @return SingleRunMetrics containing evaluation results.
- */
-inline SingleRunMetrics evaluate_selection(
-    const std::string& name,
-    const std::vector<std::size_t>& selected,
-    const std::vector<std::size_t>& true_support)
-{
-    double fdp = rates::compute_fdp(selected, true_support);
-    double tpp = rates::compute_tpp(selected, true_support);
-
-    int n_sel = static_cast<int>(selected.size());
-    int tp    = static_cast<int>(
-        std::round(tpp * static_cast<double>(true_support.size())));
-    int fp    = n_sel - tp;
-
-    return {name, n_sel, tp, fp, tpp, fdp};
-}
-
-
-/**
- * @brief Print a single-run result to console.
- *
- * @param m     SingleRunMetrics to print.
- * @param tFDR  Target FDR.
- */
-inline void print_single_result(const SingleRunMetrics& m, double tFDR) {
-    std::cout << "\n" << std::string(60, '-') << "\n"
-              << "  " << m.name << "\n"
-              << std::string(60, '-') << "\n"
-              << std::fixed
-              << "  Selection:   " << m.n_selected << " selected  |  TP = " << m.TP
-              << "  FP = " << m.FP << "\n"
-              << "               TPP = " << std::setprecision(2) << m.TPP
-              << "  |  FDP = " << m.FDP
-              << "  (target <= " << tFDR << ")\n"
-              << std::string(60, '-') << "\n";
-}
-
-
-// ==============================================================================
 // Generic parameter sweep
 // ==============================================================================
 
@@ -813,6 +759,7 @@ inline void print_single_result(const SingleRunMetrics& m, double tFDR) {
  * @param trex_ctrl_base    Base T-Rex control parameters.
  * @param header_extra      Extra info for the output header.
  * @param include_base_trex If true, also run base T-Rex (no DA) with TLARS as a comparison row.
+ * @param verbose           If true, enable selector verbose output (default: false).
  */
 template <typename MakeDGP>
 void run_param_sweep(
@@ -827,7 +774,8 @@ void run_param_sweep(
     const TRexDAControlParameter& da_ctrl,
     const TRexControlParameter& trex_ctrl_base,
     const std::string& header_extra = "",
-    bool include_base_trex = false)
+    bool include_base_trex = false,
+    bool verbose = false)
 {
     cdianostics::print_section_header("MC: " + scenario_tag);
 
@@ -868,7 +816,7 @@ void run_param_sweep(
 
             auto res = run_mc_trials(
                 num_MC, lbl.str(), dgp_factory,
-                tFDR, trex_ctrl, da_ctrl, base_offset);
+                tFDR, trex_ctrl, da_ctrl, base_offset, verbose);
 
             auto idx = static_cast<Eigen::Index>(gi);
             fdr_map[sv.name](idx)    = res.avg_fdr;
@@ -925,7 +873,7 @@ void run_param_sweep(
 
                 auto res = run_mc_trials_base(
                     num_MC, lbl.str(), dgp_factory,
-                    tFDR, base_ctrl, base_offset);
+                    tFDR, base_ctrl, base_offset, verbose);
 
                 auto idx = static_cast<Eigen::Index>(gi);
                 fdr_map[base_name](idx)    = res.avg_fdr;
@@ -965,6 +913,7 @@ void run_param_sweep(
  * @param trex_ctrl_base    Base T-Rex control parameters.
  * @param header_extra      Extra info for the output header.
  * @param include_base_trex If true, also run base T-Rex (no DA) as a comparison.
+ * @param verbose           If true, enable selector verbose output (default: false).
  */
 template <typename MakeDGP>
 void run_snr_sweep(
@@ -978,11 +927,12 @@ void run_snr_sweep(
     const TRexDAControlParameter& da_ctrl,
     const TRexControlParameter& trex_ctrl_base,
     const std::string& header_extra = "",
-    bool include_base_trex = false)
+    bool include_base_trex = false,
+    bool verbose = false)
 {
     run_param_sweep(scenario_tag, "SNR", snr_values, num_MC, tFDR,
                     base_seed, solvers, std::move(make_dgp), da_ctrl,
-                    trex_ctrl_base, header_extra, include_base_trex);
+                    trex_ctrl_base, header_extra, include_base_trex, verbose);
 }
 
 
@@ -990,15 +940,20 @@ void run_snr_sweep(
 // Default solver set
 // ==============================================================================
 
-/** @brief Default solver configurations for T-Rex DA. */
+/** @brief Default solver configurations for T-Rex DA.
+ *
+ *  The trailing bool is the per-solver stagnation-stop toggle, mapped onto
+ *  TRexControlParameter::tloop_stagnation_stop by run_param_sweep(). LARS-based
+ *  solvers (TLARS/TLASSO/TENET/TENET_Aug) have monotone solution paths and can
+ *  safely run with stagnation control OFF; greedy solvers (TAFS/TOMP) default
+ *  it ON. Flip any flag on demand to compare with/without stagnation control.
+ */
 inline std::vector<SolverInfo> default_solvers() {
+    //          type                       name              rho_afs  use_stagnation
     return {
-        {SolverTypeForTRex::TLARS, "TREX-DA: TLARS", 0.0,
-            false},
-        {SolverTypeForTRex::TAFS,  "TREX-DA: TAFS",  0.3,
-            true},
-        {SolverTypeForTRex::TOMP,  "TREX-DA: TOMP",  0.0,
-            true},
+        {SolverTypeForTRex::TLARS, "TREX-DA: TLARS", 0.0,  /*stagnation=*/false},
+        {SolverTypeForTRex::TAFS,  "TREX-DA: TAFS",  0.3,  /*stagnation=*/true},
+        {SolverTypeForTRex::TOMP,  "TREX-DA: TOMP",  0.0,  /*stagnation=*/true},
     };
 }
 
@@ -1176,10 +1131,14 @@ inline void save_and_print_2d_two_support_results(
                     const double     cv = col_grid[ic];
                     const Eigen::Index ri = static_cast<Eigen::Index>(ir);
                     const Eigen::Index ci = static_cast<Eigen::Index>(ic);
-                    csv_file << nm << "," << support_type << ",mean_TPP," << rv << "," << cv << "," << tpp_m.at(nm)(ri, ci)    << "\n";
-                    csv_file << nm << "," << support_type << ",sd_TPP,"   << rv << "," << cv << "," << sd_tpp_m.at(nm)(ri, ci) << "\n";
-                    csv_file << nm << "," << support_type << ",mean_FDP," << rv << "," << cv << "," << fdp_m.at(nm)(ri, ci)    << "\n";
-                    csv_file << nm << "," << support_type << ",sd_FDP,"   << rv << "," << cv << "," << sd_fdp_m.at(nm)(ri, ci) << "\n";
+                    csv_file << nm << "," << support_type << ",mean_TPP," << rv << "," << cv << ","
+                             << tpp_m.at(nm)(ri, ci)    << "\n";
+                    csv_file << nm << "," << support_type << ",sd_TPP,"   << rv << "," << cv << ","
+                             << sd_tpp_m.at(nm)(ri, ci) << "\n";
+                    csv_file << nm << "," << support_type << ",mean_FDP," << rv << "," << cv << ","
+                             << fdp_m.at(nm)(ri, ci)    << "\n";
+                    csv_file << nm << "," << support_type << ",sd_FDP,"   << rv << "," << cv << ","
+                             << sd_fdp_m.at(nm)(ri, ci) << "\n";
                 }
             }
         };
@@ -1383,9 +1342,7 @@ inline void save_and_print_2d_gap_rho_results(
     }
 }
 
-
 // ==============================================================================
 } /* End of namespace da_sim */
 // ==============================================================================
-
 #endif /* End of DEMOS_TREX_SELECTOR_METHODS_DA_TREX_SIM_COMMON_HPP */

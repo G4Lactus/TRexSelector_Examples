@@ -31,7 +31,7 @@
 using namespace da_sim;
 
 // ==============================================================================
-//  Part 1: MC simulation — SNR sweep
+//  Part 1: MC simulation — SNR sweep, 2 support types (CappedSpread + Random)
 // ==============================================================================
 
 void demo_ar1_mc_snr_sweep()
@@ -41,18 +41,20 @@ void demo_ar1_mc_snr_sweep()
     cfg.n = 300;
     cfg.p = 1000;
     cfg.s = 10;
-    // amplitude = 3.0 and tFDR = 0.2 from SimConfig defaults
-    constexpr int    max_gap = 20;
-    constexpr double rho     = 0.7;
+    cfg.amplitude = 3.0;
+    cfg.tFDR = 0.2;
+    constexpr int max_gap = 20;
+    constexpr double rho = 0.7;
 
     TRexDAControlParameter da_ctrl;
     da_ctrl.method = DAMethod::AR1;
 
     const std::vector<double> snr_grid = {0.1, 0.2, 0.5, 1.0, 2.0, 5.0};
     const std::string hdr_base =
-        "AR(1) rho=" + std::to_string(rho) +
+        "AR(1) rho=" + fmt_num(rho) +
         ", n=" + std::to_string(cfg.n) +
         ", p=" + std::to_string(cfg.p);
+
 
     // --- Run A: CappedSpread(max_gap=20) ---
     run_snr_sweep(
@@ -75,6 +77,7 @@ void demo_ar1_mc_snr_sweep()
         hdr_base + ", support=CappedSpread(max_gap=" +
                       std::to_string(max_gap) + ")",
         /*include_base_trex=*/true);
+
 
     // --- Run B: Random support (redrawn per trial) ---
     run_snr_sweep(
@@ -100,7 +103,7 @@ void demo_ar1_mc_snr_sweep()
 
 
 // ==============================================================================
-//  Part 2: MC simulation — Rho sweep
+//  Part 2: MC simulation — Rho sweep, 2 support types (CappedSpread + Random)
 // ==============================================================================
 
 void demo_ar1_mc_rho_sweep()
@@ -110,7 +113,8 @@ void demo_ar1_mc_rho_sweep()
     cfg.n = 300;
     cfg.p = 1000;
     cfg.s = 10;
-    // amplitude = 3.0 and tFDR = 0.2 from SimConfig defaults
+    cfg.amplitude = 3.0;
+    cfg.tFDR = 0.2;
     constexpr int    max_gap   = 20;
     constexpr double snr_fixed = 2.0;
 
@@ -122,9 +126,10 @@ void demo_ar1_mc_rho_sweep()
         0.5, 0.6, 0.7, 0.8, 0.9
     };
     const std::string hdr_base =
-        "AR(1) SNR=" + std::to_string(snr_fixed) +
+        "AR(1) SNR=" + fmt_num(snr_fixed) +
         ", n=" + std::to_string(cfg.n) +
         ", p=" + std::to_string(cfg.p);
+
 
     // --- Run A: CappedSpread(max_gap=20) ---
     run_param_sweep(
@@ -193,7 +198,8 @@ void demo_ar1_mc_gap_rho_sweep()
     cfg.p      = 1000;
     cfg.s      = 10;
     cfg.num_MC = 200;
-    // amplitude = 3.0 and tFDR = 0.2 from SimConfig defaults (match R)
+    cfg.amplitude = 3.0;
+    cfg.tFDR = 0.2;
     constexpr double snr_fixed = 2.0;
 
     const std::vector<int> gap_grid = {100, 50, 20, 15, 10, 5, 1};
@@ -335,9 +341,9 @@ void demo_ar1_mc_gap_rho_sweep()
         "n=" + std::to_string(cfg.n)  +
         ", p=" + std::to_string(cfg.p) +
         ", s=" + std::to_string(cfg.s) +
-        ", SNR=" + std::to_string(snr_fixed) +
-        ", tFDR=" + std::to_string(cfg.tFDR) +
-        ", amplitude=" + std::to_string(cfg.amplitude);
+        ", SNR=" + fmt_num(snr_fixed) +
+        ", tFDR=" + fmt_num(cfg.tFDR) +
+        ", amplitude=" + fmt_num(cfg.amplitude);
 
     save_and_print_2d_gap_rho_results(
         "da_ar1_gap_rho",
@@ -359,10 +365,12 @@ void demo_ar1_mc_gap_rho_sweep()
 int main() {
 
     std::cout.setf(std::ios::unitbuf);
+    omp_set_num_threads(6);
+    std::cout << "Running with " << omp_get_max_threads() << " threads\n\n";
 
     if (false) demo_ar1_mc_snr_sweep();
     if (false) demo_ar1_mc_rho_sweep();
-    if (false) demo_ar1_mc_gap_rho_sweep();
+    if (true) demo_ar1_mc_gap_rho_sweep();
 
     std::cout << "\nAR(1) MC simulation complete.\n";
     return 0;

@@ -46,6 +46,7 @@ namespace {
     constexpr int    K         = 20;
     constexpr int    num_MC    = 200;
     constexpr int    base_seed = 2026;
+    constexpr bool   verbose   = false;  // selector console verbosity
 } // namespace
 
 // Linkage sweep helper (defined once, used in every part)
@@ -78,6 +79,7 @@ void demo_ar1_block_bt_mc_snr_sweep()
         auto da_ctrl = make_da_bt_control();
         da_ctrl.hc_linkage = lnk_val;
 
+
         run_snr_sweep(
             "da_ar1_blk_snr_" + lnk_str,
             snr_grid,
@@ -92,8 +94,9 @@ void demo_ar1_block_bt_mc_snr_sweep()
             "AR(1)-block SNR sweep  n=" + std::to_string(n)
             + "  M=" + std::to_string(M) + "  Q=" + std::to_string(Q)
             + "  p=" + std::to_string(base_p) + "  s=" + std::to_string(M)
-            + "  rho=" + std::to_string(rho) + "  linkage=" + lnk_str,
-            /*include_base_trex=*/false);
+            + "  rho=" + fmt_num(rho) + "  linkage=" + lnk_str,
+            /*include_base_trex=*/false,
+            verbose);
     }
 }
 
@@ -131,8 +134,9 @@ void demo_ar1_block_bt_mc_rho_sweep()
             "AR(1)-block rho sweep  n=" + std::to_string(n)
             + "  M=" + std::to_string(M) + "  Q=" + std::to_string(Q)
             + "  p=" + std::to_string(base_p) + "  s=" + std::to_string(M)
-            + "  SNR=" + std::to_string(snr) + "  linkage=" + lnk_str,
-            /*include_base_trex=*/false);
+            + "  SNR=" + fmt_num(snr) + "  linkage=" + lnk_str,
+            /*include_base_trex=*/false,
+            verbose);
     }
 }
 
@@ -171,9 +175,10 @@ void demo_ar1_block_bt_mc_q_sweep()
             make_trex_control(K),
             "AR(1)-block Q sweep  n=" + std::to_string(n)
             + "  M=" + std::to_string(M) + "  s=" + std::to_string(M)
-            + "  rho=" + std::to_string(rho) + "  SNR=" + std::to_string(snr)
+            + "  rho=" + fmt_num(rho) + "  SNR=" + fmt_num(snr)
             + "  p=M*Q varies  linkage=" + lnk_str,
-            /*include_base_trex=*/false);
+            /*include_base_trex=*/false,
+            verbose);
     }
 }
 
@@ -212,9 +217,10 @@ void demo_ar1_block_bt_mc_m_sweep()
             make_trex_control(K),
             "AR(1)-block M sweep  n=" + std::to_string(n)
             + "  Q=" + std::to_string(Q)
-            + "  rho=" + std::to_string(rho) + "  SNR=" + std::to_string(snr)
+            + "  rho=" + fmt_num(rho) + "  SNR=" + fmt_num(snr)
             + "  p=M*Q and s=M vary  linkage=" + lnk_str,
-            /*include_base_trex=*/false);
+            /*include_base_trex=*/false,
+            verbose);
     }
 }
 
@@ -226,11 +232,13 @@ void demo_ar1_block_bt_mc_m_sweep()
 int main() {
 
     std::cout.setf(std::ios::unitbuf);
+    omp_set_num_threads(6);
+    std::cout << "Running with " << omp_get_max_threads() << " threads\n\n";
 
-    if (false) demo_ar1_block_bt_mc_snr_sweep();
-    if (false) demo_ar1_block_bt_mc_rho_sweep();
-    if (false) demo_ar1_block_bt_mc_q_sweep();
-    if (false) demo_ar1_block_bt_mc_m_sweep();
+    if (true) demo_ar1_block_bt_mc_snr_sweep();
+    if (true) demo_ar1_block_bt_mc_rho_sweep();
+    if (true) demo_ar1_block_bt_mc_q_sweep();
+    if (true) demo_ar1_block_bt_mc_m_sweep();
 
     std::cout << "\nAR(1)-block BT MC simulation complete.\n";
     return 0;

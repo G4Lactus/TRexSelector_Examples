@@ -48,7 +48,7 @@ void demo_equi_mc_snr_sweep()
     constexpr double tFDR      = 0.2;
     constexpr int    base_seed = 2026;
     constexpr double rho       = 0.25;
-    const auto       policy    = SupportPolicy::Random;
+    const auto       policy = SupportPolicy::Random;
 
     const std::vector<double> snr_grid = {0.1, 0.2, 0.5, 1.0, 2.0, 5.0};
 
@@ -70,7 +70,7 @@ void demo_equi_mc_snr_sweep()
         },
         da_ctrl,
         make_trex_control(K),
-        "Equi rho=" + std::to_string(rho)
+        "Equi rho=" + fmt_num(rho)
         + ", n=" + std::to_string(n)
         + ", p=" + std::to_string(p)
         + ", support=" + support_policy_label(policy),
@@ -116,7 +116,7 @@ void demo_equi_mc_rho_sweep()
         },
         da_ctrl,
         make_trex_control(K),
-        "Equi SNR=" + std::to_string(snr)
+        "Equi SNR=" + fmt_num(snr)
         + ", n=" + std::to_string(n)
         + ", p=" + std::to_string(p)
         + ", support=" + support_policy_label(policy),
@@ -166,8 +166,8 @@ void demo_bt_mc_snr_sweep()
         da_ctrl,
         make_trex_control(K),
         "BT n_blocks=" + std::to_string(n_blocks)
-        + " rho_w=" + std::to_string(rho_within)
-        + " rho_b=" + std::to_string(rho_between)
+        + " rho_w=" + fmt_num(rho_within)
+        + " rho_b=" + fmt_num(rho_between)
         + ", n=" + std::to_string(n) + ", p=" + std::to_string(p)
         + ", linkage=Single"
         + ", support=" + support_policy_label(policy),
@@ -224,8 +224,8 @@ void demo_bt_mc_linkage_sweep()
             da_ctrl,
             make_trex_control(K),
             "BT n_blocks=" + std::to_string(n_blocks)
-            + " rho_w=" + std::to_string(rho_within)
-            + " rho_b=" + std::to_string(rho_between)
+            + " rho_w=" + fmt_num(rho_within)
+            + " rho_b=" + fmt_num(rho_between)
             + ", n=" + std::to_string(n) + ", p=" + std::to_string(p)
             + ", linkage=" + lnk_str
             + ", support=" + support_policy_label(policy),
@@ -241,8 +241,10 @@ void demo_bt_mc_linkage_sweep()
 int main() {
 
     std::cout.setf(std::ios::unitbuf);
+    omp_set_num_threads(6);
+    std::cout << "Running with " << omp_get_max_threads() << " threads\n\n";
 
-    if (false) demo_equi_mc_snr_sweep();
+    if (true) demo_equi_mc_snr_sweep();
     if (false) demo_equi_mc_rho_sweep();
     if (false) demo_bt_mc_snr_sweep();
     if (false) demo_bt_mc_linkage_sweep();

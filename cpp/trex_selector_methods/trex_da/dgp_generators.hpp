@@ -10,30 +10,34 @@
  * @brief Data generating process (DGP) generators for MC simulations.
  *
  * Provides:
- *   - DGPData               — (X, y, true_support) triplet
- *   - make_beta_at()         — sparse coefficient vector at arbitrary positions
- *   - make_snr_response()    — SNR-calibrated noise
+ *   - DGPData                    — (X, y, true_support) triplet
+ *   - make_beta_at()             — sparse coefficient vector at arbitrary positions
+ *   - make_snr_response()        — SNR-calibrated noise
+ *
  *   - DGP generators:
- *     - dgp_ar1()            — AR(1) Toeplitz covariance
- *     - dgp_equi()           — Compound symmetry via single latent factor
- *     - dgp_nn()             — Banded covariance via MA(kappa) convolution
- *     - dgp_bt()             — Two-level hierarchical block covariance
- *     - dgp_groups()         — Multi-level latent factor model
- *     - dgp_ar1_block()      — Block-diagonal AR(1)
- *     - dgp_ar1_block_white()— Block-diagonal AR(1) + white-noise block
+ *     - dgp_ar1()                — AR(1) Toeplitz covariance
+ *     - dgp_equi()               — Compound symmetry via single latent factor
+ *     - dgp_nn()                 — Banded covariance via MA(kappa) convolution
+ *     - dgp_bt()                 — Two-level hierarchical block covariance
+ *     - dgp_groups()             — Multi-level latent factor model
+ *     - dgp_groups_toeplitz_leaf() — Multi-level latent factor with Toeplitz leaf blocks
+ *     - dgp_ar1_block()          — Block-diagonal AR(1)
+ *     - dgp_ar1_block_white()    — Block-diagonal AR(1) + white-noise block
  *     - dgp_block_toeplitz_hvt() — Block-diagonal Toeplitz (Cholesky, heavy tails)
- *     - dgp_block_equi()     — Block-equicorrelated (Gaussian)
- *   - block_random_support() — helper for block-based support
+ *     - dgp_block_equi()         — Block-equicorrelated (Gaussian)
+ *   - block_random_support()     — shared helper: one random active per block
  */
 // ==============================================================================
 
+// std includes
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
-#include <numeric>
 #include <random>
+#include <stdexcept>
 #include <vector>
 
+// Eigen includes
 #include <Eigen/Dense>
 
 
@@ -277,7 +281,16 @@ inline DGPData dgp_block_toeplitz_hvt(int n,
  * Response: y = X*beta + noise
  * The noise is calibrated according to the target SNR.
  *
+ * @param n              Number of observations.
+ * @param p              Number of predictors (must be divisible by g).
+ * @param G              Number of active groups (blocks with an active variable).
+ * @param g              Group (block) size.
+ * @param rho            Within-block equicorrelation.
+ * @param snr            Signal-to-noise ratio.
+ * @param seed           Random seed.
  * @param random_support If true, active position within each block is random.
+ *
+ * @return DGPData with (X, y, true_support)
  */
 inline DGPData dgp_block_equi(int n,
                               int p,
@@ -337,6 +350,179 @@ inline DGPData dgp_block_equi(int n,
     }
 
     return {std::move(X), std::move(y), std::move(support)};
+}
+
+
+// =============================================================================
+// Prior Groups + Toeplitz leaf DGP
+// =============================================================================
+
+/**
+ * @brief Multi-level grouped DGP with Toeplitz covariance inside the finest groups.
+ *
+ * Model:
+ *   X[,j] =
+ *     sum_{x=1}^{L-1} sqrt(rho_levels[x] - rho_levels[x+1]) f_{g_x(j)}
+ *     + sqrt(rho_levels[0] - rho_levels[1]) u_{g_0(j), j}
+ *     + sqrt(1 - rho_levels[0]) eps_j,
+ *
+ * where:
+ * - groups are ordered fine -> coarse,
+ * - g_0 is the finest grouping,
+ * - each leaf block u follows a zero-mean Gaussian Toeplitz covariance
+ *   with Cov(u_r, u_s) = phi^{|r-s|},
+ * - coarser levels x = 1, ..., L-1 are standard latent-factor layers.
+ *
+ * This preserves the variance-budget interpretation of dgp_groups(), but
+ * replaces the finest equicorrelated factor layer by a non-exchangeable
+ * Toeplitz leaf structure.
+ *
+ * @param n Number of observations.
+ * @param p Number of predictors.
+ * @param support Indices of active predictors.
+ * @param amplitude Signal coefficient for active predictors.
+ * @param groups L vectors of length p (group labels, fine to coarse).
+ * @param rho_levels L strictly decreasing cumulative correlation levels in (0,1).
+ * @param phi Toeplitz decay parameter for the finest groups, 0 <= phi < 1.
+ * @param snr Signal-to-noise ratio.
+ * @param seed Random seed.
+ *
+ * @return DGPData with (X, y, true_support).
+ */
+inline DGPData dgp_groups_toeplitz_leaf(
+    int n,
+    int p,
+    const std::vector<std::size_t>& support,
+    double amplitude,
+    const std::vector<std::vector<Eigen::Index>>& groups,
+    const std::vector<double>& rho_levels,
+    double phi,
+    double snr,
+    unsigned seed)
+{
+    if (groups.size() != rho_levels.size()) {
+        throw std::invalid_argument(
+            "dgp_groups_toeplitz_leaf: groups.size() must equal rho_levels.size().");
+    }
+    if (groups.size() < 2) {
+        throw std::invalid_argument(
+            "dgp_groups_toeplitz_leaf: need at least 2 group levels.");
+    }
+    for (const auto& gx : groups) {
+        if (static_cast<int>(gx.size()) != p) {
+            throw std::invalid_argument(
+                "dgp_groups_toeplitz_leaf: each group vector must have length p.");
+        }
+    }
+    for (std::size_t x = 0; x + 1 < rho_levels.size(); ++x) {
+        if (!(rho_levels[x] > rho_levels[x + 1])) {
+            throw std::invalid_argument(
+                "dgp_groups_toeplitz_leaf: rho_levels must be strictly decreasing.");
+        }
+    }
+    if (!(rho_levels.front() < 1.0 && rho_levels.back() > 0.0)) {
+        throw std::invalid_argument(
+            "dgp_groups_toeplitz_leaf: rho_levels must lie in (0,1).");
+    }
+    if (!(0.0 <= phi && phi < 1.0)) {
+        throw std::invalid_argument(
+            "dgp_groups_toeplitz_leaf: phi must satisfy 0 <= phi < 1.");
+    }
+
+    std::mt19937 rng(seed);
+    std::normal_distribution<double> norm(0.0, 1.0);
+
+    std::vector<double> rho_ext(rho_levels.begin(), rho_levels.end());
+    rho_ext.push_back(0.0);
+
+    Eigen::MatrixXd X = Eigen::MatrixXd::Zero(n, p);
+
+    // -------------------------------------------------------------------------
+    // Coarser latent-factor levels: x = 1, ..., L-1
+    // -------------------------------------------------------------------------
+    for (std::size_t x = 1; x < groups.size(); ++x) {
+        const double loading = std::sqrt(rho_ext[x] - rho_ext[x + 1]);
+
+        std::vector<Eigen::Index> unique_ids(groups[x].begin(), groups[x].end());
+        std::sort(unique_ids.begin(), unique_ids.end());
+        unique_ids.erase(std::unique(unique_ids.begin(), unique_ids.end()),
+                         unique_ids.end());
+
+        for (auto gid : unique_ids) {
+            Eigen::VectorXd f(n);
+            for (Eigen::Index i = 0; i < n; ++i) {
+                f(i) = norm(rng);
+            }
+
+            for (Eigen::Index j = 0; j < p; ++j) {
+                if (groups[x][static_cast<std::size_t>(j)] == gid) {
+                    X.col(j).noalias() += loading * f;
+                }
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Finest level: Toeplitz structure within each leaf block groups[0]
+    // -------------------------------------------------------------------------
+    const double rho_leaf = rho_levels[0] - rho_levels[1];
+    const double leaf_scale = std::sqrt(rho_leaf);
+
+    std::vector<Eigen::Index> leaf_ids(groups[0].begin(), groups[0].end());
+    std::sort(leaf_ids.begin(), leaf_ids.end());
+    leaf_ids.erase(std::unique(leaf_ids.begin(), leaf_ids.end()), leaf_ids.end());
+
+    for (auto gid : leaf_ids) {
+        std::vector<Eigen::Index> cols;
+        for (Eigen::Index j = 0; j < p; ++j) {
+            if (groups[0][static_cast<std::size_t>(j)] == gid) {
+                cols.push_back(j);
+            }
+        }
+
+        const Eigen::Index g = static_cast<Eigen::Index>(cols.size());
+        if (g == 0) continue;
+
+        Eigen::MatrixXd Sigma(g, g);
+        for (Eigen::Index r = 0; r < g; ++r) {
+            for (Eigen::Index s = 0; s < g; ++s) {
+                Sigma(r, s) = std::pow(phi, std::abs(r - s));
+            }
+        }
+
+        Eigen::LLT<Eigen::MatrixXd> llt(Sigma);
+        if (llt.info() != Eigen::Success) {
+            throw std::runtime_error(
+                "dgp_groups_toeplitz_leaf: LLT failed for leaf covariance.");
+        }
+        const Eigen::MatrixXd L = llt.matrixL();
+
+        Eigen::MatrixXd Z(n, g);
+        for (Eigen::Index i = 0; i < n; ++i) {
+            for (Eigen::Index k = 0; k < g; ++k) {
+                Z(i, k) = norm(rng);
+            }
+        }
+
+        const Eigen::MatrixXd U = Z * L.transpose();
+        for (Eigen::Index k = 0; k < g; ++k) {
+            X.col(cols[static_cast<std::size_t>(k)]).noalias() += leaf_scale * U.col(k);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Idiosyncratic noise
+    // -------------------------------------------------------------------------
+    const double eta_scale = std::sqrt(1.0 - rho_levels[0]);
+    for (Eigen::Index i = 0; i < n; ++i) {
+        for (Eigen::Index j = 0; j < p; ++j) {
+            X(i, j) += eta_scale * norm(rng);
+        }
+    }
+
+    auto beta = make_beta_at(p, support, amplitude);
+    auto y = make_snr_response(X, beta, snr, rng);
+    return {std::move(X), std::move(y), support};
 }
 
 

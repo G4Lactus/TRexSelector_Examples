@@ -4,38 +4,42 @@
 # ==================================================================================
 
 add_demo_target(demo_trex_da_01_mc_sim_ar1
-    demo_trex_da_01_mc_sim_ar1.cpp
+    demo_trex_da_01_mc_sim_ar1/demo_trex_da_01_mc_sim_ar1.cpp
     T_REX_SELECTOR_LIBS
 )
 add_demo_target(demo_trex_da_02_mc_sim_equi_and_bt
-    demo_trex_da_02_mc_sim_equi_and_bt.cpp
+    demo_trex_da_02_mc_sim_equi_and_bt/demo_trex_da_02_mc_sim_equi_and_bt.cpp
     T_REX_SELECTOR_LIBS
 )
 add_demo_target(demo_trex_da_03_mc_sim_nn
-    demo_trex_da_03_mc_sim_nn.cpp
+    demo_trex_da_03_mc_sim_nn/demo_trex_da_03_mc_sim_nn.cpp
     T_REX_SELECTOR_LIBS
 )
 add_demo_target(demo_trex_da_03b_mc_sim_nn_ar
-    demo_trex_da_03b_mc_sim_nn_ar.cpp
+    demo_trex_da_03b_mc_sim_nn_ar/demo_trex_da_03b_mc_sim_nn_ar.cpp
     T_REX_SELECTOR_LIBS
 )
 add_demo_target(demo_trex_da_04_mc_sim_bt_ar1_block
-    demo_trex_da_04_mc_sim_bt_ar1_block.cpp
+    demo_trex_da_04_mc_sim_bt_ar1_block/demo_trex_da_04_mc_sim_bt_ar1_block.cpp
     T_REX_SELECTOR_LIBS
 )
-add_demo_target(demo_trex_da_05_mc_sim_ar1_block_sweeps
-    demo_trex_da_05_mc_sim_ar1_block_sweeps.cpp
+add_demo_target(demo_trex_da_05_mc_sim_bt_ar1_block_sweeps
+    demo_trex_da_05_mc_sim_bt_ar1_block_sweeps/demo_trex_da_05_mc_sim_bt_ar1_block_sweeps.cpp
     T_REX_SELECTOR_LIBS
 )
-add_demo_target(demo_trex_da_06_mc_sim_ht_block_sweeps
-    demo_trex_da_06_mc_sim_ht_block_sweeps.cpp
+add_demo_target(demo_trex_da_06_mc_sim_bt_ht_block_sweeps
+    demo_trex_da_06_mc_sim_bt_ht_block_sweeps/demo_trex_da_06_mc_sim_bt_ht_block_sweeps.cpp
     T_REX_SELECTOR_LIBS
 )
-add_demo_target(demo_trex_da_07_mc_sim_ht_block_white
-    demo_trex_da_07_mc_sim_ht_block_white.cpp
+add_demo_target(demo_trex_da_07_mc_sim_bt_ht_block_white
+    demo_trex_da_07_mc_sim_bt_ht_block_white/demo_trex_da_07_mc_sim_bt_ht_block_white.cpp
     T_REX_SELECTOR_LIBS
 )
 add_demo_target(demo_trex_da_08_mc_sim_groups
-    demo_trex_da_08_mc_sim_groups.cpp
+    demo_trex_da_08_mc_sim_groups/demo_trex_da_08_mc_sim_groups.cpp
+    T_REX_SELECTOR_LIBS
+)
+add_demo_target(demo_trex_da_09_bt_dendro_diag
+    demo_trex_da_09_bt_dendro_diag/demo_trex_da_09_bt_dendro_diag.cpp
     T_REX_SELECTOR_LIBS
 )

@@ -96,7 +96,7 @@ void demo_ar1_white_bt_mc_snr_sweep()
             + "  p_total=" + std::to_string(p_total)
             + "  M=" + std::to_string(M) + "  Q=" + std::to_string(Q)
             + "  p_ar=" + std::to_string(p_ar_base) + "  s=" + std::to_string(M)
-            + "  rho=" + std::to_string(rho) + "  linkage=" + lnk_str,
+            + "  rho=" + fmt_num(rho) + "  linkage=" + lnk_str,
             /*include_base_trex=*/false);
     }
 }
@@ -137,7 +137,7 @@ void demo_ar1_white_bt_mc_rho_sweep()
             "AR(1)+white rho sweep  n=" + std::to_string(n)
             + "  p_total=" + std::to_string(p_total)
             + "  M=" + std::to_string(M) + "  Q=" + std::to_string(Q)
-            + "  s=" + std::to_string(M) + "  SNR=" + std::to_string(snr)
+            + "  s=" + std::to_string(M) + "  SNR=" + fmt_num(snr)
             + "  linkage=" + lnk_str,
             /*include_base_trex=*/false);
     }
@@ -181,7 +181,7 @@ void demo_ar1_white_bt_mc_q_sweep()
             "AR(1)+white Q sweep  n=" + std::to_string(n)
             + "  p_total=" + std::to_string(p_total)
             + "  M=" + std::to_string(M) + "  s=" + std::to_string(M)
-            + "  rho=" + std::to_string(rho) + "  SNR=" + std::to_string(snr)
+            + "  rho=" + fmt_num(rho) + "  SNR=" + fmt_num(snr)
             + "  p_ar=M*Q varies  linkage=" + lnk_str,
             /*include_base_trex=*/false);
     }
@@ -224,7 +224,7 @@ void demo_ar1_white_bt_mc_m_sweep()
             "AR(1)+white M sweep  n=" + std::to_string(n)
             + "  p_total=" + std::to_string(p_total)
             + "  Q=" + std::to_string(Q)
-            + "  rho=" + std::to_string(rho) + "  SNR=" + std::to_string(snr)
+            + "  rho=" + fmt_num(rho) + "  SNR=" + fmt_num(snr)
             + "  p_ar=M*Q and s=M vary  linkage=" + lnk_str,
             /*include_base_trex=*/false);
     }
@@ -238,11 +238,14 @@ void demo_ar1_white_bt_mc_m_sweep()
 int main() {
 
     std::cout.setf(std::ios::unitbuf);
+    omp_set_num_threads(6);
+    std::cout << "Running with " << omp_get_max_threads() << " threads\n\n";
 
-    if (false) demo_ar1_white_bt_mc_snr_sweep();
-    if (false) demo_ar1_white_bt_mc_rho_sweep();
-    if (false) demo_ar1_white_bt_mc_q_sweep();
-    if (false) demo_ar1_white_bt_mc_m_sweep();
+
+    if (true) demo_ar1_white_bt_mc_snr_sweep();
+    if (true) demo_ar1_white_bt_mc_rho_sweep();
+    if (true) demo_ar1_white_bt_mc_q_sweep();
+    if (true) demo_ar1_white_bt_mc_m_sweep();
 
     std::cout << "\nAR(1)+white-noise block BT MC simulation complete.\n";
     return 0;

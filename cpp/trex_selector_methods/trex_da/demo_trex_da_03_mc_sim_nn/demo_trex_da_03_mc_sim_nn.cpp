@@ -58,7 +58,7 @@ void demo_nn_mc_snr_sweep()
 
     const std::string hdr_base =
         "NN kappa=" + std::to_string(mc_kappa)
-        + ", rho=" + std::to_string(mc_rho)
+        + ", rho=" + fmt_num(mc_rho)
         + ", n=" + std::to_string(mc_n)
         + ", p=" + std::to_string(mc_p);
 
@@ -109,7 +109,7 @@ void demo_nn_mc_rho_sweep()
 
     const std::string hdr_base =
         "NN kappa=" + std::to_string(mc_kappa)
-        + ", SNR=" + std::to_string(mc_snr)
+        + ", SNR=" + fmt_num(mc_snr)
         + ", n=" + std::to_string(mc_n)
         + ", p=" + std::to_string(mc_p);
 
@@ -159,8 +159,8 @@ void demo_nn_mc_kappa_sweep()
     const auto support_fixed = capped_spread_support(mc_s, mc_p, max_gap);
 
     const std::string hdr_base =
-        "NN rho=" + std::to_string(mc_rho)
-        + ", SNR=" + std::to_string(mc_snr)
+        "NN rho=" + fmt_num(mc_rho)
+        + ", SNR=" + fmt_num(mc_snr)
         + ", n=" + std::to_string(mc_n)
         + ", p=" + std::to_string(mc_p);
 
@@ -339,8 +339,8 @@ void demo_nn_mc_kappa_rho_sweep()
         "n=" + std::to_string(mc_n) +
         ", p=" + std::to_string(mc_p) +
         ", s=" + std::to_string(mc_s) +
-        ", SNR=" + std::to_string(mc_snr) +
-        ", tFDR=" + std::to_string(tFDR) +
+        ", SNR=" + fmt_num(mc_snr) +
+        ", tFDR=" + fmt_num(tFDR) +
         ", amplitude=3.0";
 
     save_and_print_2d_two_support_results(
@@ -362,6 +362,8 @@ void demo_nn_mc_kappa_rho_sweep()
 int main() {
 
     std::cout.setf(std::ios::unitbuf);
+    omp_set_num_threads(6);
+    std::cout << "Running with " << omp_get_max_threads() << " threads\n\n";
 
     if (false) demo_nn_mc_snr_sweep();
     if (false) demo_nn_mc_rho_sweep();

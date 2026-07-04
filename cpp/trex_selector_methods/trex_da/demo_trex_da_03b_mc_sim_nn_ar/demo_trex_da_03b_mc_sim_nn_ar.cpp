@@ -58,7 +58,7 @@ void demo_nn_ar_mc_snr_sweep()
     const auto support_fixed = capped_spread_support(mc_s, mc_p, max_gap);
 
     const std::string hdr_base =
-        "AR(1)+NN rho=" + std::to_string(mc_rho)
+        "AR(1)+NN rho=" + fmt_num(mc_rho)
         + ", n=" + std::to_string(mc_n)
         + ", p=" + std::to_string(mc_p);
 
@@ -108,7 +108,7 @@ void demo_nn_ar_mc_rho_sweep()
     const auto support_fixed = capped_spread_support(mc_s, mc_p, max_gap);
 
     const std::string hdr_base =
-        "AR(1)+NN SNR=" + std::to_string(mc_snr)
+        "AR(1)+NN SNR=" + fmt_num(mc_snr)
         + ", n=" + std::to_string(mc_n)
         + ", p=" + std::to_string(mc_p);
 
@@ -286,7 +286,7 @@ void demo_nn_ar_mc_snr_rho_sweep()
         "n=" + std::to_string(mc_n) +
         ", p=" + std::to_string(mc_p) +
         ", s=" + std::to_string(mc_s) +
-        ", tFDR=" + std::to_string(tFDR) +
+        ", tFDR=" + fmt_num(tFDR) +
         ", amplitude=3.0";
 
     save_and_print_2d_two_support_results(
@@ -308,6 +308,8 @@ void demo_nn_ar_mc_snr_rho_sweep()
 int main() {
 
     std::cout.setf(std::ios::unitbuf);
+    omp_set_num_threads(6);
+    std::cout << "Running with " << omp_get_max_threads() << " threads\n\n";
 
     if (false) demo_nn_ar_mc_snr_sweep();
     if (false) demo_nn_ar_mc_rho_sweep();
