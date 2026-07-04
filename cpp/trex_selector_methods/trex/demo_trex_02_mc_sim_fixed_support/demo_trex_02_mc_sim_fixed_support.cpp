@@ -227,10 +227,10 @@ int main() {
     // Monte Carlo simulation: fixed active support
     // ============================================================
     if (true)
-        demo_TRexSelector_MonteCarlo(/*num_MC=*/10, /*high_dim=*/true, /*rnd_coef=*/false);
+        demo_TRexSelector_MonteCarlo(/*num_MC=*/200, /*high_dim=*/true, /*rnd_coef=*/false);
 
     if (false)
-        demo_TRexSelector_MonteCarlo(/*num_MC=*/10, /*high_dim=*/false, /*rnd_coef=*/false);
+        demo_TRexSelector_MonteCarlo(/*num_MC=*/200, /*high_dim=*/false, /*rnd_coef=*/false);
 
     return 0;
 }

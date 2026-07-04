@@ -186,9 +186,7 @@ void demo_TRexSelector(bool high_dim, bool rnd_coef) {
 
 int main() {
 
-    std::cout.setf(std::ios::unitbuf); // Flush output after each std::endl
-    omp_set_num_threads(6);
-    std::cout << "Running with " << omp_get_max_threads() << " threads\n\n";
+    std::cout.setf(std::ios::unitbuf);
 
     // Run basic T-Rex Selector demo without Monte Carlo simulation
     // --------------------------------------------------------------------------------------
