@@ -181,9 +181,12 @@ static GVSScalingRun run_gvs_scaled(
 
     trex_ctrl.scaling_mode = scaling;
 
+    TRexGVSControlParameter trex_gvs_ctrl = gvs_ctrl;
+    trex_gvs_ctrl.trex_ctrl = trex_ctrl;
+
     TRexGVSSelector selector(
         X_map, y_map, tFDR,
-        gvs_ctrl, trex_ctrl,
+        trex_gvs_ctrl,
         seed, /*verbose=*/false);
     selector.select();
 

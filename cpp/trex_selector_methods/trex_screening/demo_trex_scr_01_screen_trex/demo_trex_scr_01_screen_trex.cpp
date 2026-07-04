@@ -82,12 +82,12 @@ void demo_ScreenTRexSelector(bool high_dim,
 
     auto trex_ctrl   = make_trex_control();
     auto screen_ctrl = make_screen_control(method, bootstrap);
+    screen_ctrl.trex_ctrl = trex_ctrl;
 
     std::cout << "Running selection...\n";
     ScreenTRexSelector sctrex(X_map,
                               y_map,
                               screen_ctrl,
-                              trex_ctrl,
                               42,
                               true);
     sctrex.select();

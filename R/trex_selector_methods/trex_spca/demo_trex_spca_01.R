@@ -212,7 +212,10 @@ for (snr in snr_db_seq) {
     en_res <- elasticnet::spca(X, K = M, para = rep(p1, M),
                                type = "predictor",
                                sparse = "varnum",
-                               trace = FALSE)
+                               trace = FALSE,
+                               lambda = 1e-6, # lambda2
+                               max.iter = 200)
+
     V_en_spca <- en_res$loadings
     Z_en_spca <- X %*% V_en_spca
 

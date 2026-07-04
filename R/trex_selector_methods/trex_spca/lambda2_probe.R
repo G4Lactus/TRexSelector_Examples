@@ -28,7 +28,7 @@ cpp_results_dir <- normalizePath(file.path(
 # Fallback to an absolute path if the relative one does not resolve.
 if (!dir.exists(cpp_results_dir)) {
   cpp_results_dir <- file.path(
-    "/Users/fabianscheidt/Documents/C++/TRexSelector_Simulations",
+    "/Users/fabianscheidt/Documents/C++/TRexSelector_Examples",
     "cpp/trex_selector_methods/trex_spca/simulation_results"
   )
 }

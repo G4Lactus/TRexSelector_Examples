@@ -228,13 +228,14 @@ inline GVSSingleRunResult run_gvs_single(
 
     // IEN requires TLASSO (augmented system absorbs the L2 penalty).
     // EN solver variant is controlled by gvs_ctrl.en_solver (default: TENET_AUG).
-    TRexControlParameter trex_ctrl_run = trex_ctrl;
-    if (gvs_ctrl.gvs_type != GVSType::EN)
-        trex_ctrl_run.solver_type = SolverTypeForTRex::TLASSO;
+    // TRexGVSControlParameter nests its own trex_ctrl member.
+    TRexGVSControlParameter trex_gvs_ctrl = gvs_ctrl;
+    trex_gvs_ctrl.trex_ctrl = trex_ctrl;
+    if (trex_gvs_ctrl.gvs_type != GVSType::EN)
+        trex_gvs_ctrl.trex_ctrl.solver_type = SolverTypeForTRex::TLASSO;
 
     TRexGVSSelector selector(X_map, y_map, tFDR,
-                             gvs_ctrl,
-                             trex_ctrl_run,
+                             trex_gvs_ctrl,
                              seed, /*verbose=*/false);
     selector.select();
 
@@ -372,20 +373,20 @@ inline GVSGridPointResult run_gvs_mc_trials(
         // Derive solver_type from gvs_ctrl to satisfy the TRexGVSSelector
         // compatibility check (EN→TENET/TENET_AUG, IEN→TLASSO).
         // Per-trial cv_seed ensures unique fold assignments.
-        TRexControlParameter trex_ctrl_run = trex_ctrl;
-        TRexGVSControlParameter gvs_ctrl_trial = gvs_ctrl;
-        gvs_ctrl_trial.cv_seed = trial_seed;
-        if (gvs_ctrl_trial.gvs_type == GVSType::EN)
-            trex_ctrl_run.solver_type =
-                (gvs_ctrl_trial.en_solver == ENSolverType::TENET_AUG)
+        // TRexGVSControlParameter nests its own trex_ctrl member.
+        TRexGVSControlParameter trex_gvs_ctrl = gvs_ctrl;
+        trex_gvs_ctrl.trex_ctrl = trex_ctrl;
+        trex_gvs_ctrl.cv_seed = trial_seed;
+        if (trex_gvs_ctrl.gvs_type == GVSType::EN)
+            trex_gvs_ctrl.trex_ctrl.solver_type =
+                (trex_gvs_ctrl.en_solver == ENSolverType::TENET_AUG)
                     ? SolverTypeForTRex::TENET_AUG
                     : SolverTypeForTRex::TENET;
         else
-            trex_ctrl_run.solver_type = SolverTypeForTRex::TLASSO;
+            trex_gvs_ctrl.trex_ctrl.solver_type = SolverTypeForTRex::TLASSO;
 
         TRexGVSSelector selector(X_map, y_map, tFDR,
-                                 gvs_ctrl_trial,
-                                 trex_ctrl_run,
+                                 trex_gvs_ctrl,
                                  static_cast<int>(trial_seed),
                                  /*verbose=*/false);
         selector.select();
@@ -813,19 +814,19 @@ inline std::vector<std::vector<GVSGridPointResult>> run_gvs_2d_sweep(
 
                 // Derive solver_type from gvs_ctrl (EN→TENET/TENET_AUG, IEN→TLASSO).
                 // Per-trial cv_seed ensures unique fold assignments.
-                TRexControlParameter trex_ctrl_run = trex_ctrl;
-                TRexGVSControlParameter gvs_ctrl_trial = gvs_ctrl;
-                gvs_ctrl_trial.cv_seed = trial_seed;
-                if (gvs_ctrl_trial.gvs_type == GVSType::EN)
-                    trex_ctrl_run.solver_type =
-                        (gvs_ctrl_trial.en_solver == ENSolverType::TENET_AUG)
+                // TRexGVSControlParameter nests its own trex_ctrl member.
+                TRexGVSControlParameter trex_gvs_ctrl = gvs_ctrl;
+                trex_gvs_ctrl.trex_ctrl = trex_ctrl;
+                trex_gvs_ctrl.cv_seed = trial_seed;
+                if (trex_gvs_ctrl.gvs_type == GVSType::EN)
+                    trex_gvs_ctrl.trex_ctrl.solver_type =
+                        (trex_gvs_ctrl.en_solver == ENSolverType::TENET_AUG)
                             ? SolverTypeForTRex::TENET_AUG
                             : SolverTypeForTRex::TENET;
                 else
-                    trex_ctrl_run.solver_type = SolverTypeForTRex::TLASSO;
+                    trex_gvs_ctrl.trex_ctrl.solver_type = SolverTypeForTRex::TLASSO;
 
-                TRexGVSSelector selector(X_map, y_map, cfg.tFDR, gvs_ctrl_trial,
-                                         trex_ctrl_run,
+                TRexGVSSelector selector(X_map, y_map, cfg.tFDR, trex_gvs_ctrl,
                                          static_cast<int>(trial_seed),
                                          /*verbose=*/false);
                 selector.select();
@@ -1462,16 +1463,18 @@ inline BlockMethodResult run_block_method(
     const auto t0 = std::chrono::steady_clock::now();
 
     // Derive solver_type from gvs_ctrl (EN→TENET/TENET_AUG, IEN→TLASSO).
-    TRexControlParameter trex_run = trex_ctrl;
-    if (gvs_ctrl.gvs_type == GVSType::EN)
-        trex_run.solver_type =
-            (gvs_ctrl.en_solver == ENSolverType::TENET_AUG)
+    // TRexGVSControlParameter nests its own trex_ctrl member.
+    TRexGVSControlParameter trex_gvs_ctrl = gvs_ctrl;
+    trex_gvs_ctrl.trex_ctrl = trex_ctrl;
+    if (trex_gvs_ctrl.gvs_type == GVSType::EN)
+        trex_gvs_ctrl.trex_ctrl.solver_type =
+            (trex_gvs_ctrl.en_solver == ENSolverType::TENET_AUG)
                 ? SolverTypeForTRex::TENET_AUG
                 : SolverTypeForTRex::TENET;
     else
-        trex_run.solver_type = SolverTypeForTRex::TLASSO;
+        trex_gvs_ctrl.trex_ctrl.solver_type = SolverTypeForTRex::TLASSO;
 
-    TRexGVSSelector selector(X_map, y_map, tFDR, gvs_ctrl, trex_run,
+    TRexGVSSelector selector(X_map, y_map, tFDR, trex_gvs_ctrl,
                               seed, /*verbose=*/false);
     selector.select();
 

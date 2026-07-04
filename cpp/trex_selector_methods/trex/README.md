@@ -245,7 +245,7 @@ This is the expected pattern for a method that prioritizes controlled false disc
 From the C++ workspace root:
 
 ```bash
-cd TRexSelector_Simulations/cpp
+cd TRexSelector_Examples/cpp
 cmake -S . -B build/debug -DCMAKE_BUILD_TYPE=Debug \
   -DCMAKE_PREFIX_PATH="<path-to-TRexSelector>/cpp/install"
 cmake --build build/debug

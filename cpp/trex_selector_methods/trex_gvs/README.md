@@ -210,7 +210,7 @@ Across the equicorrelated, scattered, and trap-block scenarios (Demos 01–04), 
 From the C++ workspace root:
 
 ```bash
-cd TRexSelector_Simulations/cpp
+cd TRexSelector_Examples/cpp
 cmake -S . -B build/debug -DCMAKE_BUILD_TYPE=Debug \
   -DCMAKE_PREFIX_PATH="<path-to-TRexSelector>/cpp/install"
 cmake --build build/debug

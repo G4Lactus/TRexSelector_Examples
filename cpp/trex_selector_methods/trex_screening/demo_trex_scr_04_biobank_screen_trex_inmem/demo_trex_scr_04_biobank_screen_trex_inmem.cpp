@@ -132,8 +132,8 @@ void demo_Biobank_MultiplePhenotypes()
     Eigen::Map<Eigen::MatrixXd> Y_map(Y.data(), Y.rows(), Y.cols());
 
     auto ctrl = makeBiobankControl(/*use_mmap=*/false, /*K=*/20);
-    ctrl.screen_ctrl.R_boot       = 500;
-    ctrl.screen_ctrl.ci_grid_step = 0.005;
+    ctrl.trex_screen_ctrl.R_boot       = 500;
+    ctrl.trex_screen_ctrl.ci_grid_step = 0.005;
 
     std::cout << "Running Algorithm 1 for " << q << " phenotypes...\n\n";
     tbs::BiobankScreenTRex biosctrex(X_map,

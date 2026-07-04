@@ -333,9 +333,10 @@ static void run_screen_trex(const std::string& label,
 
     auto trex_ctrl = make_trex_control();
     auto screen_ctrl = make_screen_control(method, bootstrap);
+    screen_ctrl.trex_ctrl = trex_ctrl;
 
     ScreenTRexSelector sctrex(
-        X_map, y_map, screen_ctrl, trex_ctrl,
+        X_map, y_map, screen_ctrl,
         seed, /*verbose=*/true
     );
     sctrex.select();
@@ -816,12 +817,12 @@ void demo_DA_BLOCK_EQUI()
     auto trex_ctrl = make_trex_control();
     auto screen_ctrl = make_screen_control(
         ScreenTRexMethod::TREX_DA_BLOCK_EQUI, false, n_blocks);
+    screen_ctrl.trex_ctrl = trex_ctrl;
 
     ScreenTRexSelector sctrex(
         X_map,
         y_map,
         screen_ctrl,
-        trex_ctrl,
         42,
         true
     );

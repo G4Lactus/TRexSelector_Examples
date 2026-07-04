@@ -58,7 +58,7 @@ From the C++ workspace root:
 
 ```bash
 # navigate to the TRexSelector C++ workspace
-cd TRexSelector_Simulations/cpp
+cd TRexSelector_Examples/cpp
 
 # build the demo in debug mode, linking against the installed TRexSelector library
 cmake -S . -B build/debug -DCMAKE_BUILD_TYPE=Debug \

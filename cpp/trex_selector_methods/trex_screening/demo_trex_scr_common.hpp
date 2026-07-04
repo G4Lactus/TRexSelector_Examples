@@ -420,8 +420,13 @@ inline ScrGridPointResult run_mc_trials_screen_trex(
         Eigen::Map<Eigen::VectorXd> y_map(
             dat.y.data(), dat.y.size());
 
+        // ScreenTRexControlParameter now nests its own trex_ctrl member --
+        // fold trex_ctrl into a clean local copy before construction.
+        ScreenTRexControlParameter trex_screen_ctrl = screen_ctrl;
+        trex_screen_ctrl.trex_ctrl = trex_ctrl;
+
         ScreenTRexSelector sctrex(
-            X_map, y_map, screen_ctrl, trex_ctrl, /*seed=*/-1, /*verbose=*/false);
+            X_map, y_map, trex_screen_ctrl, /*seed=*/-1, /*verbose=*/false);
         sctrex.select();
 
         const auto selected    = sctrex.getSelectedIndices();

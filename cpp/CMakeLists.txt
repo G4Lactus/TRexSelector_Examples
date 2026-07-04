@@ -1,5 +1,5 @@
 # =============================================================================
-# TRexSelector_Simulations — cpp/CMakeLists.txt
+# TRexSelector_Examples — cpp/CMakeLists.txt
 # =============================================================================
 # Standalone CMake project for C++ demo and simulation executables.
 # Consumes the installed TRexSelector library via find_package().
@@ -40,9 +40,9 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 # ============================================================================
 # Project Definition
 # ============================================================================
-project(TRexSelector_Simulations
+project(TRexSelector_Examples
     VERSION 1.0.0
-    DESCRIPTION "Demo and simulation executables for the TRexSelector library"
+    DESCRIPTION "Demo and example executables for the TRexSelector library"
     LANGUAGES CXX
 )
 
@@ -110,7 +110,7 @@ find_package(Matplot++ REQUIRED)
 # Configuration Summary
 # ============================================================================
 message(STATUS "==============================================")
-message(STATUS "TRexSelector_Simulations Build Configuration")
+message(STATUS "TRexSelector_Examples Build Configuration")
 message(STATUS "==============================================")
 message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "Compiler:   ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")

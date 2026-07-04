@@ -457,11 +457,14 @@ inline GridPointResult run_mc_trials(
                                              dat.X.cols());
         Eigen::Map<Eigen::VectorXd> y_map(dat.y.data(), dat.y.rows());
 
+        // TRexDAControlParameter nests its own trex_ctrl member.
+        TRexDAControlParameter trex_da_ctrl = da_ctrl;
+        trex_da_ctrl.trex_ctrl = trex_ctrl;
+
         TRexDASelector selector(X_map,
                                 y_map,
                                 tFDR,
-                                da_ctrl,
-                                trex_ctrl,
+                                trex_da_ctrl,
                                 -1,
                                 verbose);
         selector.select();

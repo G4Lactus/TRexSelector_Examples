@@ -137,7 +137,7 @@ For demos with real committed data (01, 04–08), a consistent pattern emerges: 
 ## Building the demos
 
 ```bash
-cd TRexSelector_Simulations/cpp
+cd TRexSelector_Examples/cpp
 cmake -S . -B build/debug -DCMAKE_BUILD_TYPE=Debug \
   -DCMAKE_PREFIX_PATH="<path-to-TRexSelector>/cpp/install"
 cmake --build build/debug

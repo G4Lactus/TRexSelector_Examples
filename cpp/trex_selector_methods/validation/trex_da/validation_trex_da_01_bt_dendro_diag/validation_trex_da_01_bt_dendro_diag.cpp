@@ -218,8 +218,9 @@ int main() {
     trex_ctrl.solver_type           = SolverTypeForTRex::TLARS;
     trex_ctrl.tloop_stagnation_stop = false;
     trex_ctrl.lloop_strategy        = LLoopStrategy::STANDARD;
+    da_ctrl.trex_ctrl = trex_ctrl;
 
-    TRexDASelector selector(X_sel, y_sel, tFDR, da_ctrl, trex_ctrl,
+    TRexDASelector selector(X_sel, y_sel, tFDR, da_ctrl,
                             static_cast<int>(seed), false);
     selector.select();
 

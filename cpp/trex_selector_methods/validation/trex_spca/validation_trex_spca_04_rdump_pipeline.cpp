@@ -218,7 +218,7 @@ int main(int argc, char** argv)
 
     // ----- configuration -----
     std::filesystem::path rdump_dir =
-        "/Users/fabianscheidt/Documents/C++/TRexSelector_Simulations/"
+        "/Users/fabianscheidt/Documents/C++/TRexSelector_Examples/"
         "R/trex_selector_methods/trex_spca/rdump";
     int    num_trials   = 100;
     double tFDR         = 0.10;
@@ -311,11 +311,12 @@ int main(int argc, char** argv)
         if (no_stagnation) {
             trex_ctrl.tloop_stagnation_stop = false;  // run full T-loop like R
         }
+        gvs_ctrl.trex_ctrl = trex_ctrl;
 
         // step 4: run the GVS EN selector on (X, y)
         Eigen::Map<Eigen::MatrixXd> X_map(X.data(), X.rows(), X.cols());
         Eigen::Map<Eigen::VectorXd> y_map(y.data(), n);
-        tg::TRexGVSSelector gvs(X_map, y_map, tFDR, gvs_ctrl, trex_ctrl,
+        tg::TRexGVSSelector gvs(X_map, y_map, tFDR, gvs_ctrl,
                                 /*seed=*/seed_base + mc, /*verbose=*/false);
         gvs.select();
 

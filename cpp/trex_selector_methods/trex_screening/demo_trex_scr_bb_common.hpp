@@ -51,17 +51,20 @@ inline tbs::BiobankScreenTRexControl makeBiobankControl(
     ctrl.upper_bound_FDR = 0.15;
     ctrl.target_FDR_trex = 0.10;
 
-    ctrl.screen_ctrl.trex_method  = ScreenTRexMethod::TREX;
-    ctrl.screen_ctrl.R_boot       = 1000;
-    ctrl.screen_ctrl.ci_grid_step = 0.001;
+    // BiobankScreenTRexControl nests ScreenTRexControlParameter (which in turn
+    // nests its own trex_ctrl) as `trex_screen_ctrl` -- there is no separate
+    // top-level screen_ctrl/trex_ctrl anymore.
+    ctrl.trex_screen_ctrl.trex_method  = ScreenTRexMethod::TREX;
+    ctrl.trex_screen_ctrl.R_boot       = 1000;
+    ctrl.trex_screen_ctrl.ci_grid_step = 0.001;
 
-    ctrl.trex_ctrl.K                    = K;
-    ctrl.trex_ctrl.max_dummy_multiplier = 10;
-    ctrl.trex_ctrl.use_max_T_stop       = true;
-    ctrl.trex_ctrl.dummy_distribution   = dummygen::Distribution::Normal();
-    ctrl.trex_ctrl.lloop_strategy       = LLoopStrategy::STANDARD;
-    ctrl.trex_ctrl.solver_type          = SolverTypeForTRex::TLARS;
-    ctrl.trex_ctrl.use_memory_mapping   = use_mmap;
+    ctrl.trex_screen_ctrl.trex_ctrl.K                    = K;
+    ctrl.trex_screen_ctrl.trex_ctrl.max_dummy_multiplier = 10;
+    ctrl.trex_screen_ctrl.trex_ctrl.use_max_T_stop       = true;
+    ctrl.trex_screen_ctrl.trex_ctrl.dummy_distribution   = dummygen::Distribution::Normal();
+    ctrl.trex_screen_ctrl.trex_ctrl.lloop_strategy       = LLoopStrategy::STANDARD;
+    ctrl.trex_screen_ctrl.trex_ctrl.solver_type          = SolverTypeForTRex::TLARS;
+    ctrl.trex_screen_ctrl.trex_ctrl.use_memory_mapping   = use_mmap;
 
     return ctrl;
 }

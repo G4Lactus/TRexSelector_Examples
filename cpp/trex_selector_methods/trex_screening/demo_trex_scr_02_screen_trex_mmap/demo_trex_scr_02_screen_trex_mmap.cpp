@@ -69,12 +69,12 @@ void demo_ScreenTRex_MMap_Ordinary(bool high_dim)
     auto trex_ctrl   = make_trex_control_mmap();
     auto screen_ctrl = make_screen_control(
         ScreenTRexMethod::TREX, /*bootstrap=*/false);
+    screen_ctrl.trex_ctrl = trex_ctrl;
 
     std::cout << "Running Screen-TRex Ordinary (use_memory_mapping=true)...\n";
     ScreenTRexSelector sctrex(X_map,
                               y_map,
                               screen_ctrl,
-                              trex_ctrl,
                               /*seed=*/42,
                               /*verbose=*/true);
     sctrex.select();
@@ -112,12 +112,12 @@ void demo_ScreenTRex_MMap_Bootstrap(bool high_dim)
     auto trex_ctrl   = make_trex_control_mmap();
     auto screen_ctrl = make_screen_control(
         ScreenTRexMethod::TREX, /*bootstrap=*/true);
+    screen_ctrl.trex_ctrl = trex_ctrl;
 
     std::cout << "Running Screen-TRex Bootstrap (use_memory_mapping=true)...\n";
     ScreenTRexSelector sctrex(X_map,
                               y_map,
                               screen_ctrl,
-                              trex_ctrl,
                               /*seed=*/42,
                               /*verbose=*/true);
     sctrex.select();

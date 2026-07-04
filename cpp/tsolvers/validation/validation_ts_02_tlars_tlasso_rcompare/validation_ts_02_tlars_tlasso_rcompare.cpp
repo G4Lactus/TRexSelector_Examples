@@ -212,7 +212,7 @@ int main(int argc, char** argv)
     omp_util::set_num_threads(1);
 
     std::filesystem::path dir =
-        "/Users/fabianscheidt/Documents/C++/TRexSelector_Simulations/"
+        "/Users/fabianscheidt/Documents/C++/TRexSelector_Examples/"
         "R/tsolvers/rdump_tlars";
     for (int a = 1; a < argc; ++a) {
         std::string arg = argv[a];
