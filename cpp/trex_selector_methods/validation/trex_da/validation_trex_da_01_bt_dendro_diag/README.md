@@ -1,8 +1,8 @@
-# Demo 09: BT Dendrogram Diagnostic (C++/R Correctness Comparison)
+# Validation: BT Dendrogram Diagnostic (C++/R Correctness Comparison)
 
 ## Purpose
 
-A **single-dataset correctness diagnostic**, not a Monte Carlo performance study. This demo freezes one fixed AR(1)-block dataset (the base configuration of Demo 04) and exports every intermediate quantity of the `BT` clustering pipeline to CSV, so that the companion R script `diag_bt_dendro_compare.R` can reproduce the *identical* pipeline in R and diff the results — isolating whether any C++/R discrepancy originates in the **clustering step** (dendrogram heights/groups) or **downstream** (voting/selection given matching clusters).
+A **single-dataset correctness diagnostic**, not a Monte Carlo performance study. This validation freezes one fixed AR(1)-block dataset (the base configuration of `trex_da` Demo 04) and exports every intermediate quantity of the `BT` clustering pipeline to CSV, so that the companion R script `diag_bt_dendro_compare.R` can reproduce the *identical* pipeline in R and diff the results — isolating whether any C++/R discrepancy originates in the **clustering step** (dendrogram heights/groups) or **downstream** (voting/selection given matching clusters).
 
 ---
 
@@ -36,7 +36,7 @@ Reproduces the same pipeline in R on the identical exported dataset:
 
 ## Output Files
 
-Written to `simulation_results/` (already populated — both C++ and R sides have been run and exported):
+Written to `validation_results/` (already populated — both C++ and R sides have been run and exported):
 
 - `diag_X.csv`, `diag_y.csv`, `diag_support0.csv` — the frozen dataset.
 - `diag_cpp_heights.csv`, `diag_cpp_groups.csv`, `diag_cpp_selector.csv` — C++-side pipeline exports.
@@ -44,13 +44,13 @@ Written to `simulation_results/` (already populated — both C++ and R sides hav
 
 ---
 
-## Running the Demo
+## Running
 
 ```bash
-./build/debug/bin/demo_trex_da_09_bt_dendro_diag
+./build/debug/bin/trex_selector_methods/validation/trex_da/validation_trex_da_01_bt_dendro_diag/validation_trex_da_01_bt_dendro_diag
 ```
 
-Then run the companion R script (from `R/trex_selector_methods/trex_da/` or wherever your R environment is set up) against the same `simulation_results/` folder to regenerate the `diag_r_*.csv` files and print the PASS/FAIL comparison:
+Then run the companion R script (from this folder, or wherever your R environment is set up) against the same `validation_results/` folder to regenerate the `diag_r_*.csv` files and print the PASS/FAIL comparison:
 
 ```r
 source("diag_bt_dendro_compare.R")
@@ -63,7 +63,7 @@ source("diag_bt_dendro_compare.R")
 - This is a **debugging/verification tool**, not a benchmark — there is no FDR/TPR table to interpret; the output of interest is whether `diag_cpp_heights.csv`/`diag_cpp_groups.csv` match `diag_r_heights.csv`/`diag_r_groups.csv` (and ultimately whether `diag_cpp_selector.csv` matches `diag_r_selector.csv`).
 - If dendrogram heights/groups **match** but the final selector results **diverge**, the discrepancy lies downstream of clustering (e.g. in the voting/threshold logic).
 - If dendrogram heights/groups themselves **diverge**, the discrepancy lies in the clustering step (e.g. distance computation, linkage implementation, or floating-point tie-breaking differences between the C++ and R clustering routines).
-- Since both the C++ and R output files already exist in `simulation_results/`, you can inspect the current PASS/FAIL state directly rather than needing to rerun both sides from scratch.
+- Since both the C++ and R output files already exist in `validation_results/`, you can inspect the current PASS/FAIL state directly rather than needing to rerun both sides from scratch.
 
 ---
 

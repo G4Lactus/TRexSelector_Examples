@@ -1,8 +1,8 @@
 // ==============================================================================
-// demo_trex_da_09_bt_dendro_diag.cpp
+// validation_trex_da_01_bt_dendro_diag.cpp
 // ==============================================================================
 /**
- * @file demo_trex_da_09_bt_dendro_diag.cpp
+ * @file validation_trex_da_01_bt_dendro_diag.cpp
  *
  * @brief Single-dataset DA-BT diagnostic harness for the C++/R FDR-gap study.
  *
@@ -24,11 +24,11 @@
  *  whether the divergence is in the CLUSTERING (heights/groups differ for the
  *  same X) or DOWNSTREAM (clustering matches but Phi / selection differ).
  *
- *  Output goes to this demo's simulation_results/ folder (DEMO_OUTPUT_DIR).
+ *  Output goes to this validation's validation_results/ folder (DEMO_OUTPUT_DIR).
  */
 // ==============================================================================
 
-#include "../trex_da_sim_common.hpp"
+#include "trex_da_sim_common.hpp"
 
 #include <cmath>
 #include <fstream>

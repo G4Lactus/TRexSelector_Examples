@@ -2,12 +2,13 @@
 # diag_bt_dendro_compare.R
 # ==============================================================================
 #
-# R side of the single-dataset DA-BT diagnostic (pairs with the C++ demo
-# demo_trex_da_09_bt_dendro_diag.cpp).
+# R side of the single-dataset DA-BT diagnostic (pairs with the C++ validation
+# validation_trex_da_01_bt_dendro_diag.cpp).
 #
 # Reads the C++-exported design matrix (diag_X.csv), response (diag_y.csv) and
-# true support (diag_support0.csv, 0-based) from this demo's simulation_results/
-# folder, then reproduces the R DA-BT pipeline on the IDENTICAL X:
+# true support (diag_support0.csv, 0-based) from this validation's
+# validation_results/ folder, then reproduces the R DA-BT pipeline on the
+# IDENTICAL X:
 #
 #   1. cor(X) -> as.dist(1 - |cor|) -> hclust(method = "single")  [heights]
 #   2. rho_grid = c(1 - rev(height), 1)[round(seq(1, p, length.out = L))]
@@ -25,7 +26,7 @@
 suppressPackageStartupMessages(library(TRexSelector))
 
 # ------------------------------------------------------------------------------
-# Locate this script's directory, then its simulation_results/ folder.
+# Locate this script's directory, then its validation_results/ folder.
 # ------------------------------------------------------------------------------
 get_script_dir <- function() {
   args <- commandArgs(trailingOnly = FALSE)
@@ -41,7 +42,7 @@ get_script_dir <- function() {
 }
 
 this_dir <- get_script_dir()
-res_dir  <- file.path(this_dir, "simulation_results")
+res_dir  <- file.path(this_dir, "validation_results")
 stopifnot(dir.exists(res_dir))
 
 fp <- function(name) file.path(res_dir, name)

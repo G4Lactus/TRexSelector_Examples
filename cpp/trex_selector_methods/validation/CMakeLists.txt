@@ -4,5 +4,6 @@
 # ==================================================================================
 
 add_subdirectory(trex)
+add_subdirectory(trex_da)
 add_subdirectory(trex_gvs)
 add_subdirectory(trex_spca)
