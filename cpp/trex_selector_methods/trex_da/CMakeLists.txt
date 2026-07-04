@@ -39,7 +39,3 @@ add_demo_target(demo_trex_da_08_mc_sim_groups
     demo_trex_da_08_mc_sim_groups/demo_trex_da_08_mc_sim_groups.cpp
     T_REX_SELECTOR_LIBS
 )
-add_demo_target(demo_trex_da_09_bt_dendro_diag
-    demo_trex_da_09_bt_dendro_diag/demo_trex_da_09_bt_dendro_diag.cpp
-    T_REX_SELECTOR_LIBS
-)
