@@ -3,7 +3,7 @@
 # ==============================================================================
 #
 # Shared infrastructure for classical T-Rex MC simulations.
-# Mirrors R/trex_selector_methods/trex/trex_sim_common.R.
+# Mirrors R/trex_selector_methods/trex/trex_sim_utils.R.
 #
 # Contents:
 #   SOLVERS_DEFAULT              — List of 14 solver descriptors.
@@ -122,7 +122,7 @@ def compute_tpp(selected, true_support):
 # ==============================================================================
 #
 # Lazy-initialised string → enum maps.  Populated on first use inside a process
-# so that the module can be imported without trex_selector being available.
+# so that the module can be imported without trex_selector_neo being available.
 #
 _SOLVER_MAP = None
 _LLOOP_MAP  = None
@@ -131,7 +131,7 @@ _LLOOP_MAP  = None
 def _get_solver_map():
     global _SOLVER_MAP
     if _SOLVER_MAP is None:
-        import trex_selector as ts
+        import trex_selector_neo as ts
         _SOLVER_MAP = {
             "TLARS":      ts.SolverTypeForTRex.TLARS,
             "TLASSO":     ts.SolverTypeForTRex.TLASSO,
@@ -152,7 +152,7 @@ def _get_solver_map():
 def _get_lloop_map():
     global _LLOOP_MAP
     if _LLOOP_MAP is None:
-        import trex_selector as ts
+        import trex_selector_neo as ts
         _LLOOP_MAP = {
             "STANDARD":           ts.LLoopStrategy.STANDARD,
             "HCONCAT":            ts.LLoopStrategy.HCONCAT,
@@ -177,7 +177,7 @@ def _make_trex_ctrl_from_dict(d):
         lloop_strategy, tloop_stagnation_stop, tloop_max_stagnant_steps,
         parallel_rnd_experiments, use_memory_mapping.
     """
-    import trex_selector as ts
+    import trex_selector_neo as ts
     solver_map = _get_solver_map()
     lloop_map  = _get_lloop_map()
 
@@ -228,7 +228,7 @@ def _trial_worker(args):
     tFDR       = args["tFDR"]
     track_L_T  = args.get("track_L_T", False)
 
-    import trex_selector as ts
+    import trex_selector_neo as ts
 
     # Resolve support
     if fixed_supp is None:
@@ -535,8 +535,8 @@ def _trial_worker_full_mmap(args):
     will be set in the ctrl dict by the caller).
     """
     import tempfile
-    import trex_selector as ts
-    from trex_selector.utils import numpy_to_memmap
+    import trex_selector_neo as ts
+    from trex_selector_neo.utils import numpy_to_memmap
 
     mc         = args["mc"]
     trial_seed = args["trial_seed"]

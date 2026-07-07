@@ -184,7 +184,7 @@ dgp_chunked_gauss_snr <- function(n,
   signal <- numeric(n)
 
   # Instantiate the memory-mapped matrix directly via TRexSelector
-  X_mmap <- TRexSelector::mmap_matrix(x_path, n, p)
+  X_mmap <- TRexSelectorNeo::mmap_matrix(x_path, n, p)
 
   # Generate and write X in chunks of `chunk_cols`
   start_col <- 1L
@@ -233,8 +233,8 @@ dgp_chunked_gauss_snr <- function(n,
   n_sel        <- length(selected)
   n_tp         <- length(intersect(selected, true_support))
   n_fp         <- n_sel - n_tp
-  tpp          <- TRexSelector::compute_tpp(selected, true_support)
-  fdp          <- TRexSelector::compute_fdp(selected, true_support)
+  tpp          <- TRexSelectorNeo::compute_tpp(selected, true_support)
+  fdp          <- TRexSelectorNeo::compute_fdp(selected, true_support)
 
   cat(strrep("=", 70L), "\n")
   cat(sprintf("  %s\n", scenario_name))
@@ -341,7 +341,7 @@ make_mmap_trex_ctrl <- function(...) {
   for (nm in names(overrides)) {
     base_ctrl[[nm]] <- overrides[[nm]]
   }
-  do.call(TRexSelector::trex_control, base_ctrl)
+  do.call(TRexSelectorNeo::trex_control, base_ctrl)
 }
 
 
@@ -359,7 +359,7 @@ execute_with_temp_mmap <- function(X_matrix, expr_func) {
   x_path <- tempfile(fileext = ".dat")
   on.exit(unlink(x_path), add = TRUE)
 
-  X_mmap <- TRexSelector::convert_to_memory_mapped(X_matrix, x_path)
+  X_mmap <- TRexSelectorNeo::convert_to_memory_mapped(X_matrix, x_path)
   expr_func(X_mmap)
 
 }
@@ -463,8 +463,8 @@ execute_with_temp_mmap <- function(X_matrix, expr_func) {
     )
     sel$select()
     res <- c(
-      FDP = TRexSelector::compute_fdp(sel$selected_indices, dat$true_support),
-      TPP = TRexSelector::compute_tpp(sel$selected_indices, dat$true_support)
+      FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, dat$true_support),
+      TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, dat$true_support)
     )
     if (track_L_T) res <- c(res, L = sel$L, T = sel$T_stop)
     res
@@ -495,7 +495,7 @@ execute_with_temp_mmap <- function(X_matrix, expr_func) {
     # NOTE: parLapply on Windows spawns a new R process for each trial
     cl <- parallel::makeCluster(num_cores)
     on.exit(parallel::stopCluster(cl), add = TRUE)
-    parallel::clusterEvalQ(cl, library(TRexSelector))
+    parallel::clusterEvalQ(cl, library(TRexSelectorNeo))
     parallel::clusterExport(
       cl,
       varlist = c("base_seed", "make_data_fn", "ctrl", "tFDR", "track_L_T"),

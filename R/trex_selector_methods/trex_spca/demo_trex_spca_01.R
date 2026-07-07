@@ -1,5 +1,5 @@
 # ==============================================================================
-# demo_trex_spca_sim_parallel.R
+# demo_trex_spca_01.R
 # ==============================================================================
 #
 # This script evaluates the T-Rex Sparse PCA method against ordinary PCA and an

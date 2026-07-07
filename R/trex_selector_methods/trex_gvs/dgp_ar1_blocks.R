@@ -2,7 +2,7 @@
 # dgp_ar1_blocks.R
 # ==============================================================================
 # Data-generating process for the block-structured AR(1) correlation scenario.
-# Sourced by demo_trex_gvs_10.R.
+# Sourced by demo_trex_gvs_07.R and simulation_trex_gvs_07.R.
 #
 # Contents:
 #   generate_ar1_blocks(n, p, rho, sigma_y)

@@ -2,7 +2,7 @@
 # dgp_neg_traps.R
 # ==============================================================================
 # Data-generating process for the hardened negative traps scenario.
-# Sourced by demo_trex_gvs_07_hastie_3.R.
+# Sourced by demo_trex_gvs_04.R and simulation_trex_gvs_04.R.
 #
 # Contents:
 #   generate_hardened_negative_traps(n, p, sigma_y)

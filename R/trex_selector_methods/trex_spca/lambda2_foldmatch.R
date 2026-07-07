@@ -12,7 +12,7 @@
 # deterministic `foldid` that the C++ side replicates exactly, runs cv.glmnet,
 # and dumps the FULL CV curve (lambda grid, cvm, cvsd) plus lambda.min/1se.
 #
-# The companion demo_trex_spca_06_lambda2_foldmatch.cpp reads these dumps,
+# The companion validation_trex_spca_05_lambda2_foldmatch.cpp reads these dumps,
 # re-runs the C++ library CV on the SAME (X, y), SAME lambda grid and SAME
 # foldid, and compares cvm / cvsd point-by-point. If they match to numerical
 # tolerance, CD == glmnet and the prior lambda.1se gap was pure fold noise.
@@ -22,16 +22,19 @@
 suppressPackageStartupMessages(library(glmnet))
 
 # ---- Locate the shared C++ dump directory ------------------------------------
+# Resolve relative to this script so the probe works from any working directory.
+this_dir_ <- tryCatch(
+  dirname(normalizePath(sys.frame(1L)$ofile)),
+  error = function(e) {
+    args <- commandArgs(trailingOnly = FALSE)
+    file_arg <- grep("--file=", args, value = TRUE)
+    if (length(file_arg) > 0) dirname(normalizePath(sub("--file=", "", file_arg[1]))) else "."
+  }
+)
 cpp_results_dir <- normalizePath(file.path(
-  "..", "..", "..", "cpp", "trex_selector_methods", "trex_spca",
-  "simulation_results"
+  this_dir_, "..", "..", "..", "cpp", "trex_selector_methods", "validation", "trex_spca",
+  "validation_results"
 ), mustWork = FALSE)
-if (!dir.exists(cpp_results_dir)) {
-  cpp_results_dir <- file.path(
-    "/Users/fabianscheidt/Documents/C++/TRexSelector_Examples",
-    "cpp/trex_selector_methods/trex_spca/simulation_results"
-  )
-}
 
 x_csv <- file.path(cpp_results_dir, "lambda2_probe_X.csv")
 y_csv <- file.path(cpp_results_dir, "lambda2_probe_y.csv")
@@ -115,5 +118,5 @@ cat(sprintf("  lambda_2_lars(1se)   = %.5f   (= lambda.1se * p/2)\n",
 cat("--------------------------------------------------------------\n")
 cat(sprintf("  Dumped: fm_r_lambda.csv, fm_r_cvm.csv, fm_r_cvsd.csv,\n"))
 cat(sprintf("          fm_foldid.csv, fm_r_summary.csv -> %s\n", cpp_results_dir))
-cat(sprintf("  Now run: demo_trex_spca_06_lambda2_foldmatch\n"))
+cat(sprintf("  Now run: validation_trex_spca_05_lambda2_foldmatch\n"))
 cat("==============================================================\n")

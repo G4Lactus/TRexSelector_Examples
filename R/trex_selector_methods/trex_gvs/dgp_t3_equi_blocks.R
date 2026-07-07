@@ -2,7 +2,7 @@
 # dgp_t3_equi_blocks.R
 # ==============================================================================
 # Data-generating process for the heavy-tailed equi-correlated blocks scenario.
-# Sourced by demo_trex_gvs_10_ht.R.
+# Sourced by demo_trex_gvs_06.R and simulation_trex_gvs_06.R.
 #
 # Contents:
 #   generate_t3_equicorrelated_blocks(n, p, rho, sigma_y, df)

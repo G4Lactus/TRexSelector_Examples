@@ -2,7 +2,7 @@
 # dgp_unequal_blocks.R
 # ==============================================================================
 # Data-generating process for the unequal-blockwise predictors scenario.
-# Sourced by demo_trex_gvs_04_hastie_realistic_2.R.
+# Not currently sourced by any demo; kept for future scenarios.
 #
 # Contents:
 #   generate_unequal_blockwise_data(n, p, sigma_y)

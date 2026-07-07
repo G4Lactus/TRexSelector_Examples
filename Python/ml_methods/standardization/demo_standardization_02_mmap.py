@@ -14,9 +14,11 @@
 # Key note:
 #   X_mmap.to_numpy() returns a zero-copy view into the mmap buffer.
 #   Calling transform_inplace() on that view directly would mutate the binary
-#   file on disk.  Instead we take X_loaded = X_mmap.to_numpy().copy(), which
-#   mirrors R's X_loaded <- as.matrix(X_mmap): both produce an independent
-#   in-memory copy that the scaler is free to modify in place.
+#   file on disk.  Instead we take X_loaded = X_mmap.to_numpy().copy(order="F"),
+#   which mirrors R's X_loaded <- as.matrix(X_mmap): both produce an independent
+#   in-memory (column-major) copy that the scaler is free to modify in place.
+#   transform_inplace() mutates its argument and returns None, so we always
+#   copy first and pass the copy.
 #
 # ==============================================================================
 
@@ -24,8 +26,8 @@ import os
 import tempfile
 
 import numpy as np
-from trex_selector.ml_methods import LpNormScaler, NormType, ZScoreScaler
-from trex_selector.utils import numpy_to_memmap
+from trex_selector_neo.ml_methods import LpNormScaler, NormType, ZScoreScaler
+from trex_selector_neo.utils import numpy_to_memmap
 
 # ==============================================================================
 # Global Parameters and Data Generation
@@ -35,7 +37,9 @@ rng = np.random.default_rng(42)
 
 n = 8
 p = 4
-X = rng.normal(3.0, 2.0, (n, p))
+# The scalers operate on the matrix in-place through Eigen and therefore
+# require a writeable, Fortran-ordered (column-major) float64 array.
+X = np.asfortranarray(rng.normal(3.0, 2.0, (n, p)))
 
 
 def summarize_matrix(mat):
@@ -58,7 +62,7 @@ try:
     # The copy mirrors R's `as.matrix(X_mmap)` and is required so that
     # transform_inplace() does not mutate the binary file on disk.
     X_mmap   = numpy_to_memmap(mmap_path, X)
-    X_loaded = X_mmap.to_numpy().copy()
+    X_loaded = X_mmap.to_numpy().copy(order="F")
 
     print("\n" + "=" * 70)
     print("Standardization Demos (memory-mapped)")
@@ -77,17 +81,19 @@ try:
     print("Part A: Z-Scaling (ZScoreScaler) on mmap-backed data")
     print("-" * 70 + "\n")
 
-    z_scaler = ZScoreScaler(with_mean=True, with_std=True)
+    z_scaler = ZScoreScaler(center=True, scale=True)
     z_scaler.fit(X_loaded)
 
-    X_z = z_scaler.transform_inplace(X_loaded.copy())
+    X_z = X_loaded.copy(order="F")
+    z_scaler.transform_inplace(X_z)
 
     print("Z-scaled matrix:")
     print(np.round(X_z, 4))
     print("\nColumn summary after z-scaling:")
     summarize_matrix(X_z)
 
-    X_z_back = z_scaler.inverse_transform_inplace(X_z.copy())
+    X_z_back = X_z.copy(order="F")
+    z_scaler.inverse_transform_inplace(X_z_back)
     recon_err = np.max(np.abs(X_loaded - X_z_back))
     print(f"\nMax reconstruction error after inverse z-scaling: {recon_err:.2e}")
 
@@ -102,14 +108,16 @@ try:
     l2_scaler = LpNormScaler(NormType.L2, True)
     l2_scaler.fit(X_loaded)
 
-    X_l2 = l2_scaler.transform_inplace(X_loaded.copy())
+    X_l2 = X_loaded.copy(order="F")
+    l2_scaler.transform_inplace(X_l2)
 
     print("L2-scaled matrix:")
     print(np.round(X_l2, 4))
     print("\nColumn summary after L2 scaling:")
     summarize_matrix(X_l2)
 
-    X_l2_back = l2_scaler.inverse_transform_inplace(X_l2.copy())
+    X_l2_back = X_l2.copy(order="F")
+    l2_scaler.inverse_transform_inplace(X_l2_back)
     recon_err_l2 = np.max(np.abs(X_loaded - X_l2_back))
     print(f"\nMax reconstruction error after inverse L2 scaling: {recon_err_l2:.2e}")
 

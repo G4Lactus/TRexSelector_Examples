@@ -23,7 +23,7 @@
 #     glmnet_a0_<tag>.csv        : 1 x nlambda intercepts
 #   cv_glmnet_<tag>.csv          : lambda.min, lambda.1se  (mean over reps), 1 row
 #
-# Companion: cpp/ml_methods/model_selection/demo_mlm_ms_03_en_glmnet_rcompare.cpp
+# Companion: cpp/ml_methods/model_selection/demo_mlm_ms_02_enet_cv_ccd/demo_mlm_ms_02_enet_cv_ccd.cpp
 # =============================================================================
 
 suppressPackageStartupMessages(library(glmnet))
@@ -143,4 +143,4 @@ for (a in alphas) {
 }
 
 cat("\nDone.  Build + run the C++ comparator:\n")
-cat("  demo_mlm_ms_03_en_glmnet_rcompare\n")
+cat("  demo_mlm_ms_02_enet_cv_ccd\n")

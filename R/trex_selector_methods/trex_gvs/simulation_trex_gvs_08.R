@@ -1,5 +1,5 @@
 # ==============================================================================
-# simulation_trex_gvs_11.R
+# simulation_trex_gvs_08.R
 # ==============================================================================
 #
 # T-Rex+GVS Monte Carlo simulations for the ARMA mixed-structure blocks DGP.
@@ -22,7 +22,7 @@
 #                ar_coef in {0.30, 0.50, 0.70, 0.80, 0.90, 0.95}.
 #          Outputs TPP/FDP matrices for EN and IEN.
 #
-# Single-run demo (Part 1) is in demo_trex_gvs_11.R.
+# Single-run demo (Part 1) is in demo_trex_gvs_08.R.
 #
 # ==============================================================================
 
@@ -49,7 +49,7 @@ this_dir_ <- local({
 
 log_dir <- file.path(this_dir_, "..", "logs")
 dir.create(log_dir, showWarnings = FALSE, recursive = TRUE)
-con_log <- file(file.path(log_dir, "simulation_trex_gvs_11.log"), open = "wt")
+con_log <- file(file.path(log_dir, "simulation_trex_gvs_08.log"), open = "wt")
 sink(con_log, split = FALSE)
 on.exit({ sink(); close(con_log) }, add = TRUE)
 

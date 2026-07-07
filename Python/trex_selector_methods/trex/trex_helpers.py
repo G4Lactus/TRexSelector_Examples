@@ -3,7 +3,8 @@
 # ==============================================================================
 #
 # Shared helper functions for TRex single-run demos.
-# Mirrors R/trex_selector_methods/trex/trex_helpers.R.
+# Mirrors the single-run printing/saving helpers in
+# R/trex_selector_methods/trex/trex_sim_utils.R.
 #
 # ==============================================================================
 
@@ -22,7 +23,7 @@ def print_single_run_result(scenario_name, dat, sel, tFDR):
         Label printed in the header (e.g. "Part 1 — i.i.d. Gaussian [TLARS]").
     dat           : dict
         Output of dgp_gauss_snr() with keys X, y, beta, true_support, n, p, s, snr.
-    sel           : trex_selector.TRexSelector
+    sel           : trex_selector_neo.TRexSelector
         Selector instance after .select() has been called.
     tFDR          : float
         Target FDR level.

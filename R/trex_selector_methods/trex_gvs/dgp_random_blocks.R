@@ -2,7 +2,7 @@
 # dgp_random_blocks.R
 # ==============================================================================
 # Data-generating process for the randomly ordered, unequal separated blocks scenario.
-# Sourced by demo_trex_gvs_05_hastie_realistic_3.R.
+# Not currently sourced by any demo; kept for future scenarios.
 #
 # Contents:
 #   generate_random_blocks_data(n, p, sigma_y)

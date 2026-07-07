@@ -2,7 +2,7 @@
 # demo_memory_mapping.py
 # ==============================================================================
 #
-# Demonstrates the memory-mapping utilities provided by the trex_selector
+# Demonstrates the memory-mapping utilities provided by the trex_selector_neo
 # package.  Memory-mapped matrices allow handling large datasets without
 # loading the entire array into Python's active memory, seamlessly passing
 # a pointer to the C++ backend.
@@ -15,7 +15,7 @@ import os
 import tempfile
 
 import numpy as np
-from trex_selector.utils import AccessMode, MemoryMappedMatrix, numpy_to_memmap
+from trex_selector_neo.utils import AccessMode, MemoryMappedMatrix, numpy_to_memmap
 
 print("=" * 65)
 print(" Memory Mapping Demo for TRexSelector")

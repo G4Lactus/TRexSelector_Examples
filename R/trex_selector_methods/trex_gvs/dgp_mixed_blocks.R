@@ -2,7 +2,7 @@
 # dgp_mixed_blocks.R
 # ==============================================================================
 # Data-generating process for the mixed active/inactive blocks scenario.
-# Sourced by demo_trex_gvs_04_hastie_realistic_4.R.
+# Sourced by demo_trex_gvs_03.R and simulation_trex_gvs_03.R.
 #
 # Contents:
 #   generate_mixed_blocks_data(n, p, sigma_y)

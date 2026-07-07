@@ -13,7 +13,7 @@
 # ==============================================================================
 
 import numpy as np
-from trex_selector.ml_methods.clustering import (
+from trex_selector_neo.ml_methods.clustering import (
     agglomerative_cluster,
     cut_tree,
     DistanceMetric,
@@ -112,26 +112,29 @@ print(f"Cluster distribution: {np.bincount(clusters_comp).tolist()}\n")
 
 
 # ==============================================================================
-# Part D: Ward linkage with Correlation distance
+# Part D: Average linkage with Correlation distance
 # ==============================================================================
+# Ward (like Median/Centroid) is only valid in Euclidean geometry — the library
+# rejects Ward with non-Euclidean metrics. Graph-based linkages such as Average
+# or Complete work with any metric, so we pair Correlation with Average here.
 
-print("Part D: Ward linkage with Correlation distance")
+print("Part D: Average linkage with Correlation distance")
 print("-" * 70 + "\n")
 
-linkage_ward_corr = agglomerative_cluster(
+linkage_avg_corr = agglomerative_cluster(
     X,
-    method=LinkageMethod.Ward,
+    method=LinkageMethod.Average,
     metric=DistanceMetric.Correlation,
     use_mmap=False,
 )
 
-clusters_ward_corr = cut_tree(
-    linkage_ward_corr,
+clusters_avg_corr = cut_tree(
+    linkage_avg_corr,
     num_orig_objs=n,
     num_clusters=num_clusters,
 )
 print(f"Cluster assignments (k = {num_clusters}):")
-print(f"Cluster distribution: {np.bincount(clusters_ward_corr).tolist()}\n")
+print(f"Cluster distribution: {np.bincount(clusters_avg_corr).tolist()}\n")
 
 
 print("=" * 70)

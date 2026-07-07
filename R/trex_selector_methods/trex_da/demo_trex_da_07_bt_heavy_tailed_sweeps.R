@@ -2,12 +2,9 @@
 # demo_trex_da_07_bt_heavy_tailed_sweeps.R
 # ==============================================================================
 #
-# Output from this script is redirected to a log file (see below).
+# Output from this script is redirected to a log file in simulation_results/
+# next to this script (see below).
 # To view output in the console instead, comment out the sink() lines.
-
-log_file <- "demo_trex_da_07_bt_heavy_tailed_sweeps_log.txt"
-sink(log_file)
-on.exit(sink(), add = TRUE)
 #
 # Testing trex+DA+BT against Heavy-Tailed Student-t Data (nu = 3).
 #
@@ -27,8 +24,18 @@ num_cores <- 6L
 
 this_dir_ <- tryCatch(
   dirname(normalizePath(sys.frame(1)$ofile)),
-  error = function(e) "."
+  error = function(e) {
+    args <- commandArgs(trailingOnly = FALSE)
+    file_arg <- grep("--file=", args, value = TRUE)
+    if (length(file_arg) > 0) dirname(normalizePath(sub("--file=", "", file_arg[1]))) else "."
+  }
 )
+
+log_file <- file.path(this_dir_, "simulation_results",
+                      "demo_trex_da_07_bt_heavy_tailed_sweeps_log.txt")
+sink(log_file)
+on.exit(sink(), add = TRUE)
+
 source(file.path(this_dir_, "..", "support_generators.R"))  # make_support_bt_one_per_block
 source(file.path(this_dir_, "dgp_ht_snr.R"))           # dgp_ht_block_snr
 source(file.path(this_dir_, "..", "simulation_utils.R"))

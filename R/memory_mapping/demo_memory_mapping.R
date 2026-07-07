@@ -3,7 +3,7 @@
 # ==============================================================================
 #
 # This script demonstrates the memory-mapping functionalities for the
-# TRexSelector package.
+# TRexSelectorNeo package.
 # Memory-mapped matrices allow handling large datasets without loading
 # the entire matrix into R's active memory, seamlessly passing a pointer to the
 # C++ backend.
@@ -14,7 +14,7 @@
 #
 # ==============================================================================
 
-library(TRexSelector)
+library(TRexSelectorNeo)
 
 cat("=================================================================\n")
 cat(" Memory Mapping Demo for TRexSelector\n")

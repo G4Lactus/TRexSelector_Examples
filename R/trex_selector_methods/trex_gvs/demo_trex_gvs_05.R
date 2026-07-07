@@ -1,5 +1,5 @@
 # ==============================================================================
-# demo_trex_gvs_08.R
+# demo_trex_gvs_05.R
 # ==============================================================================
 #
 # T-Rex+GVS demo and MC simulation for the equi-correlated blocks DGP.
@@ -9,7 +9,7 @@
 #
 #  Part 1: Single-run demo — block layout + correlation check + selector.
 #
-# Monte Carlo simulations (Parts 2–4) are in simulation_trex_gvs_08.R.
+# Monte Carlo simulations (Parts 2–4) are in simulation_trex_gvs_05.R.
 #
 # ==============================================================================
 

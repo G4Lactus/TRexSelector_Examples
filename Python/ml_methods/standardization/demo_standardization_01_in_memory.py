@@ -11,14 +11,15 @@
 #   - Forward and inverse transformations
 #
 # Notes:
-#   transform_inplace() mutates the supplied array in-place AND returns it.
-#   Passing X.copy() (mirrors R's X + 0) demonstrates the in-place behaviour
-#   while preserving the original X for the reconstruction check.
+#   transform_inplace() mutates the supplied array in place and returns None.
+#   We therefore copy first (order="F" keeps the required column-major layout,
+#   mirroring R's X + 0) and pass the copy, preserving the original X for the
+#   reconstruction check.
 #
 # ==============================================================================
 
 import numpy as np
-from trex_selector.ml_methods import LpNormScaler, NormType, ZScoreScaler
+from trex_selector_neo.ml_methods import LpNormScaler, NormType, ZScoreScaler
 
 # ==============================================================================
 # Global Parameters and Data Generation
@@ -28,7 +29,9 @@ rng = np.random.default_rng(42)
 
 n = 8
 p = 4
-X = rng.normal(3.0, 2.0, (n, p))
+# The scalers operate on the matrix in-place through Eigen and therefore
+# require a writeable, Fortran-ordered (column-major) float64 array.
+X = np.asfortranarray(rng.normal(3.0, 2.0, (n, p)))
 
 
 def summarize_matrix(mat):
@@ -60,18 +63,20 @@ print("\n" + "-" * 70)
 print("Part A: Z-Scaling (ZScoreScaler)")
 print("-" * 70 + "\n")
 
-z_scaler = ZScoreScaler(with_mean=True, with_std=True)
+z_scaler = ZScoreScaler(center=True, scale=True)
 z_scaler.fit(X)
 
-# X.copy() mirrors R's X + 0: demonstrates in-place transform, preserves X
-X_z = z_scaler.transform_inplace(X.copy())
+# Copy first (mirrors R's X + 0), then transform the copy in place.
+X_z = X.copy(order="F")
+z_scaler.transform_inplace(X_z)
 
 print("Z-scaled matrix:")
 print(np.round(X_z, 4))
 print("\nColumn summary after z-scaling:")
 summarize_matrix(X_z)
 
-X_z_back = z_scaler.inverse_transform_inplace(X_z.copy())
+X_z_back = X_z.copy(order="F")
+z_scaler.inverse_transform_inplace(X_z_back)
 recon_err = np.max(np.abs(X - X_z_back))
 print(f"\nMax reconstruction error after inverse z-scaling: {recon_err:.2e}")
 
@@ -87,14 +92,16 @@ print("-" * 70 + "\n")
 l2_scaler = LpNormScaler(NormType.L2, True)
 l2_scaler.fit(X)
 
-X_l2 = l2_scaler.transform_inplace(X.copy())
+X_l2 = X.copy(order="F")
+l2_scaler.transform_inplace(X_l2)
 
 print("L2-scaled matrix:")
 print(np.round(X_l2, 4))
 print("\nColumn summary after L2 scaling:")
 summarize_matrix(X_l2)
 
-X_l2_back = l2_scaler.inverse_transform_inplace(X_l2.copy())
+X_l2_back = X_l2.copy(order="F")
+l2_scaler.inverse_transform_inplace(X_l2_back)
 recon_err_l2 = np.max(np.abs(X - X_l2_back))
 print(f"\nMax reconstruction error after inverse L2 scaling: {recon_err_l2:.2e}")
 

@@ -1,5 +1,5 @@
 # ==============================================================================
-# demo_trex_gvs_07.R
+# demo_trex_gvs_04.R
 # ==============================================================================
 #
 # T-Rex+GVS demo and MC simulation for the negative-traps DGP.
@@ -11,7 +11,7 @@
 #
 #  Part 1: Single-run demo — trap FP autopsy + selector run.
 #
-# Monte Carlo simulations (Parts 2–4) are in simulation_trex_gvs_07.R.
+# Monte Carlo simulations (Parts 2–4) are in simulation_trex_gvs_04.R.
 #
 # ==============================================================================
 

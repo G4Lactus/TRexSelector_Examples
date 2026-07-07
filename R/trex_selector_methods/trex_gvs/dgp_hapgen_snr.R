@@ -2,7 +2,7 @@
 # dgp_hapgen_snr.R
 # ==============================================================================
 # Data-generating process for the quasi-hapgen LD-block scenario.
-# Sourced by demo_trex_gvs_12.R.
+# Not currently sourced by any demo; kept for future scenarios.
 #
 # Contents:
 #   dgp_hapgen_snr(n, snr, rho_scale, seed)

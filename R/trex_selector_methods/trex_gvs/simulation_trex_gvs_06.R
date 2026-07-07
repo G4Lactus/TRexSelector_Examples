@@ -1,5 +1,5 @@
 # ==============================================================================
-# simulation_trex_gvs_09.R
+# simulation_trex_gvs_06.R
 # ==============================================================================
 #
 # T-Rex+GVS Monte Carlo simulations for the heavy-tailed equi-correlated
@@ -21,7 +21,7 @@
 #                rho in {0.30, 0.50, 0.70, 0.90, 0.95, 0.99}.
 #          Outputs TPP/FDP matrices for EN and IEN.
 #
-# Single-run demo (Part 1) is in demo_trex_gvs_09.R.
+# Single-run demo (Part 1) is in demo_trex_gvs_06.R.
 #
 # ==============================================================================
 
@@ -48,7 +48,7 @@ this_dir_ <- local({
 
 log_dir <- file.path(this_dir_, "..", "logs")
 dir.create(log_dir, showWarnings = FALSE, recursive = TRUE)
-con_log <- file(file.path(log_dir, "simulation_trex_gvs_09.log"), open = "wt")
+con_log <- file(file.path(log_dir, "simulation_trex_gvs_06.log"), open = "wt")
 sink(con_log, split = FALSE)
 on.exit({ sink(); close(con_log) }, add = TRUE)
 
