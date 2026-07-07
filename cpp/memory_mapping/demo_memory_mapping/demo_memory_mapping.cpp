@@ -6,7 +6,7 @@
  *
  * @brief Demonstration of MemoryMappedMatrix usage.
  *
- * @details Three demos that mirror R/memory_mapping/demo_memory_mapping.R while
+ * @details Four demos that mirror R/memory_mapping/demo_memory_mapping.R while
  * exploiting C++ RAII, zero-copy Eigen::Map access, and OpenMP parallelism.
  *
  *   Demo 1 | Basics       : Create, write, inspect, extract a block, full

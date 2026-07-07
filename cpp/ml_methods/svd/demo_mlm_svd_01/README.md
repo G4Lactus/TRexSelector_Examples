@@ -116,9 +116,9 @@ When reading the console output, focus on these points:
 ## Technical notes
 
 - The source labels the first scenario as the “Direct Path” for $n \ge p$ and the second as the “Gram Path” for the wide-matrix regime $p > 2n$.
-- The current demo does not explicitly include a dedicated rank-deficient example, so the old README phrase “Behavior on rank-deficient matrices (if tested)” should be softened or removed.
+- The demo does not include a dedicated rank-deficient example; the three scenarios use full-rank random Gaussian matrices.
 - The reconstruction reported by the demo is a **truncated** reconstruction using only the top $M$ singular components, so the error is not expected to be near machine precision unless $M$ is large enough to capture essentially all variation.
 
 ---
 
-**Last updated**: 2026-07-01
+**Last updated**: 2026-07-08

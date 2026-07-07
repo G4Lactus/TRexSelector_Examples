@@ -158,6 +158,92 @@ plot_cormat <- function(cor_matrix) {
 
 
 # ==============================================================================
+# R6 API adapters (legacy TRexSelector -> TRexSelectorNeo)
+# ==============================================================================
+
+#' Map legacy lowercase HC linkage names to the R6 capitalized names.
+#'
+#' The R6 API also accepts lowercase, but capitalized names are used for clarity.
+#' Unknown / already-capitalized values are passed through unchanged.
+cap_hc <- function(hc_dist) {
+  switch(hc_dist,
+         single   = "Single",
+         complete = "Complete",
+         average  = "Average",
+         hc_dist)
+}
+
+
+#' Map a legacy `type` argument to an R6 solver name.
+#'
+#'   "lar"        -> "TLARS"   (default)
+#'   "lasso"      -> "TLASSO"
+#'   "en"/"enet"  -> "TENET"
+.map_solver <- function(type = "lar") {
+  if (is.null(type)) return("TLARS")
+  switch(type,
+         lar   = "TLARS",
+         lasso = "TLASSO",
+         en    = "TENET",
+         enet  = "TENET",
+         "TLARS")
+}
+
+
+#' Build and run a TRexDASelector from a legacy DA method + extra-args spec.
+#'
+#' Dispatches the four legacy dependency-aware methods onto the R6
+#' `TRexDASelector` API:
+#'   "trex+DA+AR1"  -> da_method = "AR1"
+#'   "trex+DA+NN"   -> da_method = "NN"
+#'   "trex+DA+equi" -> da_method = "EQUI"
+#'   "trex+DA+BT"   -> da_method = "BT"
+#'
+#' `trex_extra_args` mirrors the legacy `TRexSelector::trex()` DA options:
+#'   cor_coef   — passed through, unless NA / absent (then the default
+#'                auto-estimate is used).
+#'   rho_thr_DA — forwarded to `trex_da_control()` when supplied.
+#'   type       — mapped to an R6 solver via `.map_solver()`.
+#'   hc_dist    — BT linkage, mapped to capitalized form via `cap_hc()`.
+#'
+#' @return The TRexDASelector object after `$select()` has been called.
+.build_da_selector <- function(trex_method, trex_extra_args, X, y, tFDR, K) {
+  ea <- trex_extra_args
+
+  da_method <- switch(trex_method,
+                      "trex+DA+AR1"  = "AR1",
+                      "trex+DA+NN"   = "NN",
+                      "trex+DA+equi" = "EQUI",
+                      "trex+DA+BT"   = "BT",
+                      stop(sprintf("Unsupported DA method: %s", trex_method)))
+
+  da_args <- list(da_method = da_method)
+
+  # cor_coef: pass only when supplied and non-NA (NA -> default auto-estimate).
+  if (!is.null(ea$cor_coef) && !is.na(ea$cor_coef)) {
+    da_args$cor_coef <- ea$cor_coef
+  }
+  # rho_thr_DA: forward when supplied.
+  if (!is.null(ea$rho_thr_DA)) {
+    da_args$rho_thr_DA <- ea$rho_thr_DA
+  }
+  # hc_dist: BT linkage (capitalized for clarity).
+  if (!is.null(ea$hc_dist)) {
+    da_args$hc_linkage <- cap_hc(ea$hc_dist)
+  }
+
+  solver <- .map_solver(ea$type)
+
+  sel <- TRexSelectorNeo::TRexDASelector$new(
+    X, y, tFDR = tFDR, seed = -1L, verbose = FALSE,
+    da_control = do.call(TRexSelectorNeo::trex_da_control, da_args),
+    control    = TRexSelectorNeo::trex_control(solver = solver, K = K))
+  sel$select()
+  sel
+}
+
+
+# ==============================================================================
 # Monte Carlo core
 # ==============================================================================
 
@@ -217,16 +303,12 @@ plot_cormat <- function(cor_matrix) {
     dgp_args <- c(base_dgp_args, dgp_extra_args)
     dat <- do.call(dgp_fun, dgp_args)
 
-    trex_args <- c(
-      list(X = dat$X, y = dat$y, tFDR = tFDR, K = K,
-           method = trex_method, verbose = FALSE, seed = trial_seed),
-      trex_extra_args
-    )
-    res <- do.call(TRexSelector::trex, trex_args)
-
+    sel <- .build_da_selector(trex_method, trex_extra_args,
+                              dat$X, dat$y, tFDR, K)
+    ts <- which(dat$beta != 0)
     c(
-      FDP = TRexSelector::FDP(res$selected_var, dat$beta),
-      TPP = TRexSelector::TPP(res$selected_var, dat$beta)
+      FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, ts),
+      TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, ts)
     )
   }
 
@@ -244,14 +326,15 @@ plot_cormat <- function(cor_matrix) {
 
     parallel::clusterSetRNGStream(cl, iseed = seed)
     parallel::clusterEvalQ(cl, {
-      library(TRexSelector)
+      library(TRexSelectorNeo)
       NULL
     })
     parallel::clusterExport(
       cl,
       varlist = c("MC_BASE", "s", "support", "p", "n", "amplitude", "snr",
                   "tFDR", "K", "seed", "dgp_fun", "dgp_extra_args",
-                  "trex_method", "trex_extra_args", "make_support_random"),
+                  "trex_method", "trex_extra_args", "make_support_random",
+                  ".build_da_selector", "cap_hc", ".map_solver"),
       envir = environment()
     )
 
@@ -731,21 +814,15 @@ plot_cormat <- function(cor_matrix) {
     trial_seed <- seed + mc - 1L
     dat <- dgp_hastie_snr(n = n, p = p, snr = snr, sd_x = sd_x,
                           seed = trial_seed)
-    res <- TRexSelector::trex(
-      X             = dat$X,
-      y             = dat$y,
-      tFDR          = tFDR,
-      K             = K,
-      method        = "trex+GVS",
-      GVS_type      = GVS_type,
-      lambda_2_lars = NULL,
-      hc_dist       = hc_dist,
-      corr_max      = corr_max,
-      verbose       = FALSE,
-      seed          = trial_seed
-    )
-    c(FDP = TRexSelector::FDP(res$selected_var, dat$beta),
-      TPP = TRexSelector::TPP(res$selected_var, dat$beta))
+    sel <- TRexSelectorNeo::TRexGVSSelector$new(
+      dat$X, dat$y, tFDR = tFDR, seed = -1L, verbose = FALSE,
+      gvs_control = TRexSelectorNeo::trex_gvs_control(
+        gvs_type = GVS_type, corr_max = corr_max, hc_linkage = cap_hc(hc_dist)),
+      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = K))
+    sel$select()
+    ts <- which(dat$beta != 0)
+    c(FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, ts),
+      TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, ts))
   }
 
   mc_indices <- seq_len(num_MC)
@@ -757,9 +834,9 @@ plot_cormat <- function(cor_matrix) {
     parallel::clusterExport(cl,
                             varlist = c("dgp_hastie_snr", "n", "p", "snr",
                                         "sd_x", "tFDR", "K", "GVS_type",
-                                        "hc_dist", "corr_max", "seed"),
+                                        "hc_dist", "corr_max", "seed", "cap_hc"),
                             envir   = environment())
-    parallel::clusterEvalQ(cl, library(TRexSelector))
+    parallel::clusterEvalQ(cl, library(TRexSelectorNeo))
     results <- parallel::parLapply(cl, mc_indices, one_trial)
     parallel::stopCluster(cl)
   } else {
@@ -826,21 +903,15 @@ plot_cormat <- function(cor_matrix) {
       group_size = group_size,
       seed       = trial_seed
     )
-    res <- TRexSelector::trex(
-      X             = dat$X,
-      y             = dat$y,
-      tFDR          = tFDR,
-      K             = K,
-      method        = "trex+GVS",
-      GVS_type      = GVS_type,
-      lambda_2_lars = NULL,
-      hc_dist       = hc_dist,
-      corr_max      = corr_max,
-      verbose       = FALSE,
-      seed          = trial_seed
-    )
-    c(FDP = TRexSelector::FDP(res$selected_var, dat$beta),
-      TPP = TRexSelector::TPP(res$selected_var, dat$beta))
+    sel <- TRexSelectorNeo::TRexGVSSelector$new(
+      dat$X, dat$y, tFDR = tFDR, seed = -1L, verbose = FALSE,
+      gvs_control = TRexSelectorNeo::trex_gvs_control(
+        gvs_type = GVS_type, corr_max = corr_max, hc_linkage = cap_hc(hc_dist)),
+      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = K))
+    sel$select()
+    ts <- which(dat$beta != 0)
+    c(FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, ts),
+      TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, ts))
   }
 
   mc_indices <- seq_len(num_MC)
@@ -854,9 +925,9 @@ plot_cormat <- function(cor_matrix) {
                                         "n", "p", "snr", "sd_x",
                                         "n_groups", "group_size",
                                         "tFDR", "K", "GVS_type",
-                                        "hc_dist", "corr_max", "seed"),
+                                        "hc_dist", "corr_max", "seed", "cap_hc"),
                             envir   = environment())
-    parallel::clusterEvalQ(cl, library(TRexSelector))
+    parallel::clusterEvalQ(cl, library(TRexSelectorNeo))
     results <- parallel::parLapply(cl, mc_indices, one_trial)
     parallel::stopCluster(cl)
   } else {
@@ -915,21 +986,15 @@ plot_cormat <- function(cor_matrix) {
     trial_seed <- seed + mc - 1L
     dat <- dgp_unequal_blocks_snr(n = n, p = p, snr = snr, sd_x = sd_x,
                                   seed = trial_seed)
-    res <- TRexSelector::trex(
-      X             = dat$X,
-      y             = dat$y,
-      tFDR          = tFDR,
-      K             = K,
-      method        = "trex+GVS",
-      GVS_type      = GVS_type,
-      lambda_2_lars = NULL,
-      hc_dist       = hc_dist,
-      corr_max      = corr_max,
-      verbose       = FALSE,
-      seed          = trial_seed
-    )
-    c(FDP = TRexSelector::FDP(res$selected_var, dat$beta),
-      TPP = TRexSelector::TPP(res$selected_var, dat$beta))
+    sel <- TRexSelectorNeo::TRexGVSSelector$new(
+      dat$X, dat$y, tFDR = tFDR, seed = -1L, verbose = FALSE,
+      gvs_control = TRexSelectorNeo::trex_gvs_control(
+        gvs_type = GVS_type, corr_max = corr_max, hc_linkage = cap_hc(hc_dist)),
+      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = K))
+    sel$select()
+    ts <- which(dat$beta != 0)
+    c(FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, ts),
+      TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, ts))
   }
 
   mc_indices <- seq_len(num_MC)
@@ -942,9 +1007,9 @@ plot_cormat <- function(cor_matrix) {
                             varlist = c("dgp_unequal_blocks_snr",
                                         "n", "p", "snr", "sd_x",
                                         "tFDR", "K", "GVS_type",
-                                        "hc_dist", "corr_max", "seed"),
+                                        "hc_dist", "corr_max", "seed", "cap_hc"),
                             envir   = environment())
-    parallel::clusterEvalQ(cl, library(TRexSelector))
+    parallel::clusterEvalQ(cl, library(TRexSelectorNeo))
     results <- parallel::parLapply(cl, mc_indices, one_trial)
     parallel::stopCluster(cl)
   } else {
@@ -992,21 +1057,15 @@ plot_cormat <- function(cor_matrix) {
     trial_seed <- seed + mc - 1L
     dat <- dgp_mixed_blocks_snr(n = n, p = p, snr = snr, sd_x = sd_x,
                                 seed = trial_seed)
-    res <- TRexSelector::trex(
-      X             = dat$X,
-      y             = dat$y,
-      tFDR          = tFDR,
-      K             = K,
-      method        = "trex+GVS",
-      GVS_type      = GVS_type,
-      lambda_2_lars = NULL,
-      hc_dist       = hc_dist,
-      corr_max      = corr_max,
-      verbose       = FALSE,
-      seed          = trial_seed
-    )
-    c(FDP = TRexSelector::FDP(res$selected_var, dat$beta),
-      TPP = TRexSelector::TPP(res$selected_var, dat$beta))
+    sel <- TRexSelectorNeo::TRexGVSSelector$new(
+      dat$X, dat$y, tFDR = tFDR, seed = -1L, verbose = FALSE,
+      gvs_control = TRexSelectorNeo::trex_gvs_control(
+        gvs_type = GVS_type, corr_max = corr_max, hc_linkage = cap_hc(hc_dist)),
+      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = K))
+    sel$select()
+    ts <- which(dat$beta != 0)
+    c(FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, ts),
+      TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, ts))
   }
 
   mc_indices <- seq_len(num_MC)
@@ -1019,9 +1078,9 @@ plot_cormat <- function(cor_matrix) {
                             varlist = c("dgp_mixed_blocks_snr",
                                         "n", "p", "snr", "sd_x",
                                         "tFDR", "K", "GVS_type",
-                                        "hc_dist", "corr_max", "seed"),
+                                        "hc_dist", "corr_max", "seed", "cap_hc"),
                             envir   = environment())
-    parallel::clusterEvalQ(cl, library(TRexSelector))
+    parallel::clusterEvalQ(cl, library(TRexSelectorNeo))
     results <- parallel::parLapply(cl, mc_indices, one_trial)
     parallel::stopCluster(cl)
   } else {
@@ -1069,21 +1128,15 @@ plot_cormat <- function(cor_matrix) {
     trial_seed <- seed + mc - 1L
     dat <- dgp_random_blocks_snr(n = n, p = p, snr = snr, sd_x = sd_x,
                                  seed = trial_seed)
-    res <- TRexSelector::trex(
-      X             = dat$X,
-      y             = dat$y,
-      tFDR          = tFDR,
-      K             = K,
-      method        = "trex+GVS",
-      GVS_type      = GVS_type,
-      lambda_2_lars = NULL,
-      hc_dist       = hc_dist,
-      corr_max      = corr_max,
-      verbose       = FALSE,
-      seed          = trial_seed
-    )
-    c(FDP = TRexSelector::FDP(res$selected_var, dat$beta),
-      TPP = TRexSelector::TPP(res$selected_var, dat$beta))
+    sel <- TRexSelectorNeo::TRexGVSSelector$new(
+      dat$X, dat$y, tFDR = tFDR, seed = -1L, verbose = FALSE,
+      gvs_control = TRexSelectorNeo::trex_gvs_control(
+        gvs_type = GVS_type, corr_max = corr_max, hc_linkage = cap_hc(hc_dist)),
+      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = K))
+    sel$select()
+    ts <- which(dat$beta != 0)
+    c(FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, ts),
+      TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, ts))
   }
 
   mc_indices <- seq_len(num_MC)
@@ -1096,9 +1149,9 @@ plot_cormat <- function(cor_matrix) {
                             varlist = c("dgp_random_blocks_snr",
                                         "n", "p", "snr", "sd_x",
                                         "tFDR", "K", "GVS_type",
-                                        "hc_dist", "corr_max", "seed"),
+                                        "hc_dist", "corr_max", "seed", "cap_hc"),
                             envir   = environment())
-    parallel::clusterEvalQ(cl, library(TRexSelector))
+    parallel::clusterEvalQ(cl, library(TRexSelectorNeo))
     results <- parallel::parLapply(cl, mc_indices, one_trial)
     parallel::stopCluster(cl)
   } else {
@@ -1146,21 +1199,15 @@ plot_cormat <- function(cor_matrix) {
     trial_seed <- seed + mc - 1L
     dat <- dgp_neg_corr_snr(n = n, p = p, snr = snr, sd_x = sd_x,
                             seed = trial_seed)
-    res <- TRexSelector::trex(
-      X             = dat$X,
-      y             = dat$y,
-      tFDR          = tFDR,
-      K             = K,
-      method        = "trex+GVS",
-      GVS_type      = GVS_type,
-      lambda_2_lars = NULL,
-      hc_dist       = hc_dist,
-      corr_max      = corr_max,
-      verbose       = FALSE,
-      seed          = trial_seed
-    )
-    c(FDP = TRexSelector::FDP(res$selected_var, dat$beta),
-      TPP = TRexSelector::TPP(res$selected_var, dat$beta))
+    sel <- TRexSelectorNeo::TRexGVSSelector$new(
+      dat$X, dat$y, tFDR = tFDR, seed = -1L, verbose = FALSE,
+      gvs_control = TRexSelectorNeo::trex_gvs_control(
+        gvs_type = GVS_type, corr_max = corr_max, hc_linkage = cap_hc(hc_dist)),
+      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = K))
+    sel$select()
+    ts <- which(dat$beta != 0)
+    c(FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, ts),
+      TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, ts))
   }
 
   mc_indices <- seq_len(num_MC)
@@ -1173,9 +1220,9 @@ plot_cormat <- function(cor_matrix) {
                             varlist = c("dgp_neg_corr_snr",
                                         "n", "p", "snr", "sd_x",
                                         "tFDR", "K", "GVS_type",
-                                        "hc_dist", "corr_max", "seed"),
+                                        "hc_dist", "corr_max", "seed", "cap_hc"),
                             envir   = environment())
-    parallel::clusterEvalQ(cl, library(TRexSelector))
+    parallel::clusterEvalQ(cl, library(TRexSelectorNeo))
     results <- parallel::parLapply(cl, mc_indices, one_trial)
     parallel::stopCluster(cl)
   } else {
@@ -1223,21 +1270,15 @@ plot_cormat <- function(cor_matrix) {
     trial_seed <- seed + mc - 1L
     dat <- dgp_neg_traps_snr(n = n, p = p, snr = snr, sd_x = sd_x,
                              seed = trial_seed)
-    res <- TRexSelector::trex(
-      X             = dat$X,
-      y             = dat$y,
-      tFDR          = tFDR,
-      K             = K,
-      method        = "trex+GVS",
-      GVS_type      = GVS_type,
-      lambda_2_lars = NULL,
-      hc_dist       = hc_dist,
-      corr_max      = corr_max,
-      verbose       = FALSE,
-      seed          = trial_seed
-    )
-    c(FDP = TRexSelector::FDP(res$selected_var, dat$beta),
-      TPP = TRexSelector::TPP(res$selected_var, dat$beta))
+    sel <- TRexSelectorNeo::TRexGVSSelector$new(
+      dat$X, dat$y, tFDR = tFDR, seed = -1L, verbose = FALSE,
+      gvs_control = TRexSelectorNeo::trex_gvs_control(
+        gvs_type = GVS_type, corr_max = corr_max, hc_linkage = cap_hc(hc_dist)),
+      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = K))
+    sel$select()
+    ts <- which(dat$beta != 0)
+    c(FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, ts),
+      TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, ts))
   }
 
   mc_indices <- seq_len(num_MC)
@@ -1250,9 +1291,9 @@ plot_cormat <- function(cor_matrix) {
                             varlist = c("dgp_neg_traps_snr",
                                         "n", "p", "snr", "sd_x",
                                         "tFDR", "K", "GVS_type",
-                                        "hc_dist", "corr_max", "seed"),
+                                        "hc_dist", "corr_max", "seed", "cap_hc"),
                             envir   = environment())
-    parallel::clusterEvalQ(cl, library(TRexSelector))
+    parallel::clusterEvalQ(cl, library(TRexSelectorNeo))
     results <- parallel::parLapply(cl, mc_indices, one_trial)
     parallel::stopCluster(cl)
   } else {
@@ -1308,21 +1349,15 @@ plot_cormat <- function(cor_matrix) {
     trial_seed <- seed + mc - 1L
     dat <- dgp_equi_blocks_snr(n = n, p = p, snr = snr, rho = rho,
                                seed = trial_seed)
-    res <- TRexSelector::trex(
-      X             = dat$X,
-      y             = dat$y,
-      tFDR          = tFDR,
-      K             = K,
-      method        = "trex+GVS",
-      GVS_type      = GVS_type,
-      lambda_2_lars = NULL,
-      hc_dist       = hc_dist,
-      corr_max      = corr_max,
-      verbose       = FALSE,
-      seed          = trial_seed
-    )
-    c(FDP = TRexSelector::FDP(res$selected_var, dat$beta),
-      TPP = TRexSelector::TPP(res$selected_var, dat$beta))
+    sel <- TRexSelectorNeo::TRexGVSSelector$new(
+      dat$X, dat$y, tFDR = tFDR, seed = -1L, verbose = FALSE,
+      gvs_control = TRexSelectorNeo::trex_gvs_control(
+        gvs_type = GVS_type, corr_max = corr_max, hc_linkage = cap_hc(hc_dist)),
+      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = K))
+    sel$select()
+    ts <- which(dat$beta != 0)
+    c(FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, ts),
+      TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, ts))
   }
 
   mc_indices <- seq_len(num_MC)
@@ -1335,9 +1370,9 @@ plot_cormat <- function(cor_matrix) {
                             varlist = c("dgp_equi_blocks_snr",
                                         "n", "p", "snr", "rho",
                                         "tFDR", "K", "GVS_type",
-                                        "hc_dist", "corr_max", "seed"),
+                                        "hc_dist", "corr_max", "seed", "cap_hc"),
                             envir   = environment())
-    parallel::clusterEvalQ(cl, library(TRexSelector))
+    parallel::clusterEvalQ(cl, library(TRexSelectorNeo))
     results <- parallel::parLapply(cl, mc_indices, one_trial)
     parallel::stopCluster(cl)
   } else {
@@ -1387,21 +1422,15 @@ plot_cormat <- function(cor_matrix) {
     trial_seed <- seed + mc - 1L
     dat <- dgp_t3_equi_blocks_snr(n = n, p = p, snr = snr, rho = rho,
                                    df = df, seed = trial_seed)
-    res <- TRexSelector::trex(
-      X             = dat$X,
-      y             = dat$y,
-      tFDR          = tFDR,
-      K             = K,
-      method        = "trex+GVS",
-      GVS_type      = GVS_type,
-      lambda_2_lars = NULL,
-      hc_dist       = hc_dist,
-      corr_max      = corr_max,
-      verbose       = FALSE,
-      seed          = trial_seed
-    )
-    c(FDP = TRexSelector::FDP(res$selected_var, dat$beta),
-      TPP = TRexSelector::TPP(res$selected_var, dat$beta))
+    sel <- TRexSelectorNeo::TRexGVSSelector$new(
+      dat$X, dat$y, tFDR = tFDR, seed = -1L, verbose = FALSE,
+      gvs_control = TRexSelectorNeo::trex_gvs_control(
+        gvs_type = GVS_type, corr_max = corr_max, hc_linkage = cap_hc(hc_dist)),
+      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = K))
+    sel$select()
+    ts <- which(dat$beta != 0)
+    c(FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, ts),
+      TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, ts))
   }
 
   mc_indices <- seq_len(num_MC)
@@ -1414,9 +1443,9 @@ plot_cormat <- function(cor_matrix) {
                             varlist = c("dgp_t3_equi_blocks_snr",
                                         "n", "p", "snr", "rho", "df",
                                         "tFDR", "K", "GVS_type",
-                                        "hc_dist", "corr_max", "seed"),
+                                        "hc_dist", "corr_max", "seed", "cap_hc"),
                             envir   = environment())
-    parallel::clusterEvalQ(cl, library(TRexSelector))
+    parallel::clusterEvalQ(cl, library(TRexSelectorNeo))
     results <- parallel::parLapply(cl, mc_indices, one_trial)
     parallel::stopCluster(cl)
   } else {
@@ -1464,21 +1493,15 @@ plot_cormat <- function(cor_matrix) {
     trial_seed <- seed + mc - 1L
     dat <- dgp_ar1_blocks_snr(n = n, p = p, snr = snr, rho = rho,
                               seed = trial_seed)
-    res <- TRexSelector::trex(
-      X             = dat$X,
-      y             = dat$y,
-      tFDR          = tFDR,
-      K             = K,
-      method        = "trex+GVS",
-      GVS_type      = GVS_type,
-      lambda_2_lars = NULL,
-      hc_dist       = hc_dist,
-      corr_max      = corr_max,
-      verbose       = FALSE,
-      seed          = trial_seed
-    )
-    c(FDP = TRexSelector::FDP(res$selected_var, dat$beta),
-      TPP = TRexSelector::TPP(res$selected_var, dat$beta))
+    sel <- TRexSelectorNeo::TRexGVSSelector$new(
+      dat$X, dat$y, tFDR = tFDR, seed = -1L, verbose = FALSE,
+      gvs_control = TRexSelectorNeo::trex_gvs_control(
+        gvs_type = GVS_type, corr_max = corr_max, hc_linkage = cap_hc(hc_dist)),
+      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = K))
+    sel$select()
+    ts <- which(dat$beta != 0)
+    c(FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, ts),
+      TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, ts))
   }
 
   mc_indices <- seq_len(num_MC)
@@ -1491,9 +1514,9 @@ plot_cormat <- function(cor_matrix) {
                             varlist = c("dgp_ar1_blocks_snr",
                                         "n", "p", "snr", "rho",
                                         "tFDR", "K", "GVS_type",
-                                        "hc_dist", "corr_max", "seed"),
+                                        "hc_dist", "corr_max", "seed", "cap_hc"),
                             envir   = environment())
-    parallel::clusterEvalQ(cl, library(TRexSelector))
+    parallel::clusterEvalQ(cl, library(TRexSelectorNeo))
     results <- parallel::parLapply(cl, mc_indices, one_trial)
     parallel::stopCluster(cl)
   } else {
@@ -1549,21 +1572,15 @@ plot_cormat <- function(cor_matrix) {
     trial_seed <- seed + mc - 1L
     dat <- dgp_arma_blocks_snr(n = n, p = p, snr = snr, ar_coef = ar_coef,
                                seed = trial_seed)
-    res <- TRexSelector::trex(
-      X             = dat$X,
-      y             = dat$y,
-      tFDR          = tFDR,
-      K             = K,
-      method        = "trex+GVS",
-      GVS_type      = GVS_type,
-      lambda_2_lars = NULL,
-      hc_dist       = hc_dist,
-      corr_max      = corr_max,
-      verbose       = FALSE,
-      seed          = trial_seed
-    )
-    c(FDP = TRexSelector::FDP(res$selected_var, dat$beta),
-      TPP = TRexSelector::TPP(res$selected_var, dat$beta))
+    sel <- TRexSelectorNeo::TRexGVSSelector$new(
+      dat$X, dat$y, tFDR = tFDR, seed = -1L, verbose = FALSE,
+      gvs_control = TRexSelectorNeo::trex_gvs_control(
+        gvs_type = GVS_type, corr_max = corr_max, hc_linkage = cap_hc(hc_dist)),
+      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = K))
+    sel$select()
+    ts <- which(dat$beta != 0)
+    c(FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, ts),
+      TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, ts))
   }
 
   mc_indices <- seq_len(num_MC)
@@ -1576,9 +1593,9 @@ plot_cormat <- function(cor_matrix) {
                             varlist = c("dgp_arma_blocks_snr",
                                         "n", "p", "snr", "ar_coef",
                                         "tFDR", "K", "GVS_type",
-                                        "hc_dist", "corr_max", "seed"),
+                                        "hc_dist", "corr_max", "seed", "cap_hc"),
                             envir   = environment())
-    parallel::clusterEvalQ(cl, library(TRexSelector))
+    parallel::clusterEvalQ(cl, library(TRexSelectorNeo))
     results <- parallel::parLapply(cl, mc_indices, one_trial)
     parallel::stopCluster(cl)
   } else {
@@ -1632,21 +1649,15 @@ plot_cormat <- function(cor_matrix) {
     trial_seed <- seed + mc - 1L
     dat <- dgp_hapgen_snr(n = n, snr = snr, rho_scale = rho_scale,
                           seed = trial_seed)
-    res <- TRexSelector::trex(
-      X             = dat$X,
-      y             = dat$y,
-      tFDR          = tFDR,
-      K             = K,
-      method        = "trex+GVS",
-      GVS_type      = GVS_type,
-      lambda_2_lars = NULL,
-      hc_dist       = hc_dist,
-      corr_max      = corr_max,
-      verbose       = FALSE,
-      seed          = trial_seed
-    )
-    c(FDP = TRexSelector::FDP(res$selected_var, dat$beta),
-      TPP = TRexSelector::TPP(res$selected_var, dat$beta))
+    sel <- TRexSelectorNeo::TRexGVSSelector$new(
+      dat$X, dat$y, tFDR = tFDR, seed = -1L, verbose = FALSE,
+      gvs_control = TRexSelectorNeo::trex_gvs_control(
+        gvs_type = GVS_type, corr_max = corr_max, hc_linkage = cap_hc(hc_dist)),
+      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = K))
+    sel$select()
+    ts <- which(dat$beta != 0)
+    c(FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, ts),
+      TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, ts))
   }
 
   mc_indices <- seq_len(num_MC)
@@ -1659,10 +1670,10 @@ plot_cormat <- function(cor_matrix) {
                             varlist = c("dgp_hapgen_snr",
                                         "n", "snr", "rho_scale",
                                         "tFDR", "K", "GVS_type",
-                                        "hc_dist", "corr_max", "seed"),
+                                        "hc_dist", "corr_max", "seed", "cap_hc"),
                             envir   = environment())
     parallel::clusterEvalQ(cl, {
-      library(TRexSelector)
+      library(TRexSelectorNeo)
       library(Matrix)
     })
     results <- parallel::parLapply(cl, mc_indices, one_trial)

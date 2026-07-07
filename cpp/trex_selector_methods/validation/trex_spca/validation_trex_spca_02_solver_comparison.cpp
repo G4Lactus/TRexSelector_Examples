@@ -75,7 +75,7 @@ run_single_spca(Eigen::MatrixXd X_centered,
     ctrl.mode                    = SPCAMode::ActiveSet;
     ctrl.en_solver               = en_solver;
     ctrl.gvs_ctrl.lambda2_method = LambdaSelectionMethod::CV_1SE_CCD;
-    ctrl.gvs_ctrl.lambda_2       = 0.0;
+    ctrl.gvs_ctrl.lambda_2       = -1.0;  // < 0: auto-compute via CV (0 would mean no ridge)
 
     Eigen::Map<Eigen::MatrixXd> X_map(
         X_centered.data(), X_centered.rows(), X_centered.cols());
@@ -248,7 +248,7 @@ int main()
     cfg.tFDR              = 0.10;
     cfg.num_MC            = 200;
     cfg.base_seed         = 42;
-    cfg.lambda_2          = 0.0; // 0.0 triggers k-fold CV for lambda_2 selection
+    cfg.lambda_2          = -1.0; // < 0 triggers k-fold CV for lambda_2 selection (0 = no ridge)
 
     const std::vector<double> snr_values = {-10.0, -5.0, 0.0, 5.0, 10.0};
 

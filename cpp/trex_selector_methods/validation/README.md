@@ -20,7 +20,7 @@ The goals of this folder are:
 |----------|--------|---------|
 | Classical T-Rex | `trex/` *(README pending)* | Invariance checks for the classical T-Rex selector (e.g. column scaling) |
 | Dependency-Aware T-Rex (DA-TRex) | [trex_da/](trex_da/README.md) | Cross-checks the DA-BT hierarchical clustering pipeline against an R reference implementation |
-| Grouped Variable Selection (T-Rex+GVS) | `trex_gvs/` *(README pending)* | Invariance checks for GVS-based grouping and solver comparisons |
+| Grouped Variable Selection (T-Rex+GVS) | [trex_gvs/](trex_gvs/README.md) | Invariance checks for GVS-based grouping and solver comparisons |
 | Sparse PCA (T-Rex SPCA) | `trex_spca/` *(README pending)* | Solver comparisons, scaling invariance, and R-dump pipeline cross-checks for T-Rex SPCA |
 
 ---
@@ -33,8 +33,8 @@ Validation programs write any optional generated files to `validation_results/` 
 
 ## Running
 
-See the README inside each validation subfolder for the exact executable and required reference-data location.
+Where a subfolder provides a README (see [trex_da/](trex_da/README.md) and [trex_gvs/](trex_gvs/README.md)), it lists the exact executable and any required reference-data location. Subfolders still marked *(README pending)* above do not yet have one.
 
 ---
 
-**Last updated**: 2026-07-04
+**Last updated**: 2026-07-08

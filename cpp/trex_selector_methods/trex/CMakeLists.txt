@@ -33,7 +33,7 @@ add_demo_target(demo_trex_06_mc_sim_mmap
     T_REX_SELECTOR_LIBS
 )
 
-# add_demo_target(demo_trex_07_mc_sim_scalablity             # pending
-#     demo_trex_07_mc_sim_scalablity/demo_trex_07_mc_sim_scalablity.cpp
+# add_demo_target(demo_trex_07_mc_sim_scalability             # pending
+#     demo_trex_07_mc_sim_scalability/demo_trex_07_mc_sim_scalability.cpp
 #     T_REX_SELECTOR_LIBS
 # )

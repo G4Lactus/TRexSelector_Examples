@@ -4,7 +4,7 @@
 
 Study **`DAMethod::NN`**, which targets a banded (MA($\kappa$)) covariance structure where only $\kappa$ nearest-neighboring columns are correlated — as opposed to AR(1)'s geometrically-decaying correlation across *all* column distances.
 
-> **Status**: `simulation_results/` is currently empty — this demo has not yet been run in this checkout.
+> **Status**: All four parts run in `main()` and write output when executed. The committed checkout does not yet include the result files under `simulation_results/`.
 
 ---
 
@@ -30,16 +30,21 @@ All parts: $n=300$, $p=1000$, $s=10$, $K=20$, $\mathrm{tFDR}=0.2$, $\mathrm{MC}=
 
 ---
 
-## Output Files (expected)
+## Output Files
 
-Written to `simulation_results/` once run, following the shared `da_trex_mc_{scenario_tag}.{txt,csv}` naming convention (verify exact tag strings in the source if you rerun this demo).
+Written to `simulation_results/` when run (7 scenario stems, one `.txt`+`.csv` pair each = 14 files):
+
+- Part 1 (SNR): `da_trex_mc_da_nn_snr_capped.txt` / `.csv`, `da_trex_mc_da_nn_snr_random.txt` / `.csv`
+- Part 2 ($\rho$): `da_trex_mc_da_nn_rho_capped.txt` / `.csv`, `da_trex_mc_da_nn_rho_random.txt` / `.csv`
+- Part 3 ($\kappa$): `da_trex_mc_da_nn_kappa_capped.txt` / `.csv`, `da_trex_mc_da_nn_kappa_random.txt` / `.csv`
+- Part 4 (2D $\kappa\times\rho$): `da_trex_mc_da_nn_kappa_rho.txt` / `.csv`
 
 ---
 
 ## Running the Demo
 
 ```bash
-./build/debug/bin/demo_trex_da_03_mc_sim_nn
+./build/debug/bin/trex_selector_methods/trex_da/demo_trex_da_03_mc_sim_nn/demo_trex_da_03_mc_sim_nn
 ```
 
 ---
@@ -52,4 +57,4 @@ Written to `simulation_results/` once run, following the shared `da_trex_mc_{sce
 
 ---
 
-**Last updated**: 2026-07-04
+**Last updated**: 2026-07-08

@@ -27,7 +27,7 @@ All 3 solvers (TLARS, TAFS, TOMP) run inside every linkage iteration.
 
 ## Output Files
 
-Written to `simulation_results/` (23 files, one `.txt`+`.csv` pair per {sweep} Ã— {linkage} combination):
+Written to `simulation_results/` (24 files = 12 scenario stems, one `.txt`+`.csv` pair per {sweep} Ã— {linkage} combination):
 
 - `da_trex_mc_da_ar1_blk_snr_{Single,Complete,Average}.txt` / `.csv`
 - `da_trex_mc_da_ar1_blk_rho_{Single,Complete,Average}.txt` / `.csv`
@@ -39,7 +39,7 @@ Written to `simulation_results/` (23 files, one `.txt`+`.csv` pair per {sweep} Ã
 ## Running the Demo
 
 ```bash
-./build/debug/bin/demo_trex_da_04_mc_sim_bt_ar1_block
+./build/debug/bin/trex_selector_methods/trex_da/demo_trex_da_04_mc_sim_bt_ar1_block/demo_trex_da_04_mc_sim_bt_ar1_block
 ```
 
 ---
@@ -64,4 +64,4 @@ Written to `simulation_results/` (23 files, one `.txt`+`.csv` pair per {sweep} Ã
 
 ---
 
-**Last updated**: 2026-07-04
+**Last updated**: 2026-07-08

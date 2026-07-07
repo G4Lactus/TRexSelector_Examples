@@ -28,7 +28,7 @@ run_part_2 <- TRUE
 run_part_3 <- TRUE
 run_part_4 <- TRUE
 
-library(TRexSelector)
+library(TRexSelectorNeo)
 library(parallel)
 
 num_cores <- local({
@@ -45,14 +45,8 @@ this_dir_ <- local({
     "."
 })
 
-log_dir <- file.path(this_dir_, "..", "logs")
-dir.create(log_dir, showWarnings = FALSE, recursive = TRUE)
-con_log <- file(file.path(log_dir, "simulation_trex_gvs_05.log"), open = "wt")
-sink(con_log, split = FALSE)
-on.exit({ sink(); close(con_log) }, add = TRUE)
-
-source(file.path(this_dir_, "support_generators.R"))
-source(file.path(this_dir_, "simulation_utils.R"))
+source(file.path(this_dir_, "..", "support_generators.R"))
+source(file.path(this_dir_, "..", "simulation_utils.R"))
 source(file.path(this_dir_, "dgp_equi_blocks.R"))
 
 

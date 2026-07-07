@@ -46,7 +46,7 @@ $$
 =
 \arg\min_{\boldsymbol{\beta} \in \mathbb{R}^p}
 \left\{
-\frac{1}{2}\lVert \boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta} \rVert_2^2
+\frac{1}{2n}\lVert \boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta} \rVert_2^2
 +
 \lambda
 \left[
@@ -56,6 +56,10 @@ $$
 \right]
 \right\}.
 $$
+
+Here the residual sum of squares carries glmnet's $1/(2n)$ normalization (the
+implementation uses `invN = 1/n`), which is the scale on which the demo's lambda
+grid and the `lambda_2_lars = lambda * p / 2` conversion are defined.
 
 The parameter $\alpha$ controls the penalty type:
 
@@ -195,4 +199,4 @@ When reading the console output, focus on the following points:
 
 ---
 
-**Last updated**: 2026-07-01
+**Last updated**: 2026-07-08

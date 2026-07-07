@@ -19,13 +19,26 @@
  *   - GVSDGPFactory             — type alias for DGP closure
  *   - run_gvs_mc_trials()       — OpenMP-parallel MC inner loop
  *   - run_gvs_snr_sweep()       — outer SNR-grid sweep
+ *   - print_mc_1d_method_table() — aligned per-method table for a 1-D sweep
  *   - print_mc_snr_table()      — aligned results table for SNR sweeps
  *   - run_gvs_rho_sweep()       — outer rho-grid sweep
  *   - print_mc_rho_table()      — aligned results table for rho sweeps
  *   - GVS2DDGPFactory           — type alias for 2-D DGP closure (snr, rho, seed)
  *   - run_gvs_2d_sweep()        — nested SNR × rho grid sweep
  *   - print_mc_matrix()         — named matrix table for 2-D sweep results
- *   - save_mc_2d_tables()       — console + file/CSV writer for 2-D sweep results
+ *   - print_mc_param_sweep_table() — aligned table for a generic named-parameter sweep
+ *   - save_mc_2d_tables()       — file writer (TXT + CSV) for 2-D sweep results
+ *
+ * Block-benchmark API (Demo 08 — HAC-discovered vs. oracle groups):
+ *   - compute_block_hit_rate()        — share of active blocks with >=1 selection
+ *   - compute_block_fdp()             — block-level false discovery proportion
+ *   - compute_full_block_rate()       — share of active blocks recovered in full
+ *   - compute_null_block_activation() — share of null blocks falsely activated
+ *   - compute_block_purity_rate()     — block-to-group mapping purity
+ *   - BlockMethodResult / run_block_method()  — one group method on one dataset
+ *   - BlockTrialResult  / run_block_single()  — all methods on one dataset
+ *   - BlockGridResult   / run_block_mc()       — MC aggregation over a grid
+ *   - print_block_trial_result() / print_block_grid_table() — console output
  *
  * Includes trex_gvs_dgps.hpp (GVSDGPResult + all DGP generators).
  */

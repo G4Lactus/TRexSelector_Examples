@@ -59,7 +59,7 @@ Written to `simulation_results/`:
 ## Running the Demo
 
 ```bash
-./build/debug/bin/demo_trex_gvs_05_mc_sim_t3_blocks
+./build/debug/bin/trex_selector_methods/trex_gvs/demo_trex_gvs_05_mc_sim_t3_blocks/demo_trex_gvs_05_mc_sim_t3_blocks
 ```
 
 ---
@@ -72,4 +72,4 @@ Written to `simulation_results/`:
 
 ---
 
-**Last updated**: 2026-07-04
+**Last updated**: 2026-07-08

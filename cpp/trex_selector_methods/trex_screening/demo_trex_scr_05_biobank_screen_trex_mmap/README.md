@@ -44,15 +44,15 @@ Same three-tier routing as Demo 04: **Screen-TRex (Ordinary)** → **Screen-TRex
 
 Written to `simulation_results/` once run:
 
-- `d05_biobank_screen_trex_mc_snr_n300_p1000_s10_mmap.txt` / `.csv` — single-phenotype MC SNR sweep.
-- `d05_biobank_screen_trex_mc_multi_n300_p1000_q5_s5_mmap.txt` / `.csv` — multi-phenotype MC SNR sweep.
+- `d05_biobank_screen_trex_mc_snr_n300_p1000_s10_mmap.txt` / `.csv` — single-phenotype MC SNR sweep (`demo_MMap_Biobank_MonteCarlo(500)`).
+- `d05_biobank_screen_trex_mc_multi_n300_p1000_q5_s5_mmap.txt` / `.csv` — multi-phenotype MC SNR sweep (`demo_MMap_Biobank_MultiplePhenotypesMC(500)`; this call is enabled in `main()` and runs at `num_MC=500`, matching the in-memory sibling Demo 04).
 
 ---
 
 ## Running the Demo
 
 ```bash
-./build/debug/bin/demo_trex_scr_05_biobank_screen_trex_mmap
+./build/debug/bin/trex_selector_methods/trex_screening/demo_trex_scr_05_biobank_screen_trex_mmap/demo_trex_scr_05_biobank_screen_trex_mmap
 ```
 
 ---
@@ -64,4 +64,4 @@ Written to `simulation_results/` once run:
 
 ---
 
-**Last updated**: 2026-07-04
+**Last updated**: 2026-07-08

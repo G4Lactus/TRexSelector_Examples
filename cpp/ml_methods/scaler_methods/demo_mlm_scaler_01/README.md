@@ -37,9 +37,6 @@ $$
 \frac{\boldsymbol{x}_j - \bar{x}_j \mathbf{1}}
 {\lVert \boldsymbol{x}_j - \bar{x}_j \mathbf{1} \rVert_p}.
 $$
-$$
-{\lVert \boldsymbol{x}_j - \bar{x}_j \mathbf{1} \rVert_p}.
-$$
 
 The demo explicitly uses both $p =2$ and $p =1$ in memory, and uses the $L_2$ version again in the memory-mapped example.
 
@@ -135,4 +132,4 @@ When reading the console output, focus on these points:
 
 ---
 
-**Last updated**: 2026-07-01
+**Last updated**: 2026-07-08

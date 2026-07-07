@@ -182,7 +182,8 @@ inline void print_biobank_summary(
  * @brief Save and print a Biobank Screen-TRex SNR-sweep MC results table.
  *
  * @details Writes a human-readable table (console + TXT) and a tidy CSV.
- *          Files are placed in `simulations/demos/trex_screening/`.
+ *          Files are placed in `DEMO_OUTPUT_DIR` (each demo's own
+ *          `simulation_results/` folder), which is created if it does not exist.
  *          Includes a "Usage (%)" row per method — the fraction of MC runs
  *          in which Algorithm 1 routed to that method.
  *
@@ -205,7 +206,8 @@ inline void save_and_print_biobank_mc_results(
     const std::map<std::string, Eigen::VectorXd>&  est_fdr_map,
     const std::map<std::string, Eigen::VectorXd>&  usage_map)
 {
-    const std::string folder = "simulations/demos/trex_screening/";
+    const std::string folder = DEMO_OUTPUT_DIR;
+    std::filesystem::create_directories(folder);
 
     // ── Open TXT file for dual output ─────────────────────────────────────
     std::ofstream out_file(folder + file_stem + ".txt");

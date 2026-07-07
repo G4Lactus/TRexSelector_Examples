@@ -1,9 +1,13 @@
 # r_dummy_variance_probe.R
-# Quantify R trex()'s OWN dummy-RNG variance on the identical dumped X.
+# Quantify the T-Rex selector's OWN dummy-RNG variance on the identical dumped X.
 # Reuses rdump/X_*.csv + r_lambda2.csv + truth.csv (no DGP rerun).
-# For several internal seeds, recompute R's mean FDR -> compare to the C++ band.
+# For several internal seeds, recompute the mean FDR -> compare to the C++ band.
+#
+# MIGRATED: exercises the TRexSelectorNeo R binding (TRexGVSSelector) rather than
+# the CRAN TRexSelector package. The probed internal-RNG seed is now passed
+# directly as the selector's `seed` argument (was a global set.seed()).
 
-suppressMessages(library(TRexSelector))
+suppressMessages(library(TRexSelectorNeo))
 
 get_script_dir <- function() {
   a <- commandArgs(trailingOnly = FALSE)
@@ -31,11 +35,15 @@ run_once <- function(seed_off) {
     X  <- as.matrix(read.csv(file.path(rdump, sprintf("X_%d.csv", mc)), header = FALSE))
     sv <- svd(X)
     y1 <- (X %*% sv$v[, 1:M])[, 1]
-    set.seed(20240601 + seed_off * 100003 + mc)   # vary R's internal dummy RNG
-    rr <- trex(X = X, y = y1, tFDR = target_fdr, method = "trex+GVS",
-               GVS_type = "EN", lambda_2_lars = lam2[[as.character(mc)]],
-               verbose = FALSE)
-    sel <- which(rr$selected_var > .Machine$double.eps)
+    # vary the selector's internal dummy RNG via its `seed` argument
+    rr <- TRexGVSSelector$new(
+      X = X, y = y1, tFDR = target_fdr,
+      seed = as.integer(20240601 + seed_off * 100003 + mc), verbose = FALSE,
+      gvs_control = trex_gvs_control(gvs_type = "EN", en_solver = "TENET",
+                                     lambda_2 = lam2[[as.character(mc)]]),
+      control = trex_control(solver = "TLARS"))
+    rr$select()
+    sel <- rr$selected_indices
     k   <- length(sel)
     tp  <- length(intersect(truth[[as.character(mc)]], sel))
     fdrs[mc + 1] <- if (k == 0) 0 else (k - tp) / k

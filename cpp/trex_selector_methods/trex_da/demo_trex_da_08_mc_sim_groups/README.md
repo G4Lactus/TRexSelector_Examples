@@ -46,7 +46,7 @@ Written to `simulation_results/`:
 ## Running the Demo
 
 ```bash
-./build/debug/bin/demo_trex_da_08_mc_sim_groups
+./build/debug/bin/trex_selector_methods/trex_da/demo_trex_da_08_mc_sim_groups/demo_trex_da_08_mc_sim_groups
 ```
 
 ---
@@ -72,4 +72,4 @@ Written to `simulation_results/`:
 
 ---
 
-**Last updated**: 2026-07-04
+**Last updated**: 2026-07-08

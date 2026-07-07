@@ -7,21 +7,21 @@
  * @brief Equivalence check: TENET_Solver (Gram-based EN) vs. TENETAug_Solver
  *        (augmented-LASSO EN) under two preprocessing scenarios.
  *
- * @details Reproduces Demo_06b_enet_comparison.R in C++.
+ * @details Reproduces an R elastic-net comparison workflow in C++.
  *
  *  Two scenarios, each using the standardiser from ml_methods/scaler_methods
  *  to pre-scale the data on the shared maps before both solvers run:
  *
  *    1. Z-score:  ZScoreScaler  (centre + divide by sample SD, Bessel-corrected).
  *    2. L2-norm:  LpNormScaler  (centre + divide by column L2 norm).
- *                 This matches the preprocessing in Demo_06b_enet_comparison.R.
+ *                 This matches the L2 preprocessing used by the R reference.
  *
  *  Both solvers receive the same pre-scaled maps (normalize=false, intercept=false).
  *  Pre-scaling via the standardiser ensures both TENET and TENETAug see identical
  *  data — essential when sharing Eigen::Map objects across two solver instances.
  *
  *  Problem dimensions (mirroring the R demo):
- *    n = 90,  p = 150,  L = p = 150 dummies,  lambda2 = 0.55
+ *    n = 90,  p = 150,  L = 3*p = 450 dummies,  lambda2 = 100.01
  *  True signal:  indices {10, 50, 85}  with coefficients {2.5, -1.8, 3.2}
  *
  *  Comparison metrics reported at each LARS step:
@@ -71,7 +71,7 @@ namespace tsolvers  = trex::tsolvers::linear_model::lars_based;
 // ============================================================================
 enum class ScalerType {
     ZScore,  ///< Centre + divide by sample SD (Bessel-corrected)
-    L2Norm   ///< Centre + divide by column L2 norm  (matches R Demo_06b)
+    L2Norm   ///< Centre + divide by column L2 norm  (matches the R reference)
 };
 
 
@@ -177,7 +177,7 @@ void run_comparison(
 
     // ------------------------------------------------------------------
     // Method 3: plain TLASSO on MANUALLY-augmented matrices.
-    // Literal replica of R Demo_06b_enet_comparison.R `lasso_star`:
+    // Literal replica of the R `lasso_star` elastic-net construction:
     //     d1 = sqrt(lambda2),  d2 = 1/sqrt(1+lambda2)
     //     Xstar = d2 * rbind(X, d1*I),   ystar = c(y, 0)
     //     lasso_star <- lars(Xstar, ystar, normalize=FALSE, intercept=FALSE)
@@ -186,8 +186,9 @@ void run_comparison(
     // augmented columns are fed to the LASSO exactly as constructed. Under L2
     // they are unit-norm by construction (d2^2*(1+lambda2)=1); under z-score
     // they are NOT, and this is the genuine reference behaviour. Comparing this
-    // against TENETAug (which my fix runs with inner normalize=TRUE) isolates
-    // whether the inner re-normalisation is the source of the z-score divergence.
+    // manual replica against TENETAug (constructed above with normalize=false on
+    // the same pre-scaled maps) checks that the augmented-LASSO construction
+    // reproduces the reference elastic-net path.
     // ------------------------------------------------------------------
     std::cout << "Running TLASSO on manual augmented data (R lasso_star)...\n";
     const double d1   = std::sqrt(lambda2);
@@ -347,7 +348,7 @@ void run_comparison(
                                         << std::scientific << std::setprecision(3)
                                         << maxd << ")\n";
     };
-    std::cout << "\n--- Verdict (TLASSOaug == R Demo_06b lasso_star reference) ---\n";
+    std::cout << "\n--- Verdict (TLASSOaug == lasso_star reference) ---\n";
     verdict("TENET   ", "TENETAug ", max_of(d_ten_aug));
     verdict("TENET   ", "TLASSOaug", max_of(d_ten_man));
     verdict("TENETAug", "TLASSOaug", max_of(d_aug_man));
@@ -361,14 +362,15 @@ void run_comparison(
 int main() {
 
     // -------------------------------------------------------- Problem constants
-    // Dimensions and signal match Demo_06b_enet_comparison.R
+    // Dimensions and signal match the R elastic-net comparison reference.
     constexpr std::size_t n       = 90;
     constexpr std::size_t p       = 150;
     constexpr std::size_t L       = 3*p;
     constexpr double      lambda2 = 100.01;
-    // T_stop = L: since there are only L dummies, the algorithm will always
-    // terminate naturally (after ~n LARS steps) before L dummies enter —
-    // effectively running the full path with early_stop=false.
+    // T_stop = 10 (dummy-entry threshold), but every executeStep() call below
+    // passes early_stop=false, which bypasses this threshold entirely — so each
+    // solver runs its full natural path (until no inactive variables remain or
+    // the active-set/rank limit is reached), independent of T_stop.
     constexpr std::size_t T_stop  = 10;
     constexpr double      snr     = 1.0;
 

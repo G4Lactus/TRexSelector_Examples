@@ -2,7 +2,7 @@
 
 ## Status
 
-**Work in progress**: This demo folder is reserved for a future large-scale scalability benchmark.
+**Work in progress**: This demo folder is reserved for a future large-scale scalability benchmark. The source file `demo_trex_07_mc_sim_scalability.cpp` is currently an **empty placeholder**, and its `add_demo_target(...)` entry is **commented out** in `../CMakeLists.txt`, so nothing is built or run for this demo yet. Everything below is a proposed design, not implemented behaviour.
 
 ---
 
@@ -52,5 +52,5 @@ When implemented, this demo will demonstrate the **computational efficiency and 
 
 ---
 
-**Last updated**: 2026-07-01  
-**Status**: Planned, not yet implemented
+**Last updated**: 2026-07-08  
+**Status**: Planned, not yet implemented (empty source, excluded from the build)

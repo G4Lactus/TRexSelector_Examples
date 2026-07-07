@@ -42,11 +42,15 @@ MC = 200                    # Monte Carlo repetitions per grid point
 
 ---
 
-## Three Parts
+## Five Parts
 
 1. **SNR sweep** at fixed $\sigma_x = \sqrt{0.01}$ ($\rho \approx 0.99$): $\mathrm{SNR} \in \{0.1, 0.2, 0.5, 1.0, 2.0, 5.0\}$.
 2. **$\rho$ sweep** at fixed $\mathrm{SNR} = 2.0$: $\rho \in \{0.10, 0.20, \dots, 0.99\}$ (derived via $\sigma_x = \sqrt{(1-\rho)/\rho}$).
 3. **2-D SNR $\times$ $\rho$ grid**: 5 SNR levels $\times$ 6 $\rho$ levels.
+4. **$\lambda_2$-method comparison**: `CV_1SE_SVD` vs. `CV_1SE_CCD` elastic-net penalty selection.
+5. **HAC linkage comparison**: Single / Complete / Average / WPGMA linkage.
+
+Parts 1–3 compare EN / EN+AUG / IEN; Parts 4–5 are supplementary sweeps over the $\lambda_2$-selection and linkage implementation choices (these produce the `gvs_Hastie_lambda2_method` and `gvs_Hastie_hc_linkage` output files).
 
 ---
 
@@ -65,7 +69,7 @@ Written to `simulation_results/`:
 ## Running the Demo
 
 ```bash
-./build/debug/bin/demo_trex_gvs_01_mc_sim_hastie_en_blocks
+./build/debug/bin/trex_selector_methods/trex_gvs/demo_trex_gvs_01_mc_sim_hastie_en_blocks/demo_trex_gvs_01_mc_sim_hastie_en_blocks
 ```
 
 ---
@@ -79,4 +83,4 @@ Written to `simulation_results/`:
 
 ---
 
-**Last updated**: 2026-07-04
+**Last updated**: 2026-07-08

@@ -35,13 +35,17 @@
 
 this_dir_ <- tryCatch(
   dirname(normalizePath(sys.frame(1)$ofile)),
-  error = function(e) "."
+  error = function(e) {
+    args <- commandArgs(trailingOnly = FALSE)
+    file_arg <- grep("--file=", args, value = TRUE)
+    if (length(file_arg) > 0) dirname(normalizePath(sub("--file=", "", file_arg[1]))) else "."
+  }
 )
 source(file.path(this_dir_, "..", "support_generators.R"))   # make_support_bt_one_per_block
 source(file.path(this_dir_, "dgp_bt_snr.R"))                 # dgp_ar1_block_white_snr
 source(file.path(this_dir_, "..", "simulation_utils.R"))
 
-library(TRexSelector)
+library(TRexSelectorNeo)
 library(parallel)
 num_cores <- 6L
 

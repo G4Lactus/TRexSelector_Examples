@@ -1,8 +1,9 @@
 # DA-TRex: Dependency-Aware T-Rex — R Demonstration Suite
 
-> **Status**: legacy — uses the CRAN TRexSelector 1.0.0 functional API
-> (`trex()`, `FDP()`, `TPP()`). Migration to the TRexSelectorNeo R6 API is
-> planned.
+> **Status**: NEW — migrated to the **TRexSelectorNeo** R6 API
+> (`TRexDASelector$new(..., da_control = trex_da_control(...))$select()`, with
+> `compute_fdp()` / `compute_tpp()`). No longer depends on the CRAN
+> `TRexSelector` package.
 
 ## Purpose
 
@@ -11,7 +12,7 @@ R demos and Monte Carlo simulations for the **Dependency-Aware T-Rex
 equicorrelation, nearest-neighbor (banded MA), block-diagonal AR(1) (with and
 without white-noise augmentation), and heavy-tailed Student-t blocks.
 
-Dependencies: `TRexSelector` (CRAN), `plotly` (correlation heatmaps),
+Dependencies: `TRexSelectorNeo`, `plotly` (correlation heatmaps),
 `parallel` (MC loops). The demos source the shared
 [../support_generators.R](../support_generators.R) and
 [../simulation_utils.R](../simulation_utils.R) plus the local `dgp_*.R` files.
@@ -38,6 +39,15 @@ Notes:
   (comment out the `sink()` lines to print to the console instead).
 - The C++ suite additionally contains `demo_trex_da_08_mc_sim_groups`
   (multi-level nested group structures), which has no R counterpart here.
+
+### Known limitation
+
+`trex_da_control(da_method = ...)` in the installed **TRexSelectorNeo** R
+binding accepts only `"AR1"`, `"EQUI"`, and `"BT"`. The C++ core supports
+`DAMethod::NN`, but the R binding does not expose `"NN"` yet. The two
+nearest-neighbour demos (`demo_trex_da_04_nn_01_ma.R`,
+`demo_trex_da_04_nn_02_ar.R`) therefore carry a guard that prints a `[SKIP]`
+notice and exits cleanly under `Rscript` until the binding adds `"NN"`.
 
 ---
 
@@ -85,4 +95,4 @@ file and enable the parts you want.
 
 ---
 
-**Last updated**: 2026-07-06
+**Last updated**: 2026-07-08

@@ -60,7 +60,7 @@ Written to `simulation_results/`:
 ## Running the Demo
 
 ```bash
-./build/debug/bin/demo_trex_gvs_04_mc_sim_neg_traps
+./build/debug/bin/trex_selector_methods/trex_gvs/demo_trex_gvs_04_mc_sim_neg_traps/demo_trex_gvs_04_mc_sim_neg_traps
 ```
 
 ---
@@ -73,4 +73,4 @@ Written to `simulation_results/`:
 
 ---
 
-**Last updated**: 2026-07-04
+**Last updated**: 2026-07-08

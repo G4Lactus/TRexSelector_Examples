@@ -68,7 +68,7 @@ The four single-run parts (DA-AR1, DA-EQUI, Ordinary-on-AR1 baseline, DA-BLOCK-E
 ## Running the Demo
 
 ```bash
-./build/debug/bin/demo_trex_scr_03_screen_trex_correlated
+./build/debug/bin/trex_selector_methods/trex_screening/demo_trex_scr_03_screen_trex_correlated/demo_trex_scr_03_screen_trex_correlated
 ```
 
 ---
@@ -82,4 +82,4 @@ The four single-run parts (DA-AR1, DA-EQUI, Ordinary-on-AR1 baseline, DA-BLOCK-E
 
 ---
 
-**Last updated**: 2026-07-04
+**Last updated**: 2026-07-08

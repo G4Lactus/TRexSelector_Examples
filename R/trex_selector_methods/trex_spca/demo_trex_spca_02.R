@@ -28,9 +28,14 @@
 # NOTE: this OVERWRITES the existing X_*.csv in rdump/ (previously C++-generated).
 #       After running this, RE-RUN the C++ demo so cpp_pipeline.csv reflects R's X:
 #         validation_trex_spca_04_rdump_pipeline --use-r-lambda2 --n <num_MC>
+#
+# MIGRATED: the T-Rex+GVS(EN) selection now runs through the TRexSelectorNeo R
+# binding (TRexGVSSelector) instead of the CRAN TRexSelector::trex(). The legacy
+# type = "lar"/"lasso" inner-solver switch maps to the EN solver via
+# trex_gvs_control(en_solver = "TENET" / "TENET_AUG") -- see note at the calls.
 # ==============================================================================
 
-library(TRexSelector)
+library(TRexSelectorNeo)
 library(glmnet)
 
 # ------------------------------------------------------------------------------
@@ -160,26 +165,34 @@ for (mc in 0:(num_MC - 1)) {
                                               trim = TRUE, scientific = TRUE))
 
   # ---- T-Rex+GVS (Elastic Net) selection on PC1 (== demo_01) ----
-  # Run BOTH solver types on the SAME X, y1, lambda2 so the ONLY difference is
-  # the inner forward-selection algorithm:
-  #   type = "lar"   -> LARS  (pure forward; never drops a variable) = R/trex default
-  #   type = "lasso" -> LARS-LASSO (can drop variables on sign change) = C++ TENET_AUG
-  trex_res <- TRexSelector::trex(X = X, y = y1, tFDR = target_fdr,
-                                 method = "trex+GVS", GVS_type = "EN", type = "lar",
-                                 lambda_2_lars = lam2, verbose = FALSE)
+  # Run BOTH inner solvers on the SAME X, y1, lambda2 so the ONLY difference is
+  # the inner forward-selection algorithm. TRexGVSSelector derives its solver
+  # from gvs_type = "EN"; the legacy type switch therefore maps to en_solver:
+  #   type = "lar"   -> en_solver = "TENET"     (pure forward; never drops a var)
+  #   type = "lasso" -> en_solver = "TENET_AUG" (LARS-LASSO / augmented, can drop)
+  # Selector seed is deterministic (mc + 1) so the dump reproduces across runs.
+  trex_res <- TRexGVSSelector$new(
+    X = X, y = y1, tFDR = target_fdr, seed = as.integer(mc + 1L), verbose = FALSE,
+    gvs_control = trex_gvs_control(gvs_type = "EN", corr_max = 0.5,
+                                   hc_linkage = "Single", lambda_2 = lam2,
+                                   en_solver = "TENET"),
+    control = trex_control(solver = "TLARS"))
+  trex_res$select()
 
-  active_set <- which(trex_res$selected_var > .Machine$double.eps)   # 1-based
+  active_set <- trex_res$selected_indices   # 1-based
   k  <- length(active_set)
   tp <- length(intersect(true_supp1, active_set))
   tpr <- if (length(true_supp1) == 0) 0 else tp / length(true_supp1)
   fdr <- if (k == 0) 0 else (k - tp) / k
 
-  vthr <- if (is.null(trex_res$v_thresh))   NA else trex_res$v_thresh[1]
-  rthr <- if (is.null(trex_res$rho_thresh)) NA else trex_res$rho_thresh[1]
+  # num_dummies / rho_thresh are not surfaced by the R6 binding -> NA (rho_thresh
+  # was already NA under the CRAN package); T_stop and v_thresh are preserved.
+  vthr <- if (is.null(trex_res$v_thresh)) NA else trex_res$v_thresh[1]
+  rthr <- NA
   res_rows[mc + 1] <- paste0(mc, ",", k, ",",
                              format(fdr, digits = 6), ",",
                              format(tpr, digits = 6), ",",
-                             trex_res$T_stop, ",", trex_res$num_dummies, ",",
+                             trex_res$T_stop, ",", NA, ",",
                              format(vthr, digits = 8), ",",
                              format(rthr, digits = 8), ",",
                              dash(active_set - 1L))
@@ -187,23 +200,27 @@ for (mc in 0:(num_MC - 1)) {
   sum_k <- sum_k + k; sum_fdr <- sum_fdr + fdr
   sum_tpr <- sum_tpr + tpr; sum_lam2 <- sum_lam2 + lam2
 
-  # ---- same selection, but with type = "lasso" (LARS-LASSO) ----
-  trex_res_l <- TRexSelector::trex(X = X, y = y1, tFDR = target_fdr,
-                                   method = "trex+GVS", GVS_type = "EN", type = "lasso",
-                                   lambda_2_lars = lam2, verbose = FALSE)
+  # ---- same selection, but with en_solver = "TENET_AUG" (LARS-LASSO) ----
+  trex_res_l <- TRexGVSSelector$new(
+    X = X, y = y1, tFDR = target_fdr, seed = as.integer(mc + 1L), verbose = FALSE,
+    gvs_control = trex_gvs_control(gvs_type = "EN", corr_max = 0.5,
+                                   hc_linkage = "Single", lambda_2 = lam2,
+                                   en_solver = "TENET_AUG"),
+    control = trex_control(solver = "TLARS"))
+  trex_res_l$select()
 
-  active_set_l <- which(trex_res_l$selected_var > .Machine$double.eps)  # 1-based
+  active_set_l <- trex_res_l$selected_indices  # 1-based
   k_l  <- length(active_set_l)
   tp_l <- length(intersect(true_supp1, active_set_l))
   tpr_l <- if (length(true_supp1) == 0) 0 else tp_l / length(true_supp1)
   fdr_l <- if (k_l == 0) 0 else (k_l - tp_l) / k_l
 
-  vthr_l <- if (is.null(trex_res_l$v_thresh))   NA else trex_res_l$v_thresh[1]
-  rthr_l <- if (is.null(trex_res_l$rho_thresh)) NA else trex_res_l$rho_thresh[1]
+  vthr_l <- if (is.null(trex_res_l$v_thresh)) NA else trex_res_l$v_thresh[1]
+  rthr_l <- NA
   res_rows_lasso[mc + 1] <- paste0(mc, ",", k_l, ",",
                                    format(fdr_l, digits = 6), ",",
                                    format(tpr_l, digits = 6), ",",
-                                   trex_res_l$T_stop, ",", trex_res_l$num_dummies, ",",
+                                   trex_res_l$T_stop, ",", NA, ",",
                                    format(vthr_l, digits = 8), ",",
                                    format(rthr_l, digits = 8), ",",
                                    dash(active_set_l - 1L))

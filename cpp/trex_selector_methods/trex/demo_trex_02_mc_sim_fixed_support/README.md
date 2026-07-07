@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Evaluate T-Rex selector performance (FDR and TPR) across a range of **Signal-to-Noise Ratios (SNR)** with a fixed true support structure. This is the foundational empirical validation demo for the classical T-Rex algorithm.
+Evaluate T-Rex selector performance (FDR and TPR) across a range of **Signal-to-Noise Ratios (SNR)** with a fixed true support structure, comparing many base solvers. This is the foundational empirical validation demo for the classical T-Rex algorithm.
 
 ---
 
@@ -10,11 +10,13 @@ Evaluate T-Rex selector performance (FDR and TPR) across a range of **Signal-to-
 
 - **Sample size**: $n = 300$
 - **Number of features**: $p = 1000$
-- **True support**: $\mathcal{S}^* = \{$first 10 features$\}$ (fixed across all MC trials)
-- **True coefficients**: Uniform $\pm 1$
+- **True support**: a set of **10 unique random indices** drawn once (before the MC loop) from `std::mt19937 rng(24)` via a uniform distribution over $\{0, \ldots, p-1\}$; the same support is reused across every solver, SNR level, and MC trial. It is **not** the first 10 features.
+- **True coefficients**: fixed $\beta_j = 1$ (`rnd_coef = false`)
 - **SNR range**: $\{0.1, 0.5, 1.0, 2.0, 5.0\}$
-- **Monte Carlo repetitions**: 200 trials per SNR level
-- **DGP**: $\mathbf{y} = \mathbf{X}\boldsymbol{\beta} + \boldsymbol{\epsilon}$, $\boldsymbol{\epsilon} \sim N(0, I_n)$
+- **Monte Carlo repetitions**: `num_MC = 200` trials per solver × SNR level
+- **DGP**: $\mathbf{y} = \mathbf{X}\boldsymbol{\beta} + \boldsymbol{\epsilon}$, $\boldsymbol{\epsilon} \sim N(0, \sigma^2 I_n)$
+
+`main()` runs only the high-dimensional configuration ($n = 300$, $p = 1000$); the low-dimensional call ($n = 1000$, $p = 300$) is compiled but guarded by `if (false)`.
 
 ---
 
@@ -24,36 +26,47 @@ Evaluate T-Rex selector performance (FDR and TPR) across a range of **Signal-to-
 K = 20                           # Random experiments per T-loop iteration
 max_dummy_multiplier = 10        # Max dummies L = 10p
 use_max_T_stop = true            # Cap T ≤ ceil(n/2)
+dummy_distribution = Normal      # Dummy predictors drawn from N(0,1)
+lloop_strategy = STANDARD        # Fresh i.i.d. dummy matrix per L-loop iteration
 tloop_stagnation_stop = true     # Early exit when R_mat stagnates
 tloop_max_stagnant_steps = 7     # Stagnation window (7 consecutive unchanged iterations)
-opt_threshold = 0.75             # Optimization grid point (75th percentile)
-parallel_rnd_experiments = false  # Sequential dummy experiments
-target_fdr = 0.1                 # Target FDR control level
+opt_threshold = 0.75             # Optimization grid point
+parallel_rnd_experiments = false # Sequential dummy experiments
+use_memory_mapping = false       # In-memory data
+tFDR = 0.1                       # Target FDR control level
 ```
+
+The MC loop itself is parallelized with OpenMP (`omp_set_num_threads(6)`).
 
 ---
 
 ## Solvers Compared
 
-8 different LARS-path-based solvers are benchmarked, all producing **identical T-Rex selections**:
+The shared list `make_default_solvers_to_test()` in `trex_sim_utils.hpp` provides **14** T-Rex base solvers. All 14 are benchmarked, and their selections are **not** identical — each solver drives a different underlying path/pursuit algorithm, so FDR/TPR differ across solvers:
 
-- **TLARS**: Canonical least-angle regression
-- **TLASSO**: Lasso coordinate descent
-- **TENET**: Elastic net
-- **TSTAGEWISE**: Stagewise forward selection
-- **TSTEPWISE**: Forward stepwise selection
-- **TOMP**: Orthogonal matching pursuit
-- **TGP**: Gradient pursuit
-- **TACGP**: Adaptive constraint gradient pursuit
+- **TLARS** — least-angle regression
+- **TLASSO** — lasso
+- **TENET** — elastic net ($\lambda_2 = 0.1$)
+- **TSTAGEWISE** — forward stagewise
+- **TSTEPWISE** — forward stepwise
+- **TOMP** — orthogonal matching pursuit
+- **TGP** — gradient pursuit
+- **TACGP** — adaptive-conjugate gradient pursuit
+- **TMP** — matching pursuit
+- **TAFS_rho_0.3**, **TAFS_rho_1.0** — adaptive forward selection ($\rho_{\text{afs}} = 0.3$ and $1.0$)
+- **TNCGMP_v1**, **TNCGMP_v0** — nonlinear conjugate-gradient matching pursuit (two variants)
+- **TOOLS** — orthogonal one-line-search
 
 ---
 
 ## Output Files
 
+Both files are written to `simulation_results/`. Stems are built from `n`, `p`, and the stagnation window (`tloop_max_stagnant_steps = 7`), prefixed with `demo_trex_02_mc_sim_fixed_support_`.
+
 ### Main Result File
 **`demo_trex_02_mc_sim_fixed_support_trex_results_n300_p1000_stagnation_window_7.txt`**
 
-Tabular format showing FDR and TPR for each solver across SNR levels:
+Aligned tabular format showing FDR and TPR for each solver across SNR levels:
 
 ```
 ======================================================================
@@ -62,25 +75,27 @@ Tabular format showing FDR and TPR for each solver across SNR levels:
 
 Solver         Metric    SNR       0.1       0.5       1.0       2.0       5.0
 ------------------------------------------------------------------------------
-TLARS          FDR              0.0050    0.0481    0.0427    0.0398    0.0279
-               TPR              0.0030    0.2600    0.7360    0.9845    1.0000
+TLARS          FDR              ...       ...       ...       ...       ...
+               TPR              ...       ...       ...       ...       ...
 
-TLASSO         FDR              0.0125    0.0400    0.0485    0.0415    0.0286
-               TPR              0.0040    0.2535    0.7325    0.9850    1.0000
+TLASSO         FDR              ...       ...       ...       ...       ...
+               TPR              ...       ...       ...       ...       ...
 
-... (6 more solvers)
+... (12 more solvers)
 ```
+
+Only FDR and TPR rows are printed for this demo (Avg L and Avg T are not computed here).
 
 ### Tidy-Format CSV
 **`demo_trex_02_mc_sim_fixed_support_trex_results_n300_p1000_stagnation_window_7.csv`**
 
-Column-oriented format suitable for R/Python analysis:
+Long/stacked format for R/Python plotting. The header column order is **`solver,metric,snr,value`** (metric before snr):
 ```
-solver,snr,metric,value
-TLARS,0.1,FDR,0.0050
-TLARS,0.1,TPR,0.0030
-TLARS,0.5,FDR,0.0481
-TLARS,0.5,TPR,0.2600
+solver,metric,snr,value
+TLARS,FDR,0.100000,...
+TLARS,TPR,0.100000,...
+TLARS,FDR,0.500000,...
+TLARS,TPR,0.500000,...
 ...
 ```
 
@@ -89,44 +104,42 @@ TLARS,0.5,TPR,0.2600
 ## Running the Demo
 
 ```bash
-./build/debug/bin/demo_trex_02_mc_sim_fixed_support
+./build/debug/bin/trex_selector_methods/trex/demo_trex_02_mc_sim_fixed_support/demo_trex_02_mc_sim_fixed_support
 ```
 
-**Computation time**: Approximately 10–30 minutes on a modern CPU (200 MC trials × 5 SNR levels × 8 solvers).
+The MC loop runs 200 trials × 5 SNR levels × 14 solvers, so wall-clock time depends heavily on the machine and thread count.
 
 ---
 
 ## Key Findings
 
 ### FDR Control
-- FDR is **maintained near or below target tFDR = 0.1** across all SNR levels
-- At low SNR (0.1), FDR is slightly conservative ($\approx 0.005$) due to few selections
-- As SNR increases, FDR stabilizes around 0.04–0.05 (well-controlled)
+- FDR is **maintained near or below target tFDR = 0.1** across SNR levels for the LARS-path solvers.
+- At low SNR, FDR tends to be conservative due to few selections; it stabilizes as SNR increases.
 
 ### Power (TPR)
-- **Weak signals** (SNR 0.1): TPR $\approx 0.003$ (almost no detection)
-- **Moderate signals** (SNR 0.5, 1.0): TPR increases smoothly ($\approx 0.26$ to $0.74$)
-- **Strong signals** (SNR 2.0+): TPR $\approx 0.98$–$1.0$ (near-perfect recovery)
+- **Weak signals** (SNR 0.1): low TPR (little detected).
+- **Moderate signals** (SNR 0.5–1.0): TPR increases smoothly.
+- **Strong signals** (SNR 2.0+): TPR approaches near-perfect recovery.
 
-### Solver Equivalence
-- All 8 solvers maintain **identical FDR and TPR**
-- Differences are purely computational speed (not shown in this demo)
-- Selection is based on the T-Rex voting grid, not the path algorithm
+### Solver Comparison
+- The 14 solvers do **not** produce identical selections; FDR/TPR curves differ between them.
+- This lets you compare the statistical behaviour of the different base solvers under a shared DGP and FDR target.
 
 ---
 
 ## Interpretation Guide
 
 **What to look for:**
-1. **FDR constraint satisfaction**: Is FDR $\leq$ tFDR across all SNR levels?
+1. **FDR constraint satisfaction**: Is FDR $\leq$ tFDR across SNR levels for each solver?
 2. **Power progression**: Does TPR increase monotonically with SNR?
-3. **Solver agreement**: Are all solvers identical in FDR/TPR columns?
+3. **Solver differences**: How do the FDR/TPR curves diverge across the 14 solvers?
 
 **Typical use case:**
-- Baseline validation of algorithm implementation
-- Comparison with other FDR-controlled methods (e.g., knockoffs, BH, Benjamini–Hochberg)
-- Parameter tuning (varying tFDR, K, stagnation window)
+- Baseline validation of the algorithm implementation.
+- Comparison of base solvers within the T-Rex framework.
+- Parameter tuning (varying tFDR, K, stagnation window).
 
 ---
 
-**Last updated**: 2026-07-01
+**Last updated**: 2026-07-08

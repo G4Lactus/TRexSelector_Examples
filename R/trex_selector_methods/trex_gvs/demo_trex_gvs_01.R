@@ -10,7 +10,7 @@
 #
 # =================================================================================
 
-library(TRexSelector)
+library(TRexSelectorNeo)
 library(plotly)
 library(parallel)
 
@@ -18,7 +18,11 @@ num_cores <- 6L
 
 this_dir_ <- tryCatch(
   dirname(normalizePath(sys.frame(1)$ofile)),
-  error = function(e) "."
+  error = function(e) {
+    args <- commandArgs(trailingOnly = FALSE)
+    file_arg <- grep("--file=", args, value = TRUE)
+    if (length(file_arg) > 0) dirname(normalizePath(sub("--file=", "", file_arg[1]))) else "."
+  }
 )
 
 source(file.path(this_dir_, "..", "support_generators.R"))
@@ -56,8 +60,8 @@ run_part_1 <- TRUE
   n_sel   <- length(sel_set)
   n_tp    <- length(intersect(sel_set, which(dat$beta != 0)))
   n_fp    <- n_sel - n_tp
-  tpp_val <- TRexSelector::TPP(result$selected_var, dat$beta)
-  fdp_val <- TRexSelector::FDP(result$selected_var, dat$beta)
+  tpp_val <- TRexSelectorNeo::compute_tpp(result$selected_indices, which(dat$beta != 0))
+  fdp_val <- TRexSelectorNeo::compute_fdp(result$selected_indices, which(dat$beta != 0))
 
   cat(strrep("=", 70), "\n")
   cat(sprintf("  %s\n", scenario_name))
@@ -67,8 +71,8 @@ run_part_1 <- TRUE
   cat(sprintf("       SNR = %.2f,  sigma_y = %.4f,  sd_x = %.4f\n",
               dat$snr, dat$sigma_y, dat$sd_x))
   cat(strrep("-", 70), "\n")
-  cat(sprintf("  Calibration:  T_stop = %d,  dummies = %d\n",
-              result$T_stop, result$num_dummies))
+  cat(sprintf("  Calibration:  T_stop = %d,  L = %d\n",
+              result$T_stop, result$L))
   cat(sprintf("  Selection:    %d selected  |  TP = %d  FP = %d\n",
               n_sel, n_tp, n_fp))
   cat(sprintf("  Rates:        TPP = %.3f  |  FDP = %.3f  (target tFDR <= %.2f)\n",
@@ -112,36 +116,24 @@ if (run_part_1) {
 
     # Run T-Rex+GVS with EN
     cat("[Part 1] Running trex+GVS (EN) ...\n\n")
-    res_en <- TRexSelector::trex(
-      X             = dat_p1$X,
-      y             = dat_p1$y,
-      tFDR          = PARAMS$tFDR,
-      K             = PARAMS$K,
-      method        = "trex+GVS",
-      GVS_type      = "EN",
-      lambda_2_lars = NULL,
-      hc_dist       = PARAMS$hc_dist,
-      corr_max      = PARAMS$corr_max,
-      verbose       = FALSE,
-      seed          = PARAMS$seed
-    )
+    res_en <- TRexSelectorNeo::TRexGVSSelector$new(
+      dat_p1$X, dat_p1$y, tFDR = PARAMS$tFDR, seed = -1L, verbose = FALSE,
+      gvs_control = TRexSelectorNeo::trex_gvs_control(
+        gvs_type = "EN", corr_max = PARAMS$corr_max,
+        hc_linkage = cap_hc(PARAMS$hc_dist)),
+      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = PARAMS$K))
+    res_en$select()
     .print_result("Part 1 \u2014 Hastie GVS  [EN]", dat_p1, res_en, PARAMS$tFDR)
 
     # Run T-Rex+GVS with IEN
     cat("[Part 1] Running trex+GVS (IEN) ...\n\n")
-    res_ien <- TRexSelector::trex(
-      X             = dat_p1$X,
-      y             = dat_p1$y,
-      tFDR          = PARAMS$tFDR,
-      K             = PARAMS$K,
-      method        = "trex+GVS",
-      GVS_type      = "IEN",
-      lambda_2_lars = NULL,
-      hc_dist       = PARAMS$hc_dist,
-      corr_max      = PARAMS$corr_max,
-      verbose       = FALSE,
-      seed          = PARAMS$seed
-    )
+    res_ien <- TRexSelectorNeo::TRexGVSSelector$new(
+      dat_p1$X, dat_p1$y, tFDR = PARAMS$tFDR, seed = -1L, verbose = FALSE,
+      gvs_control = TRexSelectorNeo::trex_gvs_control(
+        gvs_type = "IEN", corr_max = PARAMS$corr_max,
+        hc_linkage = cap_hc(PARAMS$hc_dist)),
+      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = PARAMS$K))
+    res_ien$select()
     .print_result("Part 1 \u2014 Hastie GVS  [IEN]", dat_p1, res_ien, PARAMS$tFDR)
   }
 

@@ -6,14 +6,22 @@
 # Reuses the BT factor-model DGP by setting rho_within == rho_between.
 # ==============================================================================
 
-library(TRexSelector)
+library(TRexSelectorNeo)
 library(plotly)
 library(parallel)
 
 num_cores <- 6L
 
 this_dir_ <- tryCatch(dirname(normalizePath(sys.frame(1)$ofile)),
-                      error = function(e) ".")
+                      error = function(e) {
+                        args <- commandArgs(trailingOnly = FALSE)
+                        file_arg <- grep("--file=", args, value = TRUE)
+                        if (length(file_arg) > 0) {
+                          dirname(normalizePath(sub("--file=", "", file_arg[1])))
+                        } else {
+                          "."
+                        }
+                      })
 
 # for make_support_random
 source(file.path(this_dir_, "..", "support_generators.R"))
@@ -51,15 +59,11 @@ if (FALSE) {
 
     plot_cormat(cor(dat_p1$X))
 
-    res_p1 <- TRexSelector::trex(
-      X       = dat_p1$X,
-      y       = dat_p1$y,
-      tFDR    = 0.2,
-      K       = 20L,
-      method  = "trex+DA+equi",
-      verbose = FALSE,
-      seed    = 2026L
-    )
+    res_p1 <- TRexSelectorNeo::TRexDASelector$new(
+      dat_p1$X, dat_p1$y, tFDR = 0.2, seed = -1L, verbose = FALSE,
+      da_control = TRexSelectorNeo::trex_da_control(da_method = "EQUI"),
+      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = 20L))
+    res_p1$select()
 
     cat(sprintf("  Selected variables: %d\n\n", sum(res_p1$selected_var)))
 

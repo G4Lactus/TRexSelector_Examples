@@ -16,9 +16,12 @@ Two R packages appear in this tree:
   `convert_to_memory_mapped()`, the scaler classes, and
   `agglomerative_cluster()`.
 - **TRexSelector** (1.0.0, CRAN) — the old package with the functional API
-  (`trex()`, `FDP()`, `TPP()`, `add_dummies_GVS()`). The legacy demo areas
-  (see table below) are still written against this package; their migration to
-  TRexSelectorNeo is planned as a later phase.
+  (`trex()`, `FDP()`, `TPP()`, `add_dummies_GVS()`). It is now needed **only**
+  by `tsolvers/demo_ts_compare_tlars_tlasso.R`, which uses it purely as an
+  independent reference implementation for a path-equivalence cross-check. All
+  the selector suites (trex_da, trex_gvs, trex_spca, and the new
+  trex_screening) have been migrated to the TRexSelectorNeo R6 API and no
+  longer depend on it.
 
 ---
 
@@ -36,8 +39,8 @@ Additional CRAN packages, depending on which demos you run:
 
 | Package | Needed by |
 |---|---|
-| `TRexSelector` (1.0.0) | Legacy areas: `trex_selector_methods/trex_da/`, `trex_gvs/`, `trex_spca/`, and `tsolvers/` |
-| `plotly` | Correlation-matrix heatmaps in the legacy trex_da / trex_gvs demos |
+| `TRexSelector` (1.0.0) | `tsolvers/demo_ts_compare_tlars_tlasso.R` only (independent reference for the cross-check) |
+| `plotly` | Correlation-matrix heatmaps in the trex_da / trex_gvs MC demos |
 | `parallel` | Monte Carlo runners (shipped with base R) |
 | `glmnet` | `ml_methods/model_selection/` and the `trex_spca/` cross-check probes |
 | `tlars` | `tsolvers/demo_ts_compare_tlars_tlasso.R` (independent reference implementation) |
@@ -76,9 +79,10 @@ explicitly where fixed supports are mirrored from C++.
 | [ml_methods/ridge_regression/](ml_methods/ridge_regression/README.md) | NEW (TRexSelectorNeo) | L2-penalized least squares via `RidgeSolver` | [cpp/ml_methods/ridge_regression/](../cpp/ml_methods/ridge_regression/) |
 | [ml_methods/model_selection/](ml_methods/model_selection/README.md) | NEW (TRexSelectorNeo) + cross-check (glmnet) | K-fold CV ridge via `RidgeCV` (lambda.min / lambda.1se); glmnet reference dumps for the C++ CCD elastic net | [cpp/ml_methods/model_selection/](../cpp/ml_methods/model_selection/) |
 | [trex_selector_methods/trex/](trex_selector_methods/trex/README.md) | NEW (TRexSelectorNeo) | Classical T-Rex: single runs, MC studies, l-loop strategies, mmap, scalability (demos 00–07) | [cpp/trex_selector_methods/trex/](../cpp/trex_selector_methods/trex/) |
-| [trex_selector_methods/trex_da/](trex_selector_methods/trex_da/README.md) | Legacy (CRAN TRexSelector) | Dependency-Aware T-Rex: AR(1), equi, NN, BT-block, heavy-tailed DGPs (demos 01–08) | [cpp/trex_selector_methods/trex_da/](../cpp/trex_selector_methods/trex_da/) |
-| [trex_selector_methods/trex_gvs/](trex_selector_methods/trex_gvs/README.md) | Legacy (CRAN TRexSelector) | Grouped Variable Selection T-Rex: EN vs IEN over grouped DGPs (demos 01–08) | [cpp/trex_selector_methods/trex_gvs/](../cpp/trex_selector_methods/trex_gvs/) |
-| [trex_selector_methods/trex_spca/](trex_selector_methods/trex_spca/README.md) | Legacy (CRAN TRexSelector) | T-Rex Sparse PCA MC study + C++/R cross-check probes | [cpp/trex_selector_methods/trex_spca/](../cpp/trex_selector_methods/trex_spca/), [cpp/trex_selector_methods/validation/trex_spca/](../cpp/trex_selector_methods/validation/trex_spca/) |
+| [trex_selector_methods/trex_da/](trex_selector_methods/trex_da/README.md) | NEW (TRexSelectorNeo) | Dependency-Aware T-Rex: AR(1), equi, NN, BT-block, heavy-tailed DGPs (demos 01–08); NN demos skip until the R binding exposes `da_method="NN"` | [cpp/trex_selector_methods/trex_da/](../cpp/trex_selector_methods/trex_da/) |
+| [trex_selector_methods/trex_gvs/](trex_selector_methods/trex_gvs/README.md) | NEW (TRexSelectorNeo) | Grouped Variable Selection T-Rex: EN vs IEN over grouped DGPs (demos 01–08) | [cpp/trex_selector_methods/trex_gvs/](../cpp/trex_selector_methods/trex_gvs/) |
+| [trex_selector_methods/trex_spca/](trex_selector_methods/trex_spca/README.md) | NEW (TRexSelectorNeo) | T-Rex Sparse PCA MC study + C++/R cross-check probes | [cpp/trex_selector_methods/trex_spca/](../cpp/trex_selector_methods/trex_spca/), [cpp/trex_selector_methods/validation/trex_spca/](../cpp/trex_selector_methods/validation/trex_spca/) |
+| [trex_selector_methods/trex_screening/](trex_selector_methods/trex_screening/README.md) | NEW (TRexSelectorNeo) | Screen-TRex: in-memory / mmap screening, correlated designs, biobank-scale, solver comparison (6 demos) | [cpp/trex_selector_methods/trex_screening/](../cpp/trex_selector_methods/trex_screening/) |
 | [tsolvers/](tsolvers/README.md) | Cross-check (CRAN tlars) | TLARS / TLASSO / TENET path-equivalence reference generator vs C++ tsolvers | [cpp/tsolvers/](../cpp/tsolvers/) |
 
 Shared helpers for the selector demos live in
@@ -89,18 +93,21 @@ Shared helpers for the selector demos live in
 
 ## Coverage relative to the C++ tree
 
-The R tree does not yet mirror everything in [cpp/](../cpp/README.md):
+The R tree now mirrors the selector suites — `trex`, `trex_da`, `trex_gvs`,
+`trex_spca`, and `trex_screening` — on the new TRexSelectorNeo R6 API. A few
+gaps relative to [cpp/](../cpp/README.md) remain:
 
-- **trex_screening** — the folder `trex_selector_methods/trex_screening/`
-  exists but is empty; the six C++ screening demos have no R counterpart yet.
+- **trex+DA+NN** — the C++ core supports `DAMethod::NN`, but the installed
+  TRexSelectorNeo R binding does not expose `da_method="NN"` yet, so the two
+  `trex_da` nearest-neighbour demos skip cleanly until it is added.
 - **tsolvers** — C++ has 12 per-solver demos (`demo_ts_01` … `demo_ts_12`);
   R currently ships only the single TLARS/TLASSO/TENET cross-comparison script.
 - **ml_methods** is fully mirrored (hac_clustering, standardization, pca, svd,
-  ridge_regression, model_selection). The R elastic-net demo covers K-fold CV
-  (`ElasticNetCV`) only; the standalone elastic-net *path* fit from
-  `demo_mlm_ms_02_enet_cv_ccd` has no R class and is shown in the Python port
-  instead.
+  ridge_regression, model_selection); pca / svd / ridge are covered there. The
+  R elastic-net demo covers K-fold CV (`ElasticNetCV`) only; the standalone
+  elastic-net *path* fit from `demo_mlm_ms_02_enet_cv_ccd` has no R class and is
+  shown in the Python port instead.
 
 ---
 
-**Last updated**: 2026-07-06
+**Last updated**: 2026-07-08

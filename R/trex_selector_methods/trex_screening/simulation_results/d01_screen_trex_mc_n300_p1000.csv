@@ -1,0 +1,49 @@
+method,metric,SNR,value
+Screen-TRex Ordinary,FDR,0.01,0.475
+Screen-TRex Ordinary,TPR,0.01,0.00666666666666667
+Screen-TRex Ordinary,Est. FDR,0.01,0.406944444444444
+Screen-TRex Ordinary,FDR,0.1,0.471944444444444
+Screen-TRex Ordinary,TPR,0.1,0.0416666666666667
+Screen-TRex Ordinary,Est. FDR,0.1,0.518611111111111
+Screen-TRex Ordinary,FDR,0.2,0.3
+Screen-TRex Ordinary,TPR,0.2,0.115
+Screen-TRex Ordinary,Est. FDR,0.2,0.470833333333333
+Screen-TRex Ordinary,FDR,0.5,0.104742063492063
+Screen-TRex Ordinary,TPR,0.5,0.468333333333333
+Screen-TRex Ordinary,Est. FDR,0.5,0.213022486772487
+Screen-TRex Ordinary,FDR,0.6,0.0800925925925926
+Screen-TRex Ordinary,TPR,0.6,0.533333333333333
+Screen-TRex Ordinary,Est. FDR,0.6,0.185244708994709
+Screen-TRex Ordinary,FDR,1,0.062711593961594
+Screen-TRex Ordinary,TPR,1,0.81
+Screen-TRex Ordinary,Est. FDR,1,0.119254033004033
+Screen-TRex Ordinary,FDR,2,0.0627999777999778
+Screen-TRex Ordinary,TPR,2,0.998333333333333
+Screen-TRex Ordinary,Est. FDR,2,0.0938866688866689
+Screen-TRex Ordinary,FDR,5,0.063053613053613
+Screen-TRex Ordinary,TPR,5,1
+Screen-TRex Ordinary,Est. FDR,5,0.0936946386946387
+Screen-TRex Bootstrap,FDR,0.01,0.391666666666667
+Screen-TRex Bootstrap,TPR,0.01,0.00333333333333334
+Screen-TRex Bootstrap,Est. FDR,0.01,0.329166666666667
+Screen-TRex Bootstrap,FDR,0.1,0.405277777777778
+Screen-TRex Bootstrap,TPR,0.1,0.0383333333333333
+Screen-TRex Bootstrap,Est. FDR,0.1,0.474166666666667
+Screen-TRex Bootstrap,FDR,0.2,0.172222222222222
+Screen-TRex Bootstrap,TPR,0.2,0.0933333333333333
+Screen-TRex Bootstrap,Est. FDR,0.2,0.373611111111111
+Screen-TRex Bootstrap,FDR,0.5,0.0464748677248677
+Screen-TRex Bootstrap,TPR,0.5,0.243333333333333
+Screen-TRex Bootstrap,Est. FDR,0.5,0.12635582010582
+Screen-TRex Bootstrap,FDR,0.6,0.0450330687830688
+Screen-TRex Bootstrap,TPR,0.6,0.24
+Screen-TRex Bootstrap,Est. FDR,0.6,0.0816071428571429
+Screen-TRex Bootstrap,FDR,1,0.028236531986532
+Screen-TRex Bootstrap,TPR,1,0.396666666666667
+Screen-TRex Bootstrap,Est. FDR,1,0.0527729677729678
+Screen-TRex Bootstrap,FDR,2,0.0445598845598846
+Screen-TRex Bootstrap,TPR,2,0.765
+Screen-TRex Bootstrap,Est. FDR,2,0.0723773448773449
+Screen-TRex Bootstrap,FDR,5,0.0465811965811966
+Screen-TRex Bootstrap,TPR,5,0.883333333333333
+Screen-TRex Bootstrap,Est. FDR,5,0.0836752136752137

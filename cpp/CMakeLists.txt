@@ -224,8 +224,8 @@ macro(add_demo_target target_name demo_file library_set)
     # executable into one flat directory, e.g.:
     #   trex_selector_methods/trex/demo_trex_01_single_run/demo_trex_01_single_run.cpp
     #     -> <build>/bin/trex_selector_methods/trex/demo_trex_01_single_run/
-    #   tsolvers/demo_ts_01_tlars.cpp
-    #     -> <build>/bin/tsolvers/
+    #   tsolvers/demo_ts_01_tlars/demo_ts_01_tlars.cpp
+    #     -> <build>/bin/tsolvers/demo_ts_01_tlars/
     file(RELATIVE_PATH _group_rel_dir "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
     if(_demo_subdir)
         set(_demo_bin_dir "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${_group_rel_dir}/${_demo_subdir}")

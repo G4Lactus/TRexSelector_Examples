@@ -311,9 +311,9 @@ int main() {
     omp_set_num_threads(6);
     std::cout << "Running with " << omp_get_max_threads() << " threads\n\n";
 
-    if (false) demo_nn_ar_mc_snr_sweep();
-    if (false) demo_nn_ar_mc_rho_sweep();
-    if (false) demo_nn_ar_mc_snr_rho_sweep();
+    if (true) demo_nn_ar_mc_snr_sweep();
+    if (true) demo_nn_ar_mc_rho_sweep();
+    if (true) demo_nn_ar_mc_snr_rho_sweep();
 
     std::cout << "\nAR(1)+NN MC simulation complete.\n";
     return 0;

@@ -17,7 +17,7 @@ In addition to the standard selection diagnostics, the demo also reports T-LASSO
 
 ## Key idea
 
-Like the other terminating solvers, T-LASSO is executed only up to a prescribed stopping level $T_{\text{stop}}$ rather than along a full path:
+Like the other terminating solvers, T-LASSO stops early once a prescribed number $T_{\text{stop}}$ of dummy variables has entered the active set, rather than tracing a full path:
 
 $$
 \hat{\boldsymbol{\beta}}^{(T)} = \mathrm{TLASSO}(\mathbf{X}, \mathbf{D}, \mathbf{y}; T_{\text{stop}}).
@@ -29,7 +29,7 @@ In the demo, this is done through calls of the form
 executeStep(T_stop, /*early_stop=*/true)
 ```
 
-so the solver stops once the requested number of steps has been reached.
+where `T_stop` is the number of dummy variables that must enter the active set before the solver terminates early: with `early_stop=true` the run stops as soon as the count of active dummies reaches $T_{\text{stop}}$.
 
 ---
 
@@ -90,9 +90,9 @@ When reading the console output, focus on the following points:
 - The synthetic data are generated with known support and coefficients, so the selection path can be compared against ground truth.
 - The demo uses both in-memory and memory-mapped workflows.
 - The serialization example writes a temporary checkpoint file named `tlasso_checkpoint.bin` and removes it afterward.
-- The memory-mapped example writes temporary files for $X$, $D$, and $y`, runs T-LASSO on those mapped views, and removes those files at the end.
+- The memory-mapped example writes temporary files for $X$, $D$, and $y$, runs T-LASSO on those mapped views, and removes those files at the end.
 - For a dedicated cross-check against related LARS/LASSO reference behavior, see the validation folder described in `validation_ts_02_tlars_tlasso_rcompare`.
 
 ---
 
-**Last updated**: 2026-07-03
+**Last updated**: 2026-07-08

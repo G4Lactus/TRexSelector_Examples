@@ -114,8 +114,8 @@ When reading the console output, focus on the following points:
 
 - The PCA object is constructed from an `Eigen::Map`, so the training matrix is passed through an Eigen-compatible interface.
 - The demo uses synthetic Gaussian data generated from standard normal draws in each subproblem.
-- The current README sentence “explained variance ratio per component (should sum to 1 across all components)” is only accurate when interpreted over the retained components printed by the demo, not over the full original $p$-dimensional variance decomposition.
+- The explained-variance entries reported by the demo describe the retained $M$ components, not the full original $p$-dimensional variance decomposition.
 
 ---
 
-**Last updated**: 2026-07-01
+**Last updated**: 2026-07-08

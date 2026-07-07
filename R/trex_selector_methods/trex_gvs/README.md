@@ -1,8 +1,9 @@
 # T-Rex+GVS: Grouped Variable Selection — R Demonstration Suite
 
-> **Status**: legacy — uses the CRAN TRexSelector 1.0.0 functional API
-> (`trex()`, `FDP()`, `TPP()`, `add_dummies_GVS()`). Migration to the
-> TRexSelectorNeo R6 API is planned.
+> **Status**: NEW — migrated to the **TRexSelectorNeo** R6 API
+> (`TRexGVSSelector$new(..., gvs_control = trex_gvs_control(gvs_type = "EN"|"IEN"))$select()`,
+> with `compute_fdp()` / `compute_tpp()`). No longer depends on the CRAN
+> `TRexSelector` package.
 
 ## Purpose
 
@@ -17,7 +18,7 @@ into groups. Each scenario is split into two files:
   (Part 3), and a 2D SNR x correlation phase-transition grid (Part 4).
   Typical fixed settings: n = 200, p = 500, tFDR = 0.1, K = 20, 200 MC runs.
 
-Dependencies: `TRexSelector` (CRAN), `plotly`, `parallel`. The scripts source
+Dependencies: `TRexSelectorNeo`, `plotly`, `parallel`. The scripts source
 the shared [../support_generators.R](../support_generators.R) and
 [../simulation_utils.R](../simulation_utils.R) (which provides the
 `.run_mc_*()` EN/IEN wrappers) plus the local `dgp_*.R` files.
@@ -91,4 +92,4 @@ disable individual parts.
 
 ---
 
-**Last updated**: 2026-07-06
+**Last updated**: 2026-07-08

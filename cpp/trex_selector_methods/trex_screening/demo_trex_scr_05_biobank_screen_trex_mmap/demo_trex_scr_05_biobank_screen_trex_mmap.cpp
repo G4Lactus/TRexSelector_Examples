@@ -399,7 +399,7 @@ int main()
     demo_MMap_Biobank_MonteCarlo(/*num_MC=*/500);
 
     // Demo 04: Monte Carlo SNR sweep — multiple phenotypes (runs for a while)
-    // demo_MMap_Biobank_MultiplePhenotypesMC(/*num_MC=*/100);
+    demo_MMap_Biobank_MultiplePhenotypesMC(/*num_MC=*/500);
 
     return 0;
 }

@@ -17,13 +17,17 @@
 # Resolve the directory of this file, works for both source() and Rscript.
 this_dir_ <- tryCatch(
   dirname(normalizePath(sys.frame(1)$ofile)),
-  error = function(e) "."
+  error = function(e) {
+    args <- commandArgs(trailingOnly = FALSE)
+    file_arg <- grep("--file=", args, value = TRUE)
+    if (length(file_arg) > 0) dirname(normalizePath(sub("--file=", "", file_arg[1]))) else "."
+  }
 )
 
 source(file.path(this_dir_, "..", "support_generators.R"))
 source(file.path(this_dir_, "dgp_bt_snr.R"))
 
-library(TRexSelector)
+library(TRexSelectorNeo)
 library(plotly)
 library(parallel)
 
@@ -45,8 +49,8 @@ source(file.path(this_dir_, "..", "simulation_utils.R"))
   n_sel   <- length(sel_set)
   n_tp    <- length(intersect(sel_set, dat$true_support))
   n_fp    <- n_sel - n_tp
-  tpp_val <- TRexSelector::TPP(result$selected_var, dat$beta)
-  fdp_val <- TRexSelector::FDP(result$selected_var, dat$beta)
+  tpp_val <- TRexSelectorNeo::compute_tpp(result$selected_indices, dat$true_support)
+  fdp_val <- TRexSelectorNeo::compute_fdp(result$selected_indices, dat$true_support)
 
   # Header
   cat(strrep("=", 70), "\n")
@@ -65,8 +69,8 @@ source(file.path(this_dir_, "..", "simulation_utils.R"))
     paste(dat$true_support, collapse = ", ")
   ))
   cat(strrep("-", 70), "\n")
-  cat(sprintf("  Calibration:  T_stop = %d,  dummies = %d\n",
-              result$T_stop, result$num_dummies))
+  cat(sprintf("  Calibration:  T_stop = %d,  L = %d\n",
+              result$T_stop, result$L))
   cat(sprintf("  Selection:    %d selected  |  TP = %d  FP = %d\n",
               n_sel, n_tp, n_fp))
   cat(sprintf("  Rates:        TPP = %.3f  |  FDP = %.3f  (target tFDR <= %.2f)\n",
@@ -131,16 +135,12 @@ if (FALSE) {
 
     # Run T-Rex+DA+BT
     cat("[Part 1] Running trex+DA+BT (hc_dist = 'single') ...\n\n")
-    res_p1 <- TRexSelector::trex(
-      X          = dat_p1$X,
-      y          = dat_p1$y,
-      tFDR       = PARAMS$tFDR,
-      K          = PARAMS$K,
-      method     = "trex+DA+BT",
-      hc_dist    = "single",
-      verbose    = FALSE,
-      seed       = PARAMS$seed
-    )
+    res_p1 <- TRexSelectorNeo::TRexDASelector$new(
+      dat_p1$X, dat_p1$y, tFDR = PARAMS$tFDR, seed = -1L, verbose = FALSE,
+      da_control = TRexSelectorNeo::trex_da_control(
+        da_method = "BT", hc_linkage = cap_hc("single")),
+      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = PARAMS$K))
+    res_p1$select()
 
     .print_result(
       "Part 1 — BT Demo  [trex+DA+BT, TLARS, hc_dist=single]",

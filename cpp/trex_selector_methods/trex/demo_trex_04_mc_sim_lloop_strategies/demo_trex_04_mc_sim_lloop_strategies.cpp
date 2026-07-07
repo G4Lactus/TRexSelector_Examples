@@ -1,13 +1,13 @@
 // ==============================================================================
-// demo_trex_04_lloop_strategies.cpp
+// demo_trex_04_mc_sim_lloop_strategies.cpp
 // ==============================================================================
 /**
- * @file demo_trex_04_lloop_strategies.cpp
+ * @file demo_trex_04_mc_sim_lloop_strategies.cpp
  *
  * @brief Monte Carlo simulation comparing the six L-loop strategies of the
  *        T-Rex Selector, with TLARS held fixed as the base solver.
  *
- * @details Mirrors R/trex_selector_methods/trex/demo_trex_04_lloop_strategies.R
+ * @details Mirrors R/trex_selector_methods/trex/demo_trex_04_mc_sim_lloop_strategies.R
  *
  *  Runs in two modes controlled by the `block_support` parameter:
  *    block_support = true  — contiguous block support {0, 1, ..., s-1}.
@@ -98,15 +98,15 @@ struct LLoopStrategyInfo {
 /** @brief Returns the canonical list of L-loop strategy variants to compare.
  *
  *  Adaptive strategies (STANDARD … DIRECT) all use max_dummy_multiplier = 10 (default).
- *  SKIPL is compared at four explicit L levels: 5p, 10p, 20p, and 50p.
+ *  SKIPL is compared at three explicit L levels: 5p, 10p, and 20p.
  */
 static std::vector<LLoopStrategyInfo> make_lloop_strategies() {
     return {
-        //{"STANDARD",           LLoopStrategy::STANDARD},
-        //{"HCONCAT",            LLoopStrategy::HCONCAT},
-        //{"PERMUTATION",        LLoopStrategy::PERMUTATION},
-        //{"PERMUTATION_DIRECT", LLoopStrategy::PERMUTATION_DIRECT},
-        //{"DIRECT",             LLoopStrategy::DIRECT},
+        {"STANDARD",           LLoopStrategy::STANDARD},
+        {"HCONCAT",            LLoopStrategy::HCONCAT},
+        {"PERMUTATION",        LLoopStrategy::PERMUTATION},
+        {"PERMUTATION_DIRECT", LLoopStrategy::PERMUTATION_DIRECT},
+        {"DIRECT",             LLoopStrategy::DIRECT},
         {"SKIPL_5p",           LLoopStrategy::SKIPL, 5},
         {"SKIPL_10p",          LLoopStrategy::SKIPL, 10},
         {"SKIPL_20p",          LLoopStrategy::SKIPL, 20}

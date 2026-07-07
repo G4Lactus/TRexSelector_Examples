@@ -1,8 +1,8 @@
 // ==================================================================================
-// demo_mlm_02_hac.cpp
+// demo_mlm_hac_01.cpp
 // ==================================================================================
 /**
- * @file demo_mlm_02_hac.cpp
+ * @file demo_mlm_hac_01.cpp
  *
  * @brief Demonstration of dendrogram visualization for hierarchical clustering.
  *

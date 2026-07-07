@@ -29,8 +29,11 @@
  *      the discrepancy (per-fold standardisation, y-scaling, prediction, ...).
  *
  *  Prerequisite: run R/.../trex_spca/lambda2_foldmatch.R first (it consumes the
- *  lambda2_probe_X.csv / lambda2_probe_y.csv dumped by demo_02 and produces the
- *  fm_*.csv files this demo reads).
+ *  lambda2_probe_X.csv / lambda2_probe_y.csv produced by
+ *  validation_trex_spca_01_lambda2_probe and produces the fm_*.csv files this
+ *  demo reads). Note: validation_trex_spca_01 is currently disabled in CMake
+ *  (pending a rewrite to the new CV API), so this chain runs off the committed
+ *  lambda2_probe_*.csv files rather than regenerating them.
  */
 // ==============================================================================
 

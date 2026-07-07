@@ -21,7 +21,7 @@
 # ==============================================================================
 
 # Load packages
-library(TRexSelector)
+library(TRexSelectorNeo)
 library(plotly)
 library(parallel)
 
@@ -30,13 +30,42 @@ num_cores <- 8
 # Helper: plot a correlation matrix as a heatmap
 this_dir_ <- tryCatch(
   dirname(normalizePath(sys.frame(1)$ofile)),
-  error = function(e) "."
+  error = function(e) {
+    args <- commandArgs(trailingOnly = FALSE)
+    file_arg <- grep("--file=", args, value = TRUE)
+    if (length(file_arg) > 0) dirname(normalizePath(sub("--file=", "", file_arg[1]))) else "."
+  }
 )
 
 # Source files
 source(file.path(this_dir_, "..", "support_generators.R"))
 source(file.path(this_dir_, "dgp_ar1_snr.R"))
 source(file.path(this_dir_, "..", "simulation_utils.R"))
+
+# ------------------------------------------------------------------------------
+# NN availability guard
+# ------------------------------------------------------------------------------
+# trex+DA+NN is implemented in the C++ core (DAMethod::NN) but not yet exposed by
+# the installed TRexSelectorNeo R binding (trex_da_control() accepts AR1, EQUI,
+# BT only; NN throws "Unknown DAMethod: NN" at select()). Detect this once and
+# exit cleanly instead of erroring mid-run. Remove once the binding exposes NN.
+.nn_supported <- tryCatch({
+  .x_ <- matrix(stats::rnorm(20L * 8L), 20L, 8L)
+  .s_ <- TRexSelectorNeo::TRexDASelector$new(
+    .x_, as.numeric(.x_[, 1L]), tFDR = 0.5, seed = 1L, verbose = FALSE,
+    da_control = TRexSelectorNeo::trex_da_control(da_method = "NN"),
+    control    = TRexSelectorNeo::trex_control(K = 5L))
+  .s_$select()
+  TRUE
+}, error = function(e) FALSE)
+
+if (!.nn_supported) {
+  cat("\n[SKIP] trex+DA+NN is not exposed by the installed TRexSelectorNeo ",
+      "R binding.\n",
+      "       The C++ core supports DAMethod::NN; this demo will run once the\n",
+      "       R binding adds it. Skipping (nothing to compute).\n\n", sep = "")
+  if (!interactive()) quit(save = "no", status = 0)
+}
 
 # ==============================================================================
 # Base parameters
@@ -82,8 +111,8 @@ MC_BASE <- list(
   n_sel   <- length(sel_set)
   n_tp    <- length(intersect(sel_set, dat$true_support))
   n_fp    <- n_sel - n_tp
-  tpp_val <- TRexSelector::TPP(result$selected_var, dat$beta)
-  fdp_val <- TRexSelector::FDP(result$selected_var, dat$beta)
+  tpp_val <- TRexSelectorNeo::compute_tpp(result$selected_indices, dat$true_support)
+  fdp_val <- TRexSelectorNeo::compute_fdp(result$selected_indices, dat$true_support)
 
   cat(strrep("=", 70), "\n")
   cat(sprintf("  %s\n", scenario_name))
@@ -95,8 +124,8 @@ MC_BASE <- list(
   cat(sprintf("  True support (1-based): {%s}\n",
               paste(dat$true_support, collapse = ", ")))
   cat(strrep("-", 70), "\n")
-  cat(sprintf("  Calibration:  T_stop = %d,  dummies = %d\n",
-              result$T_stop, result$num_dummies))
+  cat(sprintf("  Calibration:  T_stop = %d,  L = %d\n",
+              result$T_stop, result$L))
   cat(sprintf("  Selection:    %d selected  |  TP = %d  FP = %d\n",
               n_sel, n_tp, n_fp))
   cat(sprintf("  Rates:        TPP = %.3f  |  FDP = %.3f  (target tFDR <= %.2f)\n",
@@ -149,14 +178,11 @@ if (FALSE) {
 
     # Run TRex+DA+NN
     cat("[Part 1] Running trex+DA+NN ...\n\n")
-    res_p1 <- TRexSelector::trex(
-      X = dat_p1$X,
-      y = dat_p1$y,
-      tFDR = PARAMS$tFDR,
-      K = PARAMS$K,
-      method = "trex+DA+NN",
-      verbose = FALSE
-    )
+    res_p1 <- TRexSelectorNeo::TRexDASelector$new(
+      dat_p1$X, dat_p1$y, tFDR = PARAMS$tFDR, seed = -1L, verbose = FALSE,
+      da_control = TRexSelectorNeo::trex_da_control(da_method = "NN"),
+      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = PARAMS$K))
+    res_p1$select()
 
     # Print results
     .print_result(

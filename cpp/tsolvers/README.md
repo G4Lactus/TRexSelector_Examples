@@ -4,7 +4,7 @@
 
 This folder contains demos and validation programs for the **terminating solvers** in `tsolvers/`.
 
-These are variable-selection algorithms designed for high-dimensional linear-model problems inside the T-Rex framework. Each solver follows a different path-following, greedy, or pursuit-style strategy, but all share the same terminating principle: instead of computing a full regularization path, they stop once a prescribed stopping level $T_{\text{stop}}$ has been reached.
+These are variable-selection algorithms designed for high-dimensional linear-model problems inside the T-Rex framework. Each solver follows a different path-following, greedy, or pursuit-style strategy, but all share the same terminating principle: instead of computing a full regularization path, they stop early once a prescribed number $T_{\text{stop}}$ of dummy variables has entered the active set.
 
 The demos in this folder run each solver in a standalone way, outside the full T-Rex calibration workflow, so that solver behavior, normalization choices, and serialization can be inspected in isolation.
 
@@ -44,8 +44,7 @@ In addition to solver demos, this folder also contains heavier validation progra
 
 ### Terminating principle
 
-A terminating solver runs its selection path until a stopping level $T_{\text{stop}}$ is reached, which stops it
-usually before the full path is computed.
+A terminating solver runs its selection path with `executeStep(T_stop, early_stop=true)`, where $T_{\text{stop}}$ is the **number of dummy variables that must enter the active set before the solver terminates early** (it stops once the count of active dummies reaches $T_{\text{stop}}$), usually well before the full path is computed.
 The actual coefficient vector is computed internally, but serves only as tool for the selection process.
 
 ### Normalization modes
@@ -107,4 +106,4 @@ tsolvers/
 
 ---
 
-**Last updated**: 2026-07-03
+**Last updated**: 2026-07-08

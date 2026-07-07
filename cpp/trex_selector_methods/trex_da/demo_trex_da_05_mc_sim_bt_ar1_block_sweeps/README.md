@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Extend Demo 04's block-diagonal AR(1) design by appending a large block of **i.i.d. white-noise columns**, testing whether `BT`-based DA-TRex can still isolate the true AR(1) blocks when they are a small fraction of a much larger, otherwise-uncorrelated design. Corresponds to R reference `demo_trex_da_05_bt_ar1_plus_white_block_sweeps.R` (labeled "06" in the R filename lineage, "05" in this C++ folder — a naming lineage quirk, not a bug).
+Extend Demo 04's block-diagonal AR(1) design by appending a large block of **i.i.d. white-noise columns**, testing whether `BT`-based DA-TRex can still isolate the true AR(1) blocks when they are a small fraction of a much larger, otherwise-uncorrelated design. Corresponds to R reference `demo_trex_da_06_bt_ar1_plus_white_block_sweeps.R` (numbered "06" in the R suite but "05" in this C++ folder — a naming lineage quirk, not a bug).
 
 ---
 
@@ -25,7 +25,7 @@ Extend Demo 04's block-diagonal AR(1) design by appending a large block of **i.i
 
 ## Output Files
 
-Written to `simulation_results/` (23 files):
+Written to `simulation_results/` (24 files = 12 scenario stems, one `.txt`+`.csv` pair each):
 
 - `da_trex_mc_da_ar1_white_snr_{Single,Complete,Average}.txt` / `.csv`
 - `da_trex_mc_da_ar1_white_rho_{Single,Complete,Average}.txt` / `.csv`
@@ -37,7 +37,7 @@ Written to `simulation_results/` (23 files):
 ## Running the Demo
 
 ```bash
-./build/debug/bin/demo_trex_da_05_mc_sim_bt_ar1_block_sweeps
+./build/debug/bin/trex_selector_methods/trex_da/demo_trex_da_05_mc_sim_bt_ar1_block_sweeps/demo_trex_da_05_mc_sim_bt_ar1_block_sweeps
 ```
 
 ---
@@ -63,4 +63,4 @@ Written to `simulation_results/` (23 files):
 
 ---
 
-**Last updated**: 2026-07-04
+**Last updated**: 2026-07-08

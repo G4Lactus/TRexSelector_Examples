@@ -17,7 +17,7 @@ $$
 - $\boldsymbol{E}$: i.i.d. Gaussian, scaled to hit a target SNR in dB.
 - $n=50$, $p=100$, $p_1=5$, $M=3$, `overlap_pool_size=30`.
 
-All methods share one z-score-standardized $\boldsymbol{X}$ (see `standardize_columns()` — note: the current implementation centers columns and returns early, so variance normalization is effectively dead code / a left-in-place A/B test; all methods still see the same, centered-only, $\boldsymbol{X}$).
+All methods share one z-score-standardized $\boldsymbol{X}$ (see `standardize_columns()`, which centers each column and divides by its sample standard deviation — a full z-score, with near-constant columns left centered-only to avoid blow-up). This puts OrdPCA, OraclePCA, and TRexSPCA on a common correlation-PCA footing.
 
 ---
 
@@ -25,9 +25,9 @@ All methods share one z-score-standardized $\boldsymbol{X}$ (see `standardize_co
 
 ```
 tFDR = 0.10
-lambda_2 = -1        # triggers k-fold CV for ridge-penalty selection
+lambda_2 = -1        # < 0 triggers k-fold CV for ridge-penalty selection (0 = no ridge, > 0 = fixed)
 num_MC = 200          # as set in main(), see caveat below
-base_seed = 42
+base_seed = 42        # seeds the per-trial DATA DGP deterministically (trial mc uses base_seed + mc*1000)
 ```
 
 ---
@@ -62,7 +62,7 @@ Three different numbers appear for this one demo, and they do not agree:
 2. The actual `main()` function sets `cfg.num_MC = 200` but `snr_values = {-10.0}` — a **single SNR point**, explicitly commented `// TEMP fast-validation`.
 3. The **committed output file** (`simulation_results/demo_trex_spca_01_mc_sim.txt`) reports results **"averaged over 80 MC trials"**.
 
-None of 100, 200, or 80 agree, and only one of the five documented SNR points has ever actually been run and committed. Treat the committed numbers below as illustrative of the $-10$ dB point only, generated under whatever configuration was active at the time — not as a reproducible guarantee if you rebuild and rerun today's `main()`.
+None of 100, 200, or 80 agree, and only one of the five documented SNR points has ever actually been run and committed. The committed table was produced at 80 trials, so it predates the current `num_MC = 200` setting and will not reproduce trial-for-trial today. Note, however, that the **data** DGP is now reproducible: each trial draws its data from a deterministic seed (`base_seed + mc*1000`), so the sequence of design matrices is fixed by `base_seed`. The per-trial dummies still use hardware entropy (selector seed $-1$) by design, which is required for a valid Monte Carlo FDR estimate. Treat the committed numbers below as illustrative of the $-10$ dB point only.
 
 ---
 
@@ -78,7 +78,7 @@ Written to `simulation_results/` (already populated):
 ## Running the Demo
 
 ```bash
-./build/debug/bin/demo_trex_spca_01_mc_sim
+./build/debug/bin/trex_selector_methods/trex_spca/demo_trex_spca_01_mc_sim/demo_trex_spca_01_mc_sim
 ```
 
 ---
@@ -106,4 +106,4 @@ Written to `simulation_results/` (already populated):
 
 ---
 
-**Last updated**: 2026-07-04
+**Last updated**: 2026-07-08

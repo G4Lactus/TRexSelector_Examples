@@ -55,7 +55,8 @@ but with predictors organized into groups.
 
 ### Within-group correlation models used across the demos
 
-- **Equicorrelated**: $X_{ij} = \sqrt{\rho}\, Z_{i,g(j)} + \sqrt{1-\rho}\, \varepsilon_{ij}$, with $Z_{\cdot,k} \sim \mathcal{N}(0,1)$ the group-$k$ latent factor.
+- **Equicorrelated, unnormalized latent factor** (Demos 01–04): $X_{ij} = Z_{i,g(j)} + \mathrm{sd}_x\, \xi_{ij}$, with $Z_{\cdot,k}, \xi_{ij} \sim \mathcal{N}(0,1)$. This induces within-group correlation $\rho = 1/(1+\mathrm{sd}_x^2)$; the columns are *not* unit-variance (they have variance $1+\mathrm{sd}_x^2$). To target a given $\rho$, set $\mathrm{sd}_x = \sqrt{(1-\rho)/\rho}$.
+- **Equicorrelated, unit-variance** (block-equicorr benchmark Demo 08, and the heavy-tailed blocks of Demo 05): $X_{ij} = \sqrt{\rho}\, Z_{i,g(j)} + \sqrt{1-\rho}\, \varepsilon_{ij}$, giving exactly unit-variance columns with within-group correlation $\rho$.
 - **AR(1) Toeplitz** (Demo 06): within-block covariance $\Sigma_k(i,j) = \rho^{|i-j|}$, generated via a Cholesky factor.
 - **Heterogeneous ARMA** (Demo 07): each block follows a different ARMA specification (AR(1), MA(3), ARMA(2,1)), swept over an AR coefficient `ar_coef` instead of $\rho$.
 - **Heavy-tailed** (Demo 05): the same latent-factor construction as the equicorrelated model, but with Student-t(3)/$\sqrt{3}$ (unit-variance) latent factors and noise.
@@ -216,10 +217,10 @@ cmake -S . -B build/debug -DCMAKE_BUILD_TYPE=Debug \
 cmake --build build/debug
 ```
 
-The executables are written to:
+The executables mirror the source tree under the `bin/` directory:
 
 ```txt
-build/debug/bin/
+build/debug/bin/trex_selector_methods/trex_gvs/<demo_folder>/<demo_name>
 ```
 
 ---
@@ -229,7 +230,7 @@ build/debug/bin/
 For example, to run Demo 01:
 
 ```bash
-./build/debug/bin/demo_trex_gvs_01_mc_sim_hastie_en_blocks
+./build/debug/bin/trex_selector_methods/trex_gvs/demo_trex_gvs_01_mc_sim_hastie_en_blocks/demo_trex_gvs_01_mc_sim_hastie_en_blocks
 ```
 
 Most demos write both a human-readable `.txt` summary and a tidy `.csv` table into their local `simulation_results/` folder; Demo 08 prints its results to the console only.
@@ -251,8 +252,8 @@ Most demos write both a human-readable `.txt` summary and a tidy `.csv` table in
 - See [../README.md](../README.md) for the category overview of all T-Rex selector variants.
 - See [../trex/README.md](../trex/README.md) for the classical (non-grouped) T-Rex selector demos and shared statistical background.
 - The R reference implementation and DGP generators for T-Rex+GVS live under `R/trex_selector_methods/trex_gvs/`.
-- A diagnostic comparison of HAC stability and EN-solver/scaling interactions is available in `validation/trex_gvs/validation_trex_gvs_01_scaling_solver_comparison.cpp`.
+- A diagnostic comparison of HAC stability and EN-solver/scaling interactions is available in `../validation/trex_gvs/validation_trex_gvs_01_scaling_solver_comparison.cpp`.
 
 ---
 
-**Last updated**: 2026-07-04
+**Last updated**: 2026-07-08

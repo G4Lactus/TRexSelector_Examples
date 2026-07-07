@@ -1,8 +1,8 @@
 // ==================================================================================
-// demo_mlm_03_hac_mmap.cpp
+// demo_mlm_hac_02_mmap.cpp
 // ==================================================================================
 /**
- * @file demo_mlm_03_hac_mmap.cpp
+ * @file demo_mlm_hac_02_mmap.cpp
  *
  * @brief LSH Linkage Comparison at biobank-representative scale via memory-mapped I/O.
  *
@@ -20,14 +20,16 @@
  *   Phase 2 | Standardise  : Each column is mean-centred and L2-normalised in-place
  *                            (required for Pearson-correlation distances).
  *
- *   Phase 3 | Clustering   : Four linkage strategies are benchmarked under the pure
+ *   Phase 3 | Clustering   : Linkage strategies are benchmarked under the pure
  *                            O(1) LSH Correlation Approximation:
- *                              A. Single Linkage  – SLINK
- *                              B. Complete Linkage – NN-Chain
- *                              C. Average Linkage  – UPGMA (NN-Chain)
- *                              D. Weighted Average – WPGMA (NN-Chain)
+ *                              A. Single Linkage   – SLINK (projected engine)
+ *                              B. Complete Linkage – [SKIPPED] O(p^2) Lance-Williams
+ *                                 matrix is intractable at this scale
+ *                              C. Average Linkage  – UPGMA (projected engine)
+ *                              D. Ward Linkage      – minimum-variance (projected engine)
+ *                            WPGMA is likewise skipped as intractable at p = 400,000.
  *
- * Expected result: all four methods achieve ARI ≈ 1.0000 because the block geometry
+ * Expected result: the executed methods achieve ARI ≈ 1.0000 because the block geometry
  * creates well-separated clusters in correlation space; the O(1) SimHash approximation
  * recovers the exact solution without paying the O(P) exact-distance cost.
  *

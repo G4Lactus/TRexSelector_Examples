@@ -47,7 +47,7 @@ Written to `simulation_results/` once run:
 ## Running the Demo
 
 ```bash
-./build/debug/bin/demo_trex_scr_02_screen_trex_mmap
+./build/debug/bin/trex_selector_methods/trex_screening/demo_trex_scr_02_screen_trex_mmap/demo_trex_scr_02_screen_trex_mmap
 ```
 
 ---
@@ -59,4 +59,4 @@ Written to `simulation_results/` once run:
 
 ---
 
-**Last updated**: 2026-07-04
+**Last updated**: 2026-07-08

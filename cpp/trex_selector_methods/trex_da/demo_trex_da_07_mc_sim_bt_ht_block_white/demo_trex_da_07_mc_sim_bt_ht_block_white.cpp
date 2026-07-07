@@ -1,13 +1,13 @@
 // ==============================================================================
-// demo_trex_da_07_mc_sim_ht_block_white.cpp
+// demo_trex_da_07_mc_sim_bt_ht_block_white.cpp
 // ==============================================================================
 /**
- * @file demo_trex_da_07_mc_sim_ht_block_white.cpp
+ * @file demo_trex_da_07_mc_sim_bt_ht_block_white.cpp
  *
  * @brief DA-TRex MC simulations for the heavy-tailed block + white-noise DGP.
  *
  * @details
- *  Corresponds to R reference: demo_trex_da_07_bt_ht_block_white_sweeps.R.
+ *  Corresponds to R reference: demo_trex_da_08_bt_heavy_tailed_plus_white_block_sweeps.R.
  *
  *  DGP: dgp_ht_block_white() -- M AR(1) Toeplitz t(nu) blocks (p_ar columns)
  *  plus p_white i.i.d. t(nu) white-noise columns; p_total = p_ar + p_white = 500.

@@ -21,7 +21,7 @@
 # Sweeps over: SNR, rho, Q (block size), M (number of blocks), tFDR.
 # ==============================================================================
 
-library(TRexSelector)
+library(TRexSelectorNeo)
 library(parallel)
 num_cores <- 6L
 

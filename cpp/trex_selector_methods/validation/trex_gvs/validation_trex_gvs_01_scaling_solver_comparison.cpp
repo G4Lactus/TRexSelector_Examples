@@ -368,7 +368,7 @@ static void run_part2_scaling_solver_grid(const ScalingBugPreset& preset)
 static void run_scaling_solver_bug_hunt(const ScalingBugPreset& preset)
 {
     cdiag::print_section_header(
-        "demo_trex_gvs_10 : GVS/EN scaling bug hunt (L2 vs z-score)"
+        "validation_trex_gvs_01 : GVS/EN scaling bug hunt (L2 vs z-score)"
         "\nR ref (n=200,p=500,rho~0.99,SNR=2): EN mean_FDP=0.1174, TPP=1.000");
 
     run_part1_clustering_integrity(preset);

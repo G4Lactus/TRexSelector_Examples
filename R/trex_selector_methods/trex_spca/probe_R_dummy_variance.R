@@ -1,10 +1,14 @@
 #!/usr/bin/env Rscript
 # Probe: is R's -10dB FDR=0.0975 reproducible, or a lucky dummy draw?
-# Re-run R trex on the SAME rdump10 X files under several different global RNG
+# Re-run T-Rex on the SAME rdump10 X files under several different selector
 # seeds (which change the internal dummy realizations) and report the spread of
 # mean FDR. Stable mean -> systematic; wide spread -> MC dummy noise.
+#
+# MIGRATED: exercises the TRexSelectorNeo R binding (TRexGVSSelector) rather
+# than the CRAN TRexSelector package. The probed dummy-RNG seed is now passed
+# directly as the selector's `seed` argument (was a global set.seed()).
 
-suppressMessages(library(TRexSelector))
+suppressMessages(library(TRexSelectorNeo))
 
 get_script_dir <- function() {
   args <- commandArgs(trailingOnly = FALSE)
@@ -46,11 +50,15 @@ for (s in seeds) {
                              header = FALSE))
     y1 <- as.numeric(pc1[mc, -1])            # drop the mc index column
     lam <- lam2_df$lambda2[lam2_df$mc == (mc - 1)]
-    set.seed(s * 100000L + mc)               # vary dummy realization per seed
-    res <- TRexSelector::trex(X, y1, tFDR = tFDR, method = "trex+GVS",
-                              GVS_type = "EN", type = "lar",
-                              lambda_2_lars = lam, verbose = FALSE)
-    sel_idx <- which(res$selected_var == 1)
+    # vary the internal dummy realization per (seed, trial) via the selector seed
+    res <- TRexGVSSelector$new(
+      X = X, y = y1, tFDR = tFDR, seed = as.integer(s * 100000L + mc),
+      verbose = FALSE,
+      gvs_control = trex_gvs_control(gvs_type = "EN", lambda_2 = lam,
+                                     en_solver = "TENET"),
+      control = trex_control(solver = "TLARS"))
+    res$select()
+    sel_idx <- res$selected_indices
     m <- fdp_tpp(sel_idx, truth_list[[mc]])
     fdrs[mc] <- m["fdp"]; tprs[mc] <- m["tpp"]; ks[mc] <- m["k"]
   }

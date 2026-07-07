@@ -38,16 +38,20 @@
 #      * Fig 3c:  Cumulative PEV vs. Target FDR (alpha)
 #
 #
-# NOTE ON T-REX+GVS with ELASTIC NET PARAMETERIZATION:
+# NOTE ON THE T-REX SPCA SELECTOR (migrated to TRexSelectorNeo):
 # --------------------------------------------------------
-# To recover the highly correlated overlapping variables without
-# reverting to Lasso-style selection (picking 1 out of 5), the internal
-# selector is the TRex+GVS selector operating an Elastic Net base selector.
-# We rely on the internal cross-validation (lambda_2_lars = NULL) to
-# autonomously capture the grouping effect.
+# This script previously hand-rolled T-Rex SPCA by calling the CRAN
+# TRexSelector::trex(method = "trex+GVS", GVS_type = "EN", ...) once per
+# principal component, together with a manual cv.glmnet lambda_2 step.
+# It now uses the dedicated TRexSelectorNeo::TRexSPCASelector R6 class, which
+# performs exactly this per-PC FDR-controlled sparse-loading selection
+# internally (Elastic-Net GVS base selector, internal CV for the ridge
+# lambda_2). The per-PC lambda_2_lars diagnostic columns of the old
+# hand-rolled loop no longer apply and are replaced by the active-set sizes
+# per PC (sel$active_sets) that the R6 result exposes.
 # ==============================================================================
 
-library(TRexSelector)
+library(TRexSelectorNeo)
 library(elasticnet)
 library(parallel)
 
@@ -142,7 +146,7 @@ if (!is_unix) {
   cl <- makeCluster(num_cores)
   on.exit(stopCluster(cl))
   clusterEvalQ(cl, {
-    library(TRexSelector)
+    library(TRexSelectorNeo)
     library(elasticnet)
   })
   clusterExport(cl, varlist = c("n", "p", "p1", "M", "target_fdr",
@@ -163,18 +167,16 @@ for (snr in snr_db_seq) {
     X <- data$X
     V_true <- data$V
 
-    # Expanded to accommodate 8 distinct methods + per-PC lambda_2_lars diagnostics
-    res <- numeric(27)
+    # Four comparison methods (Ord PCA, Oracle PCA, Zou EN SPCA, Oracle SPCA)
+    # plus T-Rex SPCA, with per-PC active-set sizes as the R6 diagnostic.
+    res <- numeric(18)
     names(res) <- c(
       "ord_TPR", "ord_FDR", "ord_PEV",
       "oracle_TPR", "oracle_FDR", "oracle_PEV",
       "en_spca_TPR",  "en_spca_FDR",  "en_spca_PEV",
       "oracle_spca_TPR", "oracle_spca_FDR", "oracle_spca_PEV",
-      "en_act_TPR", "en_act_FDR", "en_act_PEV",
-      "en_thr_TPR", "en_thr_FDR", "en_thr_PEV",
-      "en_lam2_pc1", "en_lam2_pc2", "en_lam2_pc3",
-      "en_n_sel_pc1", "en_n_sel_pc2", "en_n_sel_pc3",
-      "en_lam2_avg", "en_lam2_sd", "en_n_sel_avg"
+      "trex_TPR", "trex_FDR", "trex_PEV",
+      "trex_k_pc1", "trex_k_pc2", "trex_k_pc3"
     )
 
     # ---------------------------------------------------------
@@ -263,65 +265,37 @@ for (snr in snr_db_seq) {
 
 
     # ---------------------------------------------------------
-    # Method 5 & 6: T-Rex SPCA (Elastic Net GVS)
+    # Method 5: T-Rex SPCA (TRexSelectorNeo::TRexSPCASelector)
     # ---------------------------------------------------------
-    V_en_active  <- matrix(0, p, M)
-    V_en_thresh  <- matrix(0, p, M)
-    lam2_per_pc  <- numeric(M)
-    n_sel_per_pc <- integer(M)
+    # The dedicated R6 class performs the per-PC, FDR-controlled sparse-loading
+    # selection internally (Elastic-Net GVS base selector, internal CV for the
+    # ridge lambda_2 via lambda_2 = -1). It returns sparse loadings V (p x M),
+    # scores Z (n x M), the 1-based active_sets per PC, and cumulative PEV.
+    # X is mapped in place via Eigen, so a fresh copy (X + 0) is passed to keep
+    # the local X intact for the evaluate_spca() call below.
+    trex_sel <- TRexSPCASelector$new(
+      X + 0, M = M, tFDR = target_fdr,
+      control = trex_spca_control(mode = "ActiveSet", gvs_type = "EN",
+                                  en_solver = "TENET_AUG",
+                                  lambda_2 = -1, lambda2_method = "CV_1SE_CCD"),
+      seed = as.integer(mc + 1L), verbose = FALSE)
+    trex_sel$select()
 
-    for (m in 1:M) {
-      y_m <- Z_ord[, m]
+    # PC1 support recovery from the R6 active set (1-based indices).
+    true_supp_pc1 <- which(V_true[, 1] != 0)
+    est_supp_pc1  <- trex_sel$active_sets[[1]]
+    res["trex_TPR"] <- TRexSelectorNeo::compute_tpp(est_supp_pc1, true_supp_pc1)
+    res["trex_FDR"] <- TRexSelectorNeo::compute_fdp(est_supp_pc1, true_supp_pc1)
 
-      # Replicate lm_dummy.R CV step (alpha=0, intercept=FALSE) to capture lambda_2_lars
-      cvfit_m <- glmnet::cv.glmnet(x = X, y = y_m, intercept = FALSE,
-                                   standardize = TRUE, alpha = 0,
-                                   type.measure = "mse", family = "gaussian",
-                                   nfolds = 10)
-      lam2_m <- cvfit_m$lambda.1se * ncol(X) / 2   # n*(1-alpha)/2, alpha=0, n=ncol(X)
-      lam2_per_pc[m] <- lam2_m
+    # Cumulative PEV via the same QR-adjusted definition used for all methods.
+    ev_trex <- evaluate_spca(X, trex_sel$V, trex_sel$Z, V_true)
+    res["trex_PEV"] <- ev_trex$PEV[M]
 
-      trex_res_en <- TRexSelector::trex(X = X, y = y_m, tFDR = target_fdr,
-                                        method = "trex+GVS", GVS_type = "EN",
-                                        lambda_2_lars = lam2_m, verbose = FALSE)
-
-      active_set <- which(trex_res_en$selected_var > .Machine$double.eps)
-      k <- length(active_set)
-      n_sel_per_pc[m] <- k
-
-      if (k > 0) {
-        v_m <- V_ord[, m]
-        thresh <- sort(abs(v_m), decreasing = TRUE)[k]
-        v_m[abs(v_m) < thresh] <- 0
-        V_en_thresh[, m] <- v_m / sqrt(sum(v_m^2))
-
-        X_A <- X[, active_set, drop = FALSE]
-        lambda2 <- 1e-6
-        I_k <- diag(1, nrow = k, ncol = k)
-        beta_ridge <- solve(crossprod(X_A) + lambda2 * I_k) %*% crossprod(X_A, y_m)
-        V_en_active[active_set, m] <- beta_ridge / sqrt(sum(beta_ridge^2))
-      }
-    }
-
-    ev_en_a <- evaluate_spca(X, V_en_active, X %*% V_en_active, V_true)
-    res["en_act_TPR"] <- ev_en_a$TPR
-    res["en_act_FDR"] <- ev_en_a$FDR
-    res["en_act_PEV"] <- ev_en_a$PEV[M]
-
-    ev_en_t <- evaluate_spca(X, V_en_thresh, X %*% V_en_thresh, V_true)
-    res["en_thr_TPR"] <- ev_en_t$TPR
-    res["en_thr_FDR"] <- ev_en_t$FDR
-    res["en_thr_PEV"] <- ev_en_t$PEV[M]
-
-    res["en_lam2_pc1"]  <- lam2_per_pc[1]
-    res["en_lam2_pc2"]  <- lam2_per_pc[2]
-    res["en_lam2_pc3"]  <- lam2_per_pc[3]
-    res["en_n_sel_pc1"] <- n_sel_per_pc[1]
-    res["en_n_sel_pc2"] <- n_sel_per_pc[2]
-    res["en_n_sel_pc3"] <- n_sel_per_pc[3]
-    res["en_lam2_avg"]  <- mean(lam2_per_pc)
-    res["en_lam2_sd"]   <- sd(lam2_per_pc)
-    res["en_n_sel_avg"] <- mean(n_sel_per_pc)
+    # R6 diagnostic: active-set size per PC (replaces old lambda_2_lars columns).
+    k_per_pc <- vapply(trex_sel$active_sets, length, integer(1))
+    res["trex_k_pc1"] <- k_per_pc[1]
+    res["trex_k_pc2"] <- k_per_pc[2]
+    res["trex_k_pc3"] <- k_per_pc[3]
 
     return(res)
   }
@@ -349,14 +323,8 @@ for (snr in snr_db_seq) {
               avg["en_spca_TPR"] * 100, avg["en_spca_FDR"] * 100, avg["en_spca_PEV"] * 100))
   cat(sprintf("  -> Oracle SPCA    | TPR: %5.1f%% | FDR: %5.1f%% | PEV(M=3): %5.1f%%\n",
               avg["oracle_spca_TPR"] * 100, avg["oracle_spca_FDR"] * 100, avg["oracle_spca_PEV"] * 100))
-  cat(sprintf("  -> T-Rex EN Act   | TPR: %5.1f%% | FDR: %5.1f%% | PEV(M=3): %5.1f%%\n",
-              avg["en_act_TPR"] * 100, avg["en_act_FDR"] * 100, avg["en_act_PEV"] * 100))
-  cat(sprintf("  -> T-Rex EN Thr   | TPR: %5.1f%% | FDR: %5.1f%% | PEV(M=3): %5.1f%%\n",
-              avg["en_thr_TPR"] * 100, avg["en_thr_FDR"] * 100, avg["en_thr_PEV"] * 100))
-  cat(sprintf("  -> lambda_2_lars  | PC1: %10.3f | PC2: %10.3f | PC3: %10.3f | Avg: %10.3f (SD: %.3f)\n",
-              avg["en_lam2_pc1"], avg["en_lam2_pc2"], avg["en_lam2_pc3"],
-              avg["en_lam2_avg"], avg["en_lam2_sd"]))
-  cat(sprintf("  -> n_selected     | PC1: %10.3f | PC2: %10.3f | PC3: %10.3f | Avg: %10.3f\n",
-              avg["en_n_sel_pc1"], avg["en_n_sel_pc2"], avg["en_n_sel_pc3"],
-              avg["en_n_sel_avg"]))
+  cat(sprintf("  -> T-Rex SPCA     | TPR: %5.1f%% | FDR: %5.1f%% | PEV(M=3): %5.1f%%\n",
+              avg["trex_TPR"] * 100, avg["trex_FDR"] * 100, avg["trex_PEV"] * 100))
+  cat(sprintf("  -> T-Rex |act set| PC1: %10.3f | PC2: %10.3f | PC3: %10.3f\n",
+              avg["trex_k_pc1"], avg["trex_k_pc2"], avg["trex_k_pc3"]))
 }

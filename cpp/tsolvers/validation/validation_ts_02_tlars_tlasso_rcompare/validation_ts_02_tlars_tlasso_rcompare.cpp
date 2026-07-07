@@ -17,12 +17,14 @@
  *      r_lasso_beta_<i>.csv / r_lasso_act_<i>.csv   : LASSO (type="lasso")
  *      r_en_beta_<i>.csv    / r_en_act_<i>.csv      : EN (augmented lasso_star)
  *
- *  Four C++ solvers are checked against the matching R reference:
+ *  Five C++ solver runs are checked against the matching R reference:
  *      TLARS_Solver   vs r_lar      (pure LARS)
  *      TLASSO_Solver  vs r_lasso    (LARS-LASSO, sign-change drops)
  *      TENET_Solver   vs r_en       (Gram-based elastic net; LASSO-style drops)
  *      TENETAug_Solver vs r_en      (augmented-lasso elastic net; default TLASSO
  *                                    inner) -- same EN path as TENET.
+ *      TENETAug_Solver vs r_enlar   (augmented-lasso EN with use_lars_inner=true;
+ *                                    pure-LARS inner, augmented type="lar").
  *
  *  API mapping: R uses ONE matrix Z = cbind(X, D) with num_dummies = L; the C++
  *  solvers take X and D SEPARATELY. R column j (1-based) <-> C++ combined 0-based

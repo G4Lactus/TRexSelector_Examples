@@ -4,7 +4,7 @@
 
 Cover two additional dependency structures: **equicorrelation** (`DAMethod::EQUI`) and a **two-level hierarchical block** structure handled via **binary-tree/dendrogram clustering** (`DAMethod::BT`). Corresponds to the R references `demo_trex_da_02_equi.R` and `demo_trex_da_03_bt_equi_blocks.R`.
 
-> **Status**: `simulation_results/` is currently empty — this demo has not yet been run in this checkout.
+> **Status**: All four parts run in `main()` and write output when executed. The committed checkout does not yet include the result files under `simulation_results/`.
 
 ---
 
@@ -35,16 +35,23 @@ All parts: $K=20$, $\mathrm{tFDR}=0.2$, $\mathrm{MC}=200$, `base_seed=2026`.
 
 ---
 
-## Output Files (expected)
+## Output Files
 
-Written to `simulation_results/` once run — naming pattern `da_trex_mc_da_{equi|bt}_{snr|rho|linkage}.{txt,csv}` (exact stems follow the shared `da_trex_mc_{scenario_tag}` convention; verify exact tag strings in the source if you rerun this demo).
+Written to `simulation_results/` when run (6 scenario stems, one `.txt`+`.csv` pair each = 12 files):
+
+- Part 1 (Equi SNR): `da_trex_mc_da_equi_snr.txt` / `.csv`
+- Part 2 (Equi $\rho$): `da_trex_mc_da_equi_rho.txt` / `.csv`
+- Part 3 (BT SNR, Single linkage): `da_trex_mc_da_bt_snr_single_baseline.txt` / `.csv`
+- Part 4 (BT linkage sweep): `da_trex_mc_da_bt_snr_{Single,Complete,Average}.txt` / `.csv`
+
+> Part 3's stem is `da_bt_snr_single_baseline` (not `da_bt_snr_single`) deliberately, so it does not collide with Part 4's `da_bt_snr_Single` on a case-insensitive filesystem.
 
 ---
 
 ## Running the Demo
 
 ```bash
-./build/debug/bin/demo_trex_da_02_mc_sim_equi_and_bt
+./build/debug/bin/trex_selector_methods/trex_da/demo_trex_da_02_mc_sim_equi_and_bt/demo_trex_da_02_mc_sim_equi_and_bt
 ```
 
 ---
@@ -57,4 +64,4 @@ Written to `simulation_results/` once run — naming pattern `da_trex_mc_da_{equ
 
 ---
 
-**Last updated**: 2026-07-04
+**Last updated**: 2026-07-08
