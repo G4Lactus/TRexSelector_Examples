@@ -1107,68 +1107,12 @@ void demo_ar1_linkage_comparison() {
 }
 
 
-void demo_r_crash_repro() {
-    cdiagnostics::print_section_header("Demo 5b: R Crash Reproduction (N=5000, P=1000)");
-
-    // Match R Scenario 5 exactly: n2=1000 observations, p2=5000 variables, k2=5 blocks
-    const DataGenConfig config {
-        .n_samples  = 1'000,
-        .p_features = 5'000,
-        .k_clusters = 5
-    };
-    std::vector<Eigen::Index> block_sizes = {2'000, 1'000, 800, 700, 500};
-    std::vector<double> centers  = {0.0, 0.0, 0.0, 0.0, 0.0};
-    std::vector<double> std_devs = {1.0, 1.0, 1.0, 1.0, 1.0};
-
-    std::cout << "1. Generating block-correlated variables...\n";
-    auto [X, true_labels] = generate_correlated_variables(config, block_sizes, centers, std_devs);
-
-    std::cout << "2. Standardizing columns (mean=0, L2=1)...\n";
-    Eigen::Map<Eigen::MatrixXd> X_map(X.data(), config.n_samples, config.p_features);
-    standardize_for_correlation(X_map);
-
-    // Exact Rcpp path: Eigen::MatrixXd transposed = data.transpose()
-    // R passes X2_t (5000×1000) -> Map(5000,1000) -> MatrixXd(1000,5000)
-    // cols=5000 = objects to cluster, rows=1000 = features
-    std::cout << "3. Building transposed concrete MatrixXd (1000x5000)...\n";
-    Eigen::MatrixXd X_t = X_map;    // shape (1000, 5000)
-
-    using MatType  = Eigen::MatrixXd;
-    using LshDistT = hac::DistancePolicy<MatType, hac::DistanceMetric::Correlation_LSH_Approx>;
-
-    // Test A: Ward — expected to succeed
-    {
-        std::cout << "\n[Test A] Ward + LSH_Approx (ProjectedGeometricUpdatePolicy):\n";
-        using Policy = hac::ProjectedGeometricUpdatePolicy<MatType, LshDistT,
-                                                           hac::LinkageMethod::Ward>;
-        hac::NNChain<MatType, Policy> nnchain(X_t);
-        double t0 = omp_get_wtime();
-        nnchain.cluster();
-        double t1 = omp_get_wtime();
-        auto labels = hac::DendrogramUtils::cut_tree(
-            hac::DendrogramUtils::format_nnchain_merges(nnchain.get_merges(), X_t.cols()),
-            X_t.cols(), config.k_clusters);
-        std::cout << "Time: " << (t1-t0) << "s  ARI: " << compute_ari(true_labels, labels) << "\n";
-    }
-
-    // Test B: Average — expected to crash / throw (geometric centroid violates UPGMA reducibility)
-    {
-        std::cout << "\n[Test B] Average + LSH_Approx (ProjectedGeometricUpdatePolicy — BUG PATH):\n";
-        using Policy = hac::ProjectedGeometricUpdatePolicy<MatType, LshDistT,
-                                                           hac::LinkageMethod::Average>;
-        hac::NNChain<MatType, Policy> nnchain(X_t);
-        double t0 = omp_get_wtime();
-        nnchain.cluster();
-        double t1 = omp_get_wtime();
-        auto labels = hac::DendrogramUtils::cut_tree(
-            hac::DendrogramUtils::format_nnchain_merges(nnchain.get_merges(), X_t.cols()),
-            X_t.cols(), config.k_clusters);
-        std::cout << "Time: " << (t1-t0) << "s  ARI: " << compute_ari(true_labels, labels) << "\n";
-    }
-
-    std::cout << "\n[Demo 5b Complete]\n\n";
-}
-
+// NOTE: A former "Demo 5b: R Crash Reproduction" deliberately instantiated
+// ProjectedGeometricUpdatePolicy with Average linkage to reproduce a bug in the
+// LSH-approximate path. The library now rejects that combination at compile
+// time via a static_assert (ProjectedGeometricUpdatePolicy supports only Ward,
+// Centroid, and Median), so the reproduction is no longer expressible and the
+// function was removed.
 
 
 // ==================================================================================
@@ -1189,32 +1133,31 @@ int main() {
     std::cout << "Running with " << omp_get_max_threads() << " threads\n\n";
 
     try {
-        if (false)
+        // Each demo is guarded by its own if() toggle so individual parts can
+        // be switched off while iterating on one of them.
+        if (true)
             // Dispatch Demo 1: Cluster the Samples
             demo_slink_sample_clustering();
 
-        if (false)
+        if (true)
             // Dispatch Demo 2: Cluster the Variables
             demo_slink_variable_clustering();
 
-        if (false)
+        if (true)
             // Dispatch Demo 3: Cluster the Variables with LSH
             demo_slink_variable_clustering_lsh();
 
-        if (false)
+        if (true)
             // Dispatch Demo 4: Compare Linkage Methods
             demo_compare_linkage();
 
-        if (false)
+        if (true)
             // Dispatch Demo 5: Compare Linkage Methods with LSH Approximation
             demo_lsh_linkage_comparison();
 
-        if (false)
+        if (true)
             // Dispatch Demo 6: AR(1) Toeplitz Correlation Clustering
             demo_ar1_linkage_comparison();
-
-        if (true)
-            demo_r_crash_repro();
 
         cdiagnostics::print_section_header("All clustering demos completed successfully");
 
