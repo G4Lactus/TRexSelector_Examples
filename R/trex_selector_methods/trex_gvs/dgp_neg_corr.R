@@ -2,7 +2,7 @@
 # dgp_neg_corr.R
 # ==============================================================================
 # Data-generating process for the strict linear negative correlations scenario.
-# Sourced by demo_trex_gvs_06_hastie_2.R.
+# Not currently sourced by any demo; kept for future scenarios.
 #
 # Contents:
 #   generate_strict_linear_negative_correlations(n, p, sigma_y)

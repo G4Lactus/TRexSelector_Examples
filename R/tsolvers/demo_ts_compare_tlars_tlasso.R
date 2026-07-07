@@ -46,7 +46,7 @@
 #   r_lasso_beta_<i>.csv / r_lasso_act_<i>.csv   : LASSO reference path + actions
 #   r_en_beta_<i>.csv    / r_en_act_<i>.csv      : EN (augmented lasso) reference
 #
-# Companion: cpp/tsolvers/demo_ts_14_tlars_tlasso_rcompare.cpp.
+# Companion: cpp/tsolvers/validation/validation_ts_02_tlars_tlasso_rcompare/validation_ts_02_tlars_tlasso_rcompare.cpp.
 # =============================================================================
 
 suppressMessages(library(tlars))
@@ -289,4 +289,4 @@ for (i in seq_len(num) - 1L) {
 }
 
 cat("\nDone. Build + run the C++ comparator:\n")
-cat("  demo_ts_14_tlars_tlasso_rcompare --dir ", outdir, "\n", sep = "")
+cat("  validation_ts_02_tlars_tlasso_rcompare --dir ", outdir, "\n", sep = "")

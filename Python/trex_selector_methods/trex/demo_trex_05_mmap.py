@@ -39,8 +39,8 @@ if _THIS_DIR not in sys.path:
 
 import tempfile
 import numpy as np
-import trex_selector as ts
-from trex_selector.utils import numpy_to_memmap
+import trex_selector_neo as ts
+from trex_selector_neo.utils import numpy_to_memmap
 
 from dgp_gauss_snr import dgp_gauss_snr
 from trex_sim_common import _make_trex_ctrl_from_dict

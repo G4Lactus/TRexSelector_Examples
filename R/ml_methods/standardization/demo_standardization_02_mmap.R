@@ -12,7 +12,7 @@
 #
 # ==============================================================================
 
-library(TRexSelector)
+library(TRexSelectorNeo)
 
 # ==============================================================================
 
@@ -53,7 +53,7 @@ cat("\n", strrep("-", 70), "\n")
 cat("Part A: Z-Scaling (ZScoreScaler) on mmap-backed data\n")
 cat(strrep("-", 70), "\n\n")
 
-z_scaler <- ZScoreScaler$new(with_mean = TRUE, with_std = TRUE)
+z_scaler <- ZScoreScaler$new(center = TRUE, scale = TRUE)
 z_scaler$fit(X_loaded)
 X_z <- z_scaler$transform_inplace(X_loaded + 0)
 
@@ -74,7 +74,7 @@ cat("\n", strrep("-", 70), "\n")
 cat("Part B: L2-Norm Scaling (LpNormScaler, norm_type = 2) on mmap-backed data\n")
 cat(strrep("-", 70), "\n\n")
 
-l2_scaler <- LpNormScaler$new(norm_type = 2L, with_mean = TRUE)
+l2_scaler <- LpNormScaler$new(norm_type = 2L, center = TRUE)
 l2_scaler$fit(X_loaded)
 X_l2 <- l2_scaler$transform_inplace(X_loaded + 0)
 

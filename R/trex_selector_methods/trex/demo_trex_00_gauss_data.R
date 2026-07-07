@@ -1,5 +1,5 @@
 # ==============================================================================
-# demo_trex_01_gauss.R
+# demo_trex_00_gauss_data.R
 # ==============================================================================
 #
 # The demo illustrates the classical T-Rex selector on the package-shipped toy
@@ -14,7 +14,7 @@
 #
 # ==============================================================================
 
-library(TRexSelector)
+library(TRexSelectorNeo)
 
 # ==============================================================================
 # Global Simulation Parameters

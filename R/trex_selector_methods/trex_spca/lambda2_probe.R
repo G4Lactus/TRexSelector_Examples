@@ -2,7 +2,7 @@
 # lambda2_probe.R
 # ==============================================================================
 #
-# Cross-check for demo_trex_spca_02_lambda2_probe.cpp.
+# Cross-check for validation_trex_spca_01_lambda2_probe.cpp.
 #
 # Loads the EXACT centered X and PC1 score y that the C++ probe dumped, and
 # computes glmnet's lambda.min / lambda.1se and the LARS-unit ridge penalty
@@ -19,19 +19,20 @@
 suppressPackageStartupMessages(library(glmnet))
 
 # ---- Locate the C++ dump -----------------------------------------------------
-# DEMO_OUTPUT_DIR for the C++ demo is <repo>/cpp/.../trex_spca/simulation_results/
+# DEMO_OUTPUT_DIR for the C++ probe is <repo>/cpp/trex_selector_methods/validation/trex_spca/validation_results/
+# Resolve relative to this script so the probe works from any working directory.
+this_dir_ <- tryCatch(
+  dirname(normalizePath(sys.frame(1L)$ofile)),
+  error = function(e) {
+    args <- commandArgs(trailingOnly = FALSE)
+    file_arg <- grep("--file=", args, value = TRUE)
+    if (length(file_arg) > 0) dirname(normalizePath(sub("--file=", "", file_arg[1]))) else "."
+  }
+)
 cpp_results_dir <- normalizePath(file.path(
-  "..", "..", "..", "cpp", "trex_selector_methods", "trex_spca",
-  "simulation_results"
+  this_dir_, "..", "..", "..", "cpp", "trex_selector_methods", "validation", "trex_spca",
+  "validation_results"
 ), mustWork = FALSE)
-
-# Fallback to an absolute path if the relative one does not resolve.
-if (!dir.exists(cpp_results_dir)) {
-  cpp_results_dir <- file.path(
-    "/Users/fabianscheidt/Documents/C++/TRexSelector_Examples",
-    "cpp/trex_selector_methods/trex_spca/simulation_results"
-  )
-}
 
 x_csv <- file.path(cpp_results_dir, "lambda2_probe_X.csv")
 y_csv <- file.path(cpp_results_dir, "lambda2_probe_y.csv")

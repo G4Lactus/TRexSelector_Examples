@@ -2,7 +2,7 @@
 # dgp_factor_model.R
 # ==============================================================================
 # Data-generating process for the overlapping latent factor model scenario.
-# Sourced by demo_trex_gvs_08_4.R.
+# Not currently sourced by any demo; kept for future scenarios.
 #
 # Contents:
 #   generate_factor_model_data(n, p, K, sigma_y)

@@ -1,5 +1,5 @@
 # ==============================================================================
-# demo_trex_gvs_10.R
+# demo_trex_gvs_07.R
 # ==============================================================================
 #
 # T-Rex+GVS demo and MC simulation for the block-structured AR(1) DGP.
@@ -9,7 +9,7 @@
 #
 #  Part 1: Single-run demo — AR(1) decay check + selector.
 #
-# Monte Carlo simulations (Parts 2–4) are in simulation_trex_gvs_10.R.
+# Monte Carlo simulations (Parts 2–4) are in simulation_trex_gvs_07.R.
 #
 # ==============================================================================
 

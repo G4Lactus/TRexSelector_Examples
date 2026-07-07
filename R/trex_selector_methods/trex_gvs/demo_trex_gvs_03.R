@@ -1,5 +1,5 @@
 # ==============================================================================
-# demo_trex_gvs_04.R
+# demo_trex_gvs_03.R
 # ==============================================================================
 #
 # T-Rex+GVS demo and MC simulation for the mixed-blocks DGP.
@@ -8,7 +8,7 @@
 #
 #  Part 1: Single-run demo — block layout diagnostics + selector run.
 #
-# Monte Carlo simulations (Parts 2–4) are in simulation_trex_gvs_04.R.
+# Monte Carlo simulations (Parts 2–4) are in simulation_trex_gvs_03.R.
 #
 
 # ==============================================================================

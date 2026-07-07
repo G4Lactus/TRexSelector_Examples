@@ -2,7 +2,7 @@
 # dgp_hastie.R
 # ==============================================================================
 # Data-generating processes for the Hastie (Zou & Hastie 2005) GVS scenario.
-# Sourced by demo_trex_gvs_01_hastie.R and demo_trex_gvs_02_hastie.R.
+# Sourced by demo_trex_gvs_01.R and simulation_trex_gvs_01.R.
 #
 # Contents:
 #   generate_hastie_scaled_data(n, p, sigma_y, sd_x)

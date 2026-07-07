@@ -3,7 +3,7 @@
 # ==============================================================================
 #
 # Classical T-Rex selector demo.
-# Part 5 demonstrates memory-mapped usage patterns in the R package TRexSelector.
+# Part 5 demonstrates memory-mapped usage patterns in the R package TRexSelectorNeo.
 #
 # The file mirrors:
 # cpp/trex_selector_methods/trex/demo_trex_05_mmap.cpp
@@ -19,7 +19,7 @@
 #
 #  Part B: Fully memory-mapped X + use_memory_mapping = TRUE.
 #          In C++ this uses SyntheticDataMapped (X never fully in RAM).
-#          The R package TRexSelector supports MemoryMappedMatrix objects
+#          The R package TRexSelectorNeo supports MemoryMappedMatrix objects
 #          for X (via convert_to_memory_mapped / mmap_matrix), but creating
 #          a memory-mapped version of a generated matrix requires writing it
 #          to disk first.
@@ -29,7 +29,7 @@
 #
 # ==============================================================================
 
-library(TRexSelector)
+library(TRexSelectorNeo)
 
 # ==============================================================================
 # Setup
@@ -80,8 +80,8 @@ DEMO_CFG <- list(
   n_sel        <- length(selected)
   n_tp         <- length(intersect(selected, true_support))
   n_fp         <- n_sel - n_tp
-  tpp          <- TRexSelector::compute_tpp(selected, true_support)
-  fdp          <- TRexSelector::compute_fdp(selected, true_support)
+  tpp          <- TRexSelectorNeo::compute_tpp(selected, true_support)
+  fdp          <- TRexSelectorNeo::compute_fdp(selected, true_support)
 
   cat(strrep("-", 70L), "\n")
   cat(sprintf("  Selected indices: {%s}\n", paste(selected, collapse = ", ")))

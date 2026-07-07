@@ -16,13 +16,17 @@
 #
 # ==============================================================================
 
-library(TRexSelector)
+library(TRexSelectorNeo)
 
 # ==============================================================================
 
 this_dir_ <- tryCatch(
   dirname(normalizePath(sys.frame(1)$ofile)),
-  error = function(e) "."
+  error = function(e) {
+    args <- commandArgs(trailingOnly = FALSE)
+    file_arg <- grep("--file=", args, value = TRUE)
+    if (length(file_arg) > 0) dirname(normalizePath(sub("--file=", "", file_arg[1]))) else "."
+  }
 )
 
 source(file.path(this_dir_, "hac_helpers.R"))

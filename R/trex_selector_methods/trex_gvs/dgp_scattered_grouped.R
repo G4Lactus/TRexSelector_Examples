@@ -2,7 +2,7 @@
 # dgp_scattered_grouped.R
 # ==============================================================================
 # Data-generating process for the scattered-grouped predictors scenario.
-# Sourced by demo_trex_gvs_03_hastie_realistic.R.
+# Sourced by demo_trex_gvs_02.R and simulation_trex_gvs_02.R.
 #
 # Contents:
 #   generate_scattered_grouped_data(n, p, n_groups, group_size, sigma_y)

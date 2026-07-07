@@ -1,5 +1,5 @@
 # ==============================================================================
-# demo_trex_gvs_09.R
+# demo_trex_gvs_06.R
 # ==============================================================================
 #
 # T-Rex+GVS demo and MC simulation for the heavy-tailed equi-correlated
@@ -10,7 +10,7 @@
 #
 #  Part 1: Single-run demo — heavy-tail check + correlation + selector.
 #
-# Monte Carlo simulations (Parts 2–4) are in simulation_trex_gvs_09.R.
+# Monte Carlo simulations (Parts 2–4) are in simulation_trex_gvs_06.R.
 #
 # ==============================================================================
 

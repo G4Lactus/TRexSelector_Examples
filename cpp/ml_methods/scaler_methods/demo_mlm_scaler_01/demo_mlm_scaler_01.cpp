@@ -189,7 +189,7 @@ void demo_scaler_serialization() {
     std::cout << "✓ Loaded ZScoreScaler from '" << filename << "'\n\n";
 
     // Verify means and scales match
-    double mean_diff = (scaler.get_means() - loaded_scaler.get_means()).norm();
+    double mean_diff = (scaler.get_centers() - loaded_scaler.get_centers()).norm();
     double scale_diff = (scaler.get_scales() - loaded_scaler.get_scales()).norm();
 
     std::cout << "Verification:\n"

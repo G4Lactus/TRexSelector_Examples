@@ -21,7 +21,7 @@ if _THIS_DIR not in sys.path:
     sys.path.insert(0, _THIS_DIR)
 
 import numpy as np
-import trex_selector as ts
+import trex_selector_neo as ts
 
 from dgp_gauss_snr import dgp_gauss_snr
 from trex_sim_common import _make_trex_ctrl_from_dict

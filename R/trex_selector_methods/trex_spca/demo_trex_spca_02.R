@@ -14,7 +14,7 @@
 #   3. run the EXACT "T-Rex EN" PC1 pipeline of demo_trex_spca_01.R,
 #   4. dump truth, lambda_2_lars, the R selection, and the R PC1 scores.
 #
-# The C++ side (demo_trex_spca_05_rdump_pipeline) then loads these same X files
+# The C++ side (validation_trex_spca_04_rdump_pipeline) then loads these same X files
 # and, with --use-r-lambda2, reuses R's lambda_2 per trial so the ONLY remaining
 # difference is the T-Rex selector itself.
 #
@@ -27,7 +27,7 @@
 #
 # NOTE: this OVERWRITES the existing X_*.csv in rdump/ (previously C++-generated).
 #       After running this, RE-RUN the C++ demo so cpp_pipeline.csv reflects R's X:
-#         demo_trex_spca_05_rdump_pipeline --use-r-lambda2 --n <num_MC>
+#         validation_trex_spca_04_rdump_pipeline --use-r-lambda2 --n <num_MC>
 # ==============================================================================
 
 library(TRexSelector)
@@ -242,5 +242,5 @@ cat(sprintf("\n  wrote: X_0..%d.csv, truth.csv, r_lambda2.csv, r_results.csv, r_
             num_MC - 1))
 cat(sprintf("         into %s\n", out_dir))
 cat("\n  NEXT (C++ head-to-head on identical X + identical lambda2):\n")
-cat("    demo_trex_spca_05_rdump_pipeline --use-r-lambda2 --n 100\n")
+cat("    validation_trex_spca_04_rdump_pipeline --use-r-lambda2 --n 100\n")
 cat("  then diff cpp_pipeline.csv vs r_results.csv (mean k, FDR, selections).\n")

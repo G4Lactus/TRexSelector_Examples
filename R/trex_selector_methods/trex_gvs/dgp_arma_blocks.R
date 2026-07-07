@@ -2,7 +2,7 @@
 # dgp_arma_blocks.R
 # ==============================================================================
 # Data-generating process for the ARMA-structured blocks scenario.
-# Sourced by demo_trex_gvs_11.R.
+# Sourced by demo_trex_gvs_08.R and simulation_trex_gvs_08.R.
 #
 # Contents:
 #   generate_arma_blocks(n, p, ar_coef, ma_coefs, sigma_y)

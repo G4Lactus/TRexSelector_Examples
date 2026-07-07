@@ -34,7 +34,7 @@
 #
 # ==============================================================================
 
-library(TRexSelector)
+library(TRexSelectorNeo)
 library(parallel)
 
 # ==============================================================================
@@ -129,7 +129,7 @@ trx_04_lloop_strategies <- function(num_MC = NUM_MC, rnd_coef = FALSE,
   for (si in seq_along(L_STRATEGIES)) {
     strat <- L_STRATEGIES[[si]]
 
-    ctrl <- TRexSelector::trex_control(
+    ctrl <- TRexSelectorNeo::trex_control(
       solver               = "TLARS",
       K                    = 20L,
       max_dummy_multiplier = strat$max_dummy_mult,

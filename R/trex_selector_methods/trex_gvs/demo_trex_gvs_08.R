@@ -1,5 +1,5 @@
 # ==============================================================================
-# demo_trex_gvs_11.R
+# demo_trex_gvs_08.R
 # ==============================================================================
 #
 # T-Rex+GVS demo and MC simulation for the ARMA mixed-structure blocks DGP.
@@ -12,7 +12,7 @@
 #
 #  Part 1: Single-run demo — MA(3) lag structure check + selector.
 #
-# Monte Carlo simulations (Parts 2–4) are in simulation_trex_gvs_11.R.
+# Monte Carlo simulations (Parts 2–4) are in simulation_trex_gvs_08.R.
 #
 # ==============================================================================
 

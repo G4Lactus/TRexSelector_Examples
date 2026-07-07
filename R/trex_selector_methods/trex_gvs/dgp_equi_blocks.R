@@ -2,7 +2,7 @@
 # dgp_equi_blocks.R
 # ==============================================================================
 # Data-generating process for the equi-correlated block variables scenario.
-# Sourced by demo_trex_gvs_09_equi_1.R.
+# Sourced by demo_trex_gvs_05.R and simulation_trex_gvs_05.R.
 #
 # Contents:
 #   generate_equicorrelated_blocks(n, p, rho, sigma_y)
