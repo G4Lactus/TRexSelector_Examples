@@ -17,7 +17,9 @@ Two R packages appear in this tree:
   `agglomerative_cluster()`.
 - **TRexSelector** (1.0.0, CRAN) — the old package with the functional API
   (`trex()`, `FDP()`, `TPP()`, `add_dummies_GVS()`). It is now needed **only**
-  by `tsolvers/demo_ts_compare_tlars_tlasso.R`, which uses it purely as an
+  by the reference generator
+  `tsolvers/validation/validation_ts_02_tlars_tlasso_rcompare/demo_ts_compare_tlars_tlasso.R`,
+  which uses it purely as an
   independent reference implementation for a path-equivalence cross-check. All
   the selector suites (trex_da, trex_gvs, trex_spca, and the new
   trex_screening) have been migrated to the TRexSelectorNeo R6 API and no
@@ -39,12 +41,11 @@ Additional CRAN packages, depending on which demos you run:
 
 | Package | Needed by |
 |---|---|
-| `TRexSelector` (1.0.0) | `tsolvers/demo_ts_compare_tlars_tlasso.R` only (independent reference for the cross-check) |
+| `TRexSelector` (1.0.0) | `tsolvers/validation/.../demo_ts_compare_tlars_tlasso.R` only (independent reference for the cross-check) |
 | `plotly` | Correlation-matrix heatmaps in the trex_da / trex_gvs MC demos |
 | `parallel` | Monte Carlo runners (shipped with base R) |
-| `glmnet` | `ml_methods/model_selection/` and the `trex_spca/` cross-check probes |
-| `tlars` | `tsolvers/demo_ts_compare_tlars_tlasso.R` (independent reference implementation) |
-| `elasticnet` | `trex_selector_methods/trex_spca/demo_trex_spca_01.R` (SPCA baseline) |
+| `glmnet` | `ml_methods/validation/model_selection/` and the `trex_selector_methods/validation/trex_spca/` cross-check probes |
+| `tlars` | `tsolvers/validation/.../demo_ts_compare_tlars_tlasso.R` (independent reference implementation) |
 
 ---
 
@@ -53,7 +54,7 @@ Additional CRAN packages, depending on which demos you run:
 Every demo is a standalone script and can be run from **any** working directory:
 
 ```bash
-Rscript R/trex_selector_methods/trex/demo_trex_01_single_run.R
+Rscript R/trex_selector_methods/trex/demo_trex_01_single_run/demo_trex_01_single_run.R
 ```
 
 Each script resolves its own location (via `sys.frame(1L)$ofile` with a
@@ -81,9 +82,9 @@ explicitly where fixed supports are mirrored from C++.
 | [trex_selector_methods/trex/](trex_selector_methods/trex/README.md) | NEW (TRexSelectorNeo) | Classical T-Rex: single runs, MC studies, l-loop strategies, mmap, scalability (demos 00–07) | [cpp/trex_selector_methods/trex/](../cpp/trex_selector_methods/trex/) |
 | [trex_selector_methods/trex_da/](trex_selector_methods/trex_da/README.md) | NEW (TRexSelectorNeo) | Dependency-Aware T-Rex: AR(1), equi, NN, BT-block, heavy-tailed DGPs (demos 01–08); NN demos skip until the R binding exposes `da_method="NN"` | [cpp/trex_selector_methods/trex_da/](../cpp/trex_selector_methods/trex_da/) |
 | [trex_selector_methods/trex_gvs/](trex_selector_methods/trex_gvs/README.md) | NEW (TRexSelectorNeo) | Grouped Variable Selection T-Rex: EN vs IEN over grouped DGPs (demos 01–08) | [cpp/trex_selector_methods/trex_gvs/](../cpp/trex_selector_methods/trex_gvs/) |
-| [trex_selector_methods/trex_spca/](trex_selector_methods/trex_spca/README.md) | NEW (TRexSelectorNeo) | T-Rex Sparse PCA MC study + C++/R cross-check probes | [cpp/trex_selector_methods/trex_spca/](../cpp/trex_selector_methods/trex_spca/), [cpp/trex_selector_methods/validation/trex_spca/](../cpp/trex_selector_methods/validation/trex_spca/) |
+| [trex_selector_methods/trex_spca/](trex_selector_methods/trex_spca/README.md) | NEW (TRexSelectorNeo) | T-Rex Sparse PCA MC comparison vs. ordinary/oracle PCA (`TRexSPCASelector`, demo 01, folder-per-demo); C++/R cross-check probes under [trex_selector_methods/validation/trex_spca/](trex_selector_methods/validation/trex_spca/README.md) | [cpp/trex_selector_methods/trex_spca/](../cpp/trex_selector_methods/trex_spca/), [cpp/trex_selector_methods/validation/trex_spca/](../cpp/trex_selector_methods/validation/trex_spca/) |
 | [trex_selector_methods/trex_screening/](trex_selector_methods/trex_screening/README.md) | NEW (TRexSelectorNeo) | Screen-TRex: in-memory / mmap screening, correlated designs, biobank-scale, solver comparison (6 demos) | [cpp/trex_selector_methods/trex_screening/](../cpp/trex_selector_methods/trex_screening/) |
-| [tsolvers/](tsolvers/README.md) | Cross-check (CRAN tlars) | TLARS / TLASSO / TENET path-equivalence reference generator vs C++ tsolvers | [cpp/tsolvers/](../cpp/tsolvers/) |
+| [tsolvers/](tsolvers/README.md) | NEW (TRexSelectorNeo) + cross-check (CRAN tlars) | 12 standalone terminating-solver demos (`demo_ts_01` … `demo_ts_12`: early stopping, external normalization, serialization, mmap) + validation tree (TENET/TENETAug equivalence; CRAN tlars path-equivalence reference generator) | [cpp/tsolvers/](../cpp/tsolvers/) |
 
 Shared helpers for the selector demos live in
 [trex_selector_methods/](trex_selector_methods/README.md)
@@ -100,8 +101,10 @@ gaps relative to [cpp/](../cpp/README.md) remain:
 - **trex+DA+NN** — the C++ core supports `DAMethod::NN`, but the installed
   TRexSelectorNeo R binding does not expose `da_method="NN"` yet, so the two
   `trex_da` nearest-neighbour demos skip cleanly until it is added.
-- **tsolvers** — C++ has 12 per-solver demos (`demo_ts_01` … `demo_ts_12`);
-  R currently ships only the single TLARS/TLASSO/TENET cross-comparison script.
+- **tsolvers** — fully mirrored: all 12 per-solver demos
+  (`demo_ts_01` … `demo_ts_12`) plus the validation tree
+  (`validation_ts_01_tenet_aug_comparison`; the CRAN tlars cross-comparison
+  generator now lives under `validation/validation_ts_02_tlars_tlasso_rcompare/`).
 - **ml_methods** is fully mirrored (hac_clustering, standardization, pca, svd,
   ridge_regression, model_selection); pca / svd / ridge are covered there. The
   R elastic-net demo covers K-fold CV (`ElasticNetCV`) only; the standalone

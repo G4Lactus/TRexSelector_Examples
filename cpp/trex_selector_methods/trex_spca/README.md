@@ -29,7 +29,7 @@ $$
   \mathrm{SNR}_{\mathrm{dB}} = 10 \log_{10}\!\left(\frac{\mathrm{Var}(\boldsymbol{Z}\boldsymbol{V}^\top)}{\mathrm{Var}(\boldsymbol{E})}\right).
   $$
 
-All methods are evaluated on the same $\boldsymbol{X}$ after a shared z-score column standardization (a correlation-PCA footing), so that OrdPCA, OraclePCA, and T-Rex SPCA are compared on equal preprocessing.
+All methods are evaluated on the same $\boldsymbol{X}$ after a shared **center-only** preprocessing step (mean subtraction, no column scaling — a covariance-PCA footing), so that OrdPCA, OraclePCA, and T-Rex SPCA are compared on equal preprocessing. The column scales must **not** be normalized: in this factor model the amplitude signal lives in the column variances, and z-scoring the columns (correlation PCA) destroys it — measured effect at $-10$ dB: T-Rex SPCA FDR degrades from $\approx 0.13$ to $\approx 0.52$ and OraclePCA TPR from $\approx 0.99$ to $\approx 0.87$ (see `validation_trex_spca_06_handrolled_comparison`).
 
 ---
 
@@ -101,25 +101,26 @@ trex_spca/
 
 ## Example results
 
-Unlike some of the other T-Rex selector variant folders, this demo already has **real committed output** — from a single SNR point ($-10$ dB):
+This demo has **real committed output** — from a single SNR point ($-10$ dB), `num_MC = 200`, produced by the center-only pipeline:
 
 | Method | FDR | TPR | PEV |
 |---|---|---|---|
-| OrdPCA | 0.9500 | 1.0000 | 0.2024 |
-| OraclePCA | 0.0000 | 1.0000 | 0.1254 |
-| TRexSPCA-EN-Act | 0.1188 | 0.9975 | 0.1204 |
-| TRexSPCA-ENaug-Act | 0.1337 | 0.9975 | 0.1205 |
-| TRexSPCA-EN-Thr | 0.1099 | 1.0000 | 0.1252 |
-| TRexSPCA-ENaug-Thr | 0.1107 | 1.0000 | 0.1253 |
+| OrdPCA | 0.9500 | 1.0000 | 0.2021 |
+| OraclePCA | 0.0060 | 0.9940 | 0.1241 |
+| TRexSPCA-EN-Act | 0.1229 | 0.9960 | 0.1216 |
+| TRexSPCA-ENaug-Act | 0.1288 | 0.9960 | 0.1214 |
+| TRexSPCA-EN-Thr | 0.1308 | 0.9970 | 0.1328 |
+| TRexSPCA-ENaug-Thr | 0.1311 | 0.9970 | 0.1330 |
 
 ### Interpretation
 
 - **OrdPCA**'s FDR $\approx 0.95$ is the expected trivial artifact of selecting all $p=100$ loadings (true support is only $p_1=5$) — not a meaningful comparison point.
-- **OraclePCA** achieves perfect recovery by construction (it is told the true support size); its PEV ($0.1254$) is a useful reference for "how much variance the true sparse signal explains" independent of any selection procedure.
-- All four **T-Rex SPCA** variants recover PC1's support almost perfectly (TPR $\approx 0.998$–$1.0$) while keeping FDR close to the $\mathrm{tFDR}=0.10$ target — even though $-10$ dB sounds like a very weak signal, the shared-factor construction (factor scale $5$ for the first factor) makes PC1 easy to recover in this particular design.
-- **Thresholded** mode is very slightly ahead of **ActiveSet** mode at this one data point (marginally higher TPR, FDR marginally closer to target) — this is a single-point observation from one SNR level and should not be read as a general conclusion about the two modes.
+- **OraclePCA** achieves near-perfect recovery (it is told the true support size); its PEV ($0.124$) is a useful reference for "how much variance the true sparse signal explains" independent of any selection procedure.
+- All four **T-Rex SPCA** variants recover PC1's support almost perfectly (TPR $\approx 0.996$) with FDR close to the $\mathrm{tFDR}=0.10$ target — even though $-10$ dB sounds like a very weak signal, the strong first factor (std $5$) dominates PC1 recovery on the covariance-PCA footing.
+- The realized FDR ($\approx 0.12$–$0.13$) sits $\approx 0.02$–$0.03$ above both the target and the legacy CRAN R reference ($0.100$ at this point). This small overshoot is the long-known residual C++-vs-R gap that the validation programs in `validation/trex_spca/` (lambda2 probe, rdump pipeline, foldmatch) were built to investigate — it is unrelated to the demo pipeline: `validation_trex_spca_06_handrolled_comparison` shows the `TRexSPCA` class and a hand-rolled per-PC pipeline replicating the legacy R recipe agree with each other within MC noise.
+- The four T-Rex variants are statistically indistinguishable from each other at this one data point; no solver/mode conclusion should be drawn from a single SNR level.
 
-> **Caveat**: the demo's own file-level doc-comment describes a 5-point SNR sweep ($\{-10,-5,0,5,10\}$ dB, num_MC=100), but the `main()` function currently only exercises a single SNR value ($-10$ dB, explicitly commented `// TEMP fast-validation`) with `num_MC=200` — while the committed output file header reports "averaged over 80 MC trials". These three numbers do not agree; the committed table (80 trials) predates the current `num_MC = 200` setting, so it will not reproduce trial-for-trial. The **data** DGP is, however, reproducible: each trial's data is drawn from a deterministic seed (`base_seed + mc*1000`), while the per-trial dummies use hardware entropy (selector seed $-1$) by design, as required for a valid Monte Carlo FDR estimate. Treat the table above as illustrative of this one SNR point. See the demo's own [README.md](demo_trex_spca_01_mc_sim/README.md) for detail.
+> **History note (z-scoring episode, fixed 2026-07-08)**: during an earlier debugging round the demo pipeline briefly gained a shared z-score column standardization (an experiment suggested in `validation_trex_spca_02`'s notes while chasing the FDR overshoot). That step converts the covariance PCA into a correlation PCA, destroys the factor amplitude signal, and pushed the measured FDR to $\approx 0.52$ (OraclePCA TPR to $\approx 0.87$) at the same nominal SNR. `validation_trex_spca_06_handrolled_comparison` isolated the cause and the pipeline is back to center-only. Trial-for-trial reproduction remains intentionally impossible: each trial's **data** is drawn from a deterministic seed (`base_seed + mc*1000`), but the per-trial dummies use hardware entropy (selector seed $-1$), as required for a valid Monte Carlo FDR estimate; re-runs reproduce the table to within MC noise ($\approx \pm 0.01$ at 200 trials). See the demo's own [README.md](demo_trex_spca_01_mc_sim/README.md) for detail.
 
 ---
 
@@ -146,8 +147,8 @@ cmake --build build/debug
 
 - Start with `demo_trex_spca_01_mc_sim/` — it is currently the only demo in this folder.
 - Read the PC1-only FDR/TPR rationale above before interpreting results — this is a deliberate evaluation-scope choice, not a bug.
-- Cross-check numbers against the R reference implementation in `R/trex_selector_methods/trex_spca/` (`demo_trex_spca_01.R`, `demo_trex_spca_02.R`, plus `lambda2_probe.R` / `lambda2_foldmatch.R` for the ridge-penalty selection step specifically).
-- For deeper correctness checks of individual pipeline stages, see the five validation programs in `cpp/trex_selector_methods/validation/trex_spca/`: `validation_trex_spca_01_lambda2_probe.cpp` (λ₂ CV vs. R `cv.glmnet`; **currently disabled in CMake** pending a rewrite to the new CV API — it is the producer of the committed `lambda2_probe_X.csv` / `lambda2_probe_y.csv` used downstream), `validation_trex_spca_02_solver_comparison.cpp` (TENET vs. TENET_AUG equivalence), `validation_trex_spca_03_scaling_comparison.cpp` (unit-L2 vs. z-score scaling), `validation_trex_spca_04_rdump_pipeline.cpp` (step-by-step C++/R diff), and `validation_trex_spca_05_lambda2_foldmatch.cpp` (identical-fold CV curve comparison). The validation binaries live at `./build/debug/bin/trex_selector_methods/validation/trex_spca/<name>` and write to `validation_results/`. `validation_trex_spca_04_rdump_pipeline` reads/writes an R-dump folder that defaults to a machine-specific absolute path (`<repo>/R/trex_selector_methods/trex_spca/rdump`); override it with `--dir <path>` (other flags: `--n`, `--seed`, `--use-r-lambda2`, `--zscore`, `--no-stagnation`, `--tenet-aug-lars`).
+- Cross-check numbers against the language counterparts: `R/trex_selector_methods/trex_spca/demo_trex_spca_01_mc_sim/` and `Python/trex_selector_methods/trex_spca/demo_trex_spca_01_mc_sim/` run the identical simulation. The R cross-check probes (`demo_trex_spca_02.R` rdump generator, `lambda2_probe.R` / `lambda2_foldmatch.R` for the ridge-penalty selection step, and the two dummy-variance probes) now live under `R/trex_selector_methods/validation/trex_spca/`.
+- For deeper correctness checks of individual pipeline stages, see the six validation programs in `cpp/trex_selector_methods/validation/trex_spca/`: `validation_trex_spca_01_lambda2_probe.cpp` (λ₂ CV vs. R `cv.glmnet`; **currently disabled in CMake** pending a rewrite to the new CV API — it is the producer of the committed `lambda2_probe_X.csv` / `lambda2_probe_y.csv` used downstream), `validation_trex_spca_02_solver_comparison.cpp` (TENET vs. TENET_AUG equivalence), `validation_trex_spca_03_scaling_comparison.cpp` (unit-L2 vs. z-score scaling), `validation_trex_spca_04_rdump_pipeline.cpp` (step-by-step C++/R diff), `validation_trex_spca_05_lambda2_foldmatch.cpp` (identical-fold CV curve comparison), and `validation_trex_spca_06_handrolled_comparison.cpp` (hand-rolled legacy-R-recipe pipeline vs. the `TRexSPCA` class on identical centered data). The validation binaries live at `./build/debug/bin/trex_selector_methods/validation/trex_spca/<name>` and write to `validation_results/`. `validation_trex_spca_04_rdump_pipeline` reads/writes an R-dump folder that defaults to a machine-specific absolute path (`<repo>/R/trex_selector_methods/validation/trex_spca/rdump`); override it with `--dir <path>` (other flags: `--n`, `--seed`, `--use-r-lambda2`, `--zscore`, `--no-stagnation`, `--tenet-aug-lars`).
 
 ---
 

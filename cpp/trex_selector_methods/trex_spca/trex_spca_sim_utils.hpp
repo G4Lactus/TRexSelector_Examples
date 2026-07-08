@@ -374,29 +374,22 @@ inline SPCASingleResult evaluate_spca(
 // ==============================================================================
 
 /**
- * @brief Standardize columns of X in place (z-score: centre + unit variance).
+ * @brief Center columns of X in place (mean subtraction only, NO scaling).
  *
- * @details Subtracts each column mean, then divides by the column sample
- *          standard deviation (denominator n-1). Columns whose sd falls below
- *          `eps` are only centred (divisor forced to 1) to avoid blow-up on
- *          (near-)constant columns. Applying this single standardization before
- *          every method puts OrdPCA, OraclePCA and TRexSPCA (EN / ENaug) on a
- *          common correlation-PCA footing, removing scaling bias from the
- *          comparison.
+ * @details Covariance-PCA footing, shared by every method (matching the legacy
+ *          R reference pipeline and TRexSPCA's own internal convention). The
+ *          column scales must NOT be normalized: in the sparse factor model
+ *          the factor amplitude signal lives in the column variances, and
+ *          z-scoring the columns (correlation PCA) destroys it — measured
+ *          effect at -10 dB: T-Rex SPCA FDR degrades from ~0.14 to ~0.52 and
+ *          OraclePCA TPR from ~1.0 to ~0.87 (see
+ *          validation_trex_spca_06_handrolled_comparison).
  *
- * @param X   Observation matrix (n x p), modified in place.
- * @param eps Threshold below which a column sd is treated as zero. Default 1e-12.
+ * @param X Observation matrix (n x p), modified in place.
  */
-inline void standardize_columns(Eigen::MatrixXd& X, double eps = 1e-12)
+inline void center_columns(Eigen::MatrixXd& X)
 {
-    const Eigen::Index n = X.rows();
-    if (n < 2) return;
     X.rowwise() -= X.colwise().mean();
-    const Eigen::RowVectorXd sd =
-        (X.colwise().squaredNorm() / static_cast<double>(n - 1)).cwiseSqrt();
-    for (Eigen::Index j = 0; j < X.cols(); ++j) {
-        if (sd(j) > eps) X.col(j) /= sd(j);
-    }
 }
 
 
@@ -503,9 +496,9 @@ inline SPCAGridPointResult run_mc_trials_trex_spca(
 
         auto dat = make_data(seed);
 
-        // Pipeline preprocessing: standardize X once (z-score). All methods and
-        // all metrics share this single standardized X (correlation-PCA footing).
-        standardize_columns(dat.X);
+        // Pipeline preprocessing: center X once (covariance-PCA footing, legacy
+        // convention). All methods and metrics share this same centered X.
+        center_columns(dat.X);
 
         TRexSPCAControlParameter ctrl;
         ctrl.mode                    = mode;
@@ -571,10 +564,10 @@ inline SPCAGridPointResult run_mc_trials_pca(
         const unsigned seed = base_seed_offset + static_cast<unsigned>(mc) * 1000u;
         auto dat = make_data(seed);
 
-        // Pipeline preprocessing: standardize X once (z-score), shared by all methods.
-        standardize_columns(dat.X);
+        // Pipeline preprocessing: center X once (covariance PCA), shared by all methods.
+        center_columns(dat.X);
 
-        // X is already standardized → center=false, normalize=false; correlation PCA.
+        // X is already centered → center=false, normalize=false; covariance PCA.
         pca_ns::PCA       pca(dat.X, dat.V.cols(), /*center=*/false, /*normalize=*/false);
         pca_ns::PCAResult res = pca.fit();
 
@@ -629,13 +622,13 @@ inline SPCAGridPointResult run_mc_trials_oracle_pca(
         const unsigned seed = base_seed_offset + static_cast<unsigned>(mc) * 1000u;
         auto dat = make_data(seed);
 
-        // Pipeline preprocessing: standardize X once (z-score), shared by all methods.
-        standardize_columns(dat.X);
+        // Pipeline preprocessing: center X once (covariance PCA), shared by all methods.
+        center_columns(dat.X);
 
         const Eigen::Index p = dat.X.cols();
         const Eigen::Index M = dat.V.cols();
 
-        // X is already standardized → center=false, normalize=false; correlation PCA.
+        // X is already centered → center=false, normalize=false; covariance PCA.
         pca_ns::PCA       pca(dat.X, M, /*center=*/false, /*normalize=*/false);
         pca_ns::PCAResult ord = pca.fit();
 

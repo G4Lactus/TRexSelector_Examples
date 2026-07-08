@@ -1,31 +1,31 @@
 
 ======================================================================
-=== T-Rex SPCA Results (averaged over 80 MC trials) ===
+=== T-Rex SPCA Results (averaged over 200 MC trials) ===
 ======================================================================
 
 Method                Metric   SNR(dB)     -10.0
 ------------------------------------------------
 OrdPCA                FDR                 0.9500
                       TPR                 1.0000
-                      PEV                 0.2024
+                      PEV                 0.2021
 
-OraclePCA             FDR                 0.0000
-                      TPR                 1.0000
-                      PEV                 0.1254
+OraclePCA             FDR                 0.0060
+                      TPR                 0.9940
+                      PEV                 0.1241
 
-TRexSPCA-EN-Act       FDR                 0.1188
-                      TPR                 0.9975
-                      PEV                 0.1204
+TRexSPCA-EN-Act       FDR                 0.1229
+                      TPR                 0.9960
+                      PEV                 0.1216
 
-TRexSPCA-ENaug-Act    FDR                 0.1337
-                      TPR                 0.9975
-                      PEV                 0.1205
+TRexSPCA-ENaug-Act    FDR                 0.1288
+                      TPR                 0.9960
+                      PEV                 0.1214
 
-TRexSPCA-EN-Thr       FDR                 0.1099
-                      TPR                 1.0000
-                      PEV                 0.1252
+TRexSPCA-EN-Thr       FDR                 0.1308
+                      TPR                 0.9970
+                      PEV                 0.1328
 
-TRexSPCA-ENaug-Thr    FDR                 0.1107
-                      TPR                 1.0000
-                      PEV                 0.1253
+TRexSPCA-ENaug-Thr    FDR                 0.1311
+                      TPR                 0.9970
+                      PEV                 0.1330
 

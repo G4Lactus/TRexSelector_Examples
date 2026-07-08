@@ -26,9 +26,14 @@
  *      The SNR sweep is run with both solvers; averaged FDR / TPR / PEV are
  *      tabulated next to each other with their differences.
  *
- *  Next debugging steps if these match but the -10 dB FDR still overshoots:
- *    (1) switch column scaling from L2-norm to z-scaling, then
- *    (2) investigate the dendrogram / clustering stage.
+ *  Historical note: an earlier version of this comment suggested switching the
+ *  column scaling from L2-norm to z-scaling as a next debugging step for the
+ *  -10 dB FDR overshoot. That path is now known to be a dead end — z-scoring
+ *  the DEMO pipeline's X destroys the factor amplitude signal and inflates the
+ *  FDR to ~0.5 (see validation_trex_spca_06_handrolled_comparison), and the
+ *  selector-internal scaling choice (L2 vs z-score) is immaterial on centered
+ *  X. The remaining small overshoot (~0.03 vs the CRAN R reference) is probed
+ *  by the lambda2 / rdump programs (01, 04, 05).
  */
 // ==============================================================================
 

@@ -40,12 +40,26 @@ add_demo_target(validation_trex_spca_05_lambda2_foldmatch
     T_REX_SELECTOR_LIBS
 )
 
+set(ADDITIONAL_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/../../trex_spca")
+add_demo_target(validation_trex_spca_06_handrolled_comparison
+    validation_trex_spca_06_handrolled_comparison.cpp
+    T_REX_SELECTOR_LIBS
+)
+
+set(ADDITIONAL_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/../../trex_spca")
+add_demo_target(validation_trex_spca_07_matrix_dump
+    validation_trex_spca_07_matrix_dump.cpp
+    T_REX_SELECTOR_LIBS
+)
+
 # All targets: redirect DEMO_OUTPUT_DIR to validation_results/.
 foreach(_t
     validation_trex_spca_02_solver_comparison
     validation_trex_spca_03_scaling_comparison
     validation_trex_spca_04_rdump_pipeline
     validation_trex_spca_05_lambda2_foldmatch
+    validation_trex_spca_06_handrolled_comparison
+    validation_trex_spca_07_matrix_dump
 )
     get_target_property(_defs ${_t} COMPILE_DEFINITIONS)
     string(REPLACE "simulation_results/" "validation_results/" _defs "${_defs}")
