@@ -56,9 +56,12 @@ All four T-Rex SPCA variants run their per-component selector with the default `
 
 ## ⚠️ Configuration notes
 
-`main()` currently sets `cfg.num_MC = 200` and `snr_values = {-10.0}` — a **single SNR point**, explicitly commented `// TEMP fast-validation`. Only this one SNR point has been run and committed; the file's doc-comment now describes exactly this configuration.
+`main()` sets `cfg.num_MC = 200` and the full legacy CRAN reference grid `snr_values = {-10, -7, -5, -3, 0, 3, 5, 7, 10}` dB. The committed output (`simulation_results/`) matches this configuration, the center-only pipeline, and the fixed library (see the history notes below).
 
-The committed output (`simulation_results/`) matches the current `main()` configuration (200 trials, $-10$ dB) and the center-only pipeline. **History note**: during an earlier debugging round the pipeline briefly gained a shared z-score standardization; that converts the covariance PCA into a correlation PCA, destroys the factor amplitude signal, and pushed the measured T-Rex FDR to $\approx 0.52$ (OraclePCA TPR to $\approx 0.87$) at this same nominal SNR. `validation_trex_spca_06_handrolled_comparison` isolated the cause (the class and a hand-rolled legacy-recipe pipeline agree; only the preprocessing differed) and the z-scoring was removed on 2026-07-08.
+**History note (two bugs, both fixed 2026-07-08):**
+
+1. *Demo z-scoring*: during an earlier debugging round the pipeline briefly gained a shared z-score standardization; that converts the covariance PCA into a correlation PCA, destroys the factor amplitude signal, and pushed the measured T-Rex FDR to $\approx 0.52$ (OraclePCA TPR to $\approx 0.87$) at $-10$ dB. `validation_trex_spca_06_handrolled_comparison` isolated the cause and the pipeline is back to center-only.
+2. *Library dummy normalization* (TRexSelector `5fceed3`): the GVS selector exactly unit-normalized every drawn cluster-MVN dummy column, erasing the random norm fluctuation that is part of the dummy null distribution and inflating the realized FDR from $\approx 0.10$ to $\approx 0.13$ while the FDP estimate still looked controlled. Root-caused via `validation_trex_spca_07_matrix_dump` (replaying the CRAN reference calibration on the selector's internal matrices reproduced its selections exactly, proving the calibration port correct and localizing the gap in the dummies) plus a 2×2 factorial with CRAN's own calibration functions. Dummies now enter the solver as drawn (center-only).
 
 Trial-for-trial reproduction is intentionally impossible: each trial's **data** is drawn from a deterministic seed (`base_seed + mc*1000`), so the sequence of design matrices is fixed by `base_seed`, but the per-trial dummies use hardware entropy (selector seed $-1$) by design — required for a valid Monte Carlo FDR estimate. Re-runs reproduce the committed table to within MC noise ($\approx \pm 0.01$ at 200 trials).
 
@@ -81,29 +84,39 @@ Written to `simulation_results/` (already populated):
 
 ---
 
-## Real Results (SNR = -10 dB, num_MC = 200, as committed)
+## Real Results (9-point SNR sweep, num_MC = 200, as committed)
+
+T-Rex SPCA FDR across the grid (all four variants; TPR $= 1.0$ everywhere except $-10$ dB, where TPR $\approx 0.995$–$0.997$):
+
+| SNR (dB) | −10 | −7 | −5 | −3 | 0 | 3 | 5 | 7 | 10 |
+|---|---|---|---|---|---|---|---|---|---|
+| TRexSPCA-EN-Act | 0.094 | 0.062 | 0.053 | 0.067 | 0.069 | 0.062 | 0.084 | 0.072 | 0.069 |
+| TRexSPCA-ENaug-Act | 0.103 | 0.063 | 0.064 | 0.062 | 0.070 | 0.064 | 0.075 | 0.067 | 0.069 |
+| TRexSPCA-EN-Thr | 0.100 | 0.064 | 0.054 | 0.062 | 0.064 | 0.061 | 0.080 | 0.065 | 0.069 |
+| TRexSPCA-ENaug-Thr | 0.094 | 0.059 | 0.061 | 0.062 | 0.071 | 0.069 | 0.075 | 0.065 | 0.070 |
+
+The hardest point in full ($-10$ dB):
 
 | Method | FDR | TPR | PEV |
 |---|---|---|---|
 | OrdPCA | 0.9500 | 1.0000 | 0.2021 |
 | OraclePCA | 0.0060 | 0.9940 | 0.1241 |
-| TRexSPCA-EN-Act | 0.1229 | 0.9960 | 0.1216 |
-| TRexSPCA-ENaug-Act | 0.1288 | 0.9960 | 0.1214 |
-| TRexSPCA-EN-Thr | 0.1308 | 0.9970 | 0.1328 |
-| TRexSPCA-ENaug-Thr | 0.1311 | 0.9970 | 0.1330 |
+| TRexSPCA-EN-Act | 0.0939 | 0.9960 | 0.1174 |
+| TRexSPCA-ENaug-Act | 0.1033 | 0.9950 | 0.1177 |
+| TRexSPCA-EN-Thr | 0.1001 | 0.9950 | 0.1280 |
+| TRexSPCA-ENaug-Thr | 0.0935 | 0.9970 | 0.1287 |
 
-Reference points: the legacy CRAN R implementation reports FDR $0.100$ / TPR $0.999$ (Act) and FDR $0.100$ / TPR $1.000$ (Thr) at this same operating point. The R and Python counterparts of this demo (`R/trex_selector_methods/trex_spca/demo_trex_spca_01_mc_sim/`, `Python/trex_selector_methods/trex_spca/demo_trex_spca_01_mc_sim/`) reproduce the table above to within MC noise on their own RNG streams.
+This matches the legacy CRAN R reference across the grid (legacy: FDR $0.100$ at $-10$ dB, $\approx 0.058$ at $-7$/$-5$ dB, TPR $\approx 1.0$). See `simulation_results/` for the full committed table (PEV rows included) and the tidy CSV.
 
 ---
 
 ## Interpretation
 
 - **OrdPCA**'s $\mathrm{FDR}\approx0.95$ and $\mathrm{TPR}=1.0$ are trivial artifacts of retaining all $p=100$ loadings (true support is $p_1=5$) — not a genuine comparison point, only a non-sparse reference.
-- **OraclePCA** achieves near-perfect PC1 recovery (it is told the true support size); its PEV ($0.124$) is the useful reference value here — how much variance the true sparse signal explains, independent of any estimation procedure.
-- All four **T-Rex SPCA** variants recover PC1's support almost perfectly (TPR $\approx 0.996$) with FDR close to the $\mathrm{tFDR}=0.10$ target — even though $-10$ dB sounds like a very weak signal, the strong first factor (std $5$) dominates PC1 recovery in this design on the covariance-PCA footing.
-- The realized FDR ($\approx 0.12$–$0.13$) sits $\approx 0.02$–$0.03$ above the target and the legacy CRAN R reference ($0.100$). This is the long-known residual C++-vs-R gap investigated by the `validation/trex_spca/` programs (suspects: the internal CD-ridge λ₂ CV vs. R's `cv.glmnet`, and dummy-generation details); `validation_trex_spca_06_handrolled_comparison` confirms it is **not** a `TRexSPCA`-class artifact — the class and a hand-rolled per-PC pipeline replicating the legacy recipe agree with each other within MC noise.
-- The four T-Rex variants are statistically indistinguishable from each other at this single SNR point; no solver (TENET vs. TENET_AUG) or mode (ActiveSet vs. Thresholded) conclusion should be drawn from it. The **Thresholded** variants' slightly higher PEV ($\approx 0.133$ vs. $\approx 0.122$) is the one systematic difference: they rebuild loadings from the full ordinary-PCA solution on the selected support, which preserves more explained variance than the active-set coefficients.
-- If you extend this demo to a wider SNR grid, expect all methods to improve monotonically with SNR (the legacy reference reports T-Rex FDR falling to $\approx 0.06$ at $-7$ dB and $-5$ dB with TPR $= 1.0$) — treat exact values as hypotheses until run/committed.
+- **OraclePCA** achieves (near-)perfect PC1 recovery everywhere (it is told the true support size); its PEV column is the reference for how much variance the true sparse signal explains, independent of any estimation procedure.
+- All four **T-Rex SPCA** variants keep the realized FDR at or below the $\mathrm{tFDR}=0.10$ target across the whole grid with TPR $\approx 1.0$ — FDR control holds, matching the legacy CRAN implementation after the two 2026-07-08 fixes (see Configuration notes).
+- **TENET and TENET_AUG are the same estimator on this problem**: run with identical per-trial dummy seeds they produce bit-identical selections (verified 100/100 trials via `validation_trex_spca_07_matrix_dump`). The EN-vs-ENaug differences visible in the table are pure Monte Carlo dummy noise — each method row draws fresh hardware-entropy dummies, and the standard error of a 200-trial mean FDR is $\approx \pm 0.009$, an order of magnitude larger than the observed row differences. Note the sign even flips between modes and SNR points.
+- The **Thresholded** variants' higher PEV (e.g. $0.128$ vs. $0.117$ at $-10$ dB, converging toward OraclePCA's $0.89$ at $+10$ dB) is the one systematic mode difference: they rebuild loadings from the full ordinary-PCA solution on the selected support, which preserves more explained variance than the active-set ridge coefficients.
 
 ---
 

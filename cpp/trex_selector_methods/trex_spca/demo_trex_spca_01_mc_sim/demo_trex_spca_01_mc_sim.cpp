@@ -12,7 +12,8 @@
  *       overlap_pool_size=30 (shared candidate-index pool across factors).
  *
  *  Section 1: SNR sweep over the snr_values grid set in main()
- *             (currently the single point -10 dB, num_MC=200).
+ *             (currently {-10, -7, -5, -3, 0, 3, 5, 7, 10} dB, num_MC=200 —
+ *             the legacy CRAN reference grid).
  *    Methods compared:
  *      1. OrdPCA             — ordinary PCA (baseline; no sparsity constraint)
  *      2. OraclePCA          — thresholded PCA with known support cardinality p1
@@ -220,7 +221,7 @@ int main() {
         cfg.base_seed         = 42;
         cfg.lambda_2          = -1; // -1 triggers k-fold CV for lambda_2 selection
 
-        const std::vector<double> snr_values = {-10.0}; // TEMP fast-validation
+        const std::vector<double> snr_values = {-10.0, -7.0, -5, -3.0, 0, 3, 5, 7, 10}; // TEMP fast-validation
 
         demo_trex_spca_mc_snr_sweep(cfg, snr_values, "demo_trex_spca_01_mc_sim");
     }
