@@ -23,8 +23,6 @@ target_compile_definitions(demo_mlm_hac_02_mmap PRIVATE
     "TREX_DEMO_MMAP_PATH=\"${CMAKE_CURRENT_SOURCE_DIR}/hac_clustering/demo_mlm_hac_02_mmap/trex_mlm_demo_02_hac_mmap.bin\""
 )
 
-add_subdirectory(validation)
-
 add_demo_target(demo_mlm_ms_01_ridge_cv_svd
     model_selection/demo_mlm_ms_01_ridge_cv_svd/demo_mlm_ms_01_ridge_cv_svd.cpp
     DATA_PREPROCESSING_LIBS

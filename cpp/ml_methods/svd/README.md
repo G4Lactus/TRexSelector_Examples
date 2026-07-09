@@ -2,9 +2,15 @@
 
 ## Overview
 
-This folder contains C++ examples for the **singular value decomposition (SVD)** implementation in the `ml_methods` module.
+This folder contains C++ examples for the **singular value decomposition (SVD)** implementation in the `ml_methods`
+module.
 
-SVD is a core numerical linear-algebra tool used throughout the project for stable matrix decompositions, dimensionality reduction, and regression-related computations. In particular, it is relevant for PCA and for numerically stable ridge-regression workflows.
+SVD is used in this project for stable matrix decompositions, dimensionality reduction, and regression-related
+computations. In particular, it is relevant for PCA and for numerically stable ridge-regression workflows.
+
+Equivalent SVD demos are also available in the Python and R packages; see
+[Python/ml_methods/svd/](../../../Python/ml_methods/svd/README.md) and
+[R/ml_methods/svd/](../../../R/ml_methods/svd/README.md) for the corresponding walkthroughs.
 
 ---
 
@@ -33,7 +39,7 @@ $$
 ## Start here
 
 | Folder | Purpose |
-|------|---------|
+| ------ | ------- |
 | [demo_mlm_svd_01/](demo_mlm_svd_01/README.md) | Demonstrates basic `SVDSolver` usage, truncated reconstruction, and orthogonality checks |
 
 ---
@@ -46,4 +52,4 @@ $$
 
 ---
 
-**Last updated**: 2026-07-01
+**Last updated**: 2026-07-09

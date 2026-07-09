@@ -24,7 +24,7 @@
  *    B1. CV lambda selection (lambda.min / lambda.1se) for each alpha,
  *        low-dimensional (n=300, p=100, 10-fold).
  *    B2. CV for pure ridge (alpha=0) as used by TRexGVS; shows the
- *        lambda_2_lars = lambda.1se * p / 2 conversion.
+ *        lambda_2_lars = lambda.{min,1se} * p / 2 conversion for both selections.
  *
  * Algorithm notes:
  * ----------------
@@ -32,7 +32,7 @@
  *   rule and glmnet's fdev/devmax early-termination.  `enet_cv_ccd` builds the
  *   full-data lambda grid once and reuses it across folds (glmnet semantics).
  *   For alpha=0 (pure ridge) the returned lambdas are on glmnet's reported scale;
- *   the T-Rex conversion is:  lambda_2_lars = lambda.1se * p / 2.
+ *   the T-Rex conversion is:  lambda_2_lars = lambda.{min,1se} * p / 2.
  */
 // ===================================================================================
 

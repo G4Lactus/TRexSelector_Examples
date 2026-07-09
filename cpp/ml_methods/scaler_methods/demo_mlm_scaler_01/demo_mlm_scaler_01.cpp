@@ -6,14 +6,16 @@
  *
  * @brief Demonstration of ZScoreScaler and LpNormScaler usage.
  *
- * Organiation:
- * ------------
+ * Organization:
+ * -------------
  * |-- ml_methods/
- *.    |-- demo_01_scaler.cpp
+ *     |-- scaler_methods/
+ *         |-- demo_mlm_scaler_01.cpp
  */
 // ===================================================================================
 
 // std includes
+#include <iomanip>
 #include <iostream>
 #include <random>
 #include <string>
@@ -39,18 +41,46 @@ namespace cdiagnostics = trex::utils::eval::cdiagnostics;
 
 
 // ============================================================================
-// Demo 1: In-Memory Computations
+// Helper: aggregate column statistics
+// ============================================================================
+
+/**
+ * @brief Prints compact per-column statistics, averaged over all columns.
+ *
+ * Reveals the effect of the center / scale switches at a glance:
+ *   - centering drives the average absolute column mean toward 0,
+ *   - z-score scaling drives the average column SD toward 1,
+ *   - L2 normalization drives the average column L2 norm toward 1.
+ */
+void print_column_stats(const std::string& label, const Eigen::MatrixXd& X) {
+    const Eigen::Index n = X.rows();
+    const Eigen::RowVectorXd col_mean = X.colwise().mean();
+    const Eigen::RowVectorXd col_sd =
+        ((X.rowwise() - col_mean).colwise().squaredNorm()
+             / static_cast<double>(n - 1)).cwiseSqrt();
+    const Eigen::RowVectorXd col_l2 = X.colwise().norm();
+
+    std::cout << "  " << std::left << std::setw(36) << label
+              << "avg|mean| = " << std::scientific << std::setprecision(2)
+              << col_mean.cwiseAbs().mean()
+              << "   avg SD = " << std::fixed << std::setprecision(4) << col_sd.mean()
+              << "   avg L2 = " << std::setprecision(2) << col_l2.mean() << "\n";
+}
+
+
+// ============================================================================
+// Demo 1: center / scale switches (R scale() semantics)
 // ============================================================================
 
 void demo_scaler_comparison() {
-    cdiagnostics::print_section_header("Scaler Comparison - ZScoreScaler vs LpNormScaler");
+    cdiagnostics::print_section_header("Scaler Comparison - center / scale switches");
 
-    // Step 1. Generate random data
-    const Eigen::Index n = 2'000, p = 10'000;
+    // Step 1. Generate data with a deliberately non-zero mean (5.0) and
+    //         non-unit spread (SD 3.0), so the effect of each switch is visible.
+    const Eigen::Index n = 1'000, p = 500;
     std::mt19937 rng(123);
-    std::normal_distribution<double> norm_dist(0.0, 1.0);
+    std::normal_distribution<double> norm_dist(5.0, 3.0);
 
-    // Setup data matrix
     Eigen::MatrixXd X(n, p);
     for (Eigen::Index i = 0; i < n; ++i) {
         for (Eigen::Index j = 0; j < p; ++j) {
@@ -58,34 +88,59 @@ void demo_scaler_comparison() {
         }
     }
 
+    std::cout << "Data: " << n << " x " << p << " drawn from N(mean=5, sd=3)\n\n";
+    print_column_stats("original (untransformed)", X);
+    std::cout << "\n";
 
-    // Step 2. Create Map Wrapper
-    Eigen::Map<Eigen::MatrixXd> X_map(X.data(), n, p);
+    // Step 2. ZScoreScaler under all four center / scale combinations.
+    //         The (center, scale) booleans follow R's scale(): centering drives
+    //         avg|mean| -> 0, scaling drives avg SD -> 1. With center=false the
+    //         scale statistic is the root-mean-square around 0, not the SD.
+    struct ZCase {
+        bool center;
+        bool scale;
+        const char* label;
+    };
 
+    const ZCase z_cases[] = {
+        {true,  true,  "ZScore(center=true,  scale=true )"},
+        {false, true,  "ZScore(center=false, scale=true )"},
+        {true,  false, "ZScore(center=true,  scale=false)"},
+        {false, false, "ZScore(center=false, scale=false)"},
+    };
+    for (const auto& c : z_cases) {
+        Eigen::MatrixXd Xt = X;
+        Eigen::Map<Eigen::MatrixXd> Xt_map(Xt.data(), n, p);
+        scaler::ZScoreScaler zscaler(c.center, c.scale);
+        zscaler.fit(Xt_map);
+        zscaler.transform_inplace(Xt_map);
+        print_column_stats(c.label, Xt);
+    }
+    std::cout << "\n";
 
-    // Step 3. Fit Scalers
-    scaler::ZScoreScaler zscaler;
-    scaler::LpNormScaler l2scaler(scaler::LpNormScaler::NormType::L2, true);
-    scaler::LpNormScaler l1scaler(scaler::LpNormScaler::NormType::L1, true);
+    // Step 3. LpNormScaler: L2 vs L1, with centering on and off (scale kept on).
+    //         With scale=true each column is divided by its Lp norm around the
+    //         applied center, so the average column L2 norm collapses toward 1
+    //         for the L2 variant.
+    struct LCase {
+        scaler::LpNormScaler::NormType norm;
+        bool center;
+        const char* label;
+    };
 
-    std::cout << "Fitting scalers...\n";
-    zscaler.fit(X_map);
-    l2scaler.fit(X_map);
-    l1scaler.fit(X_map);
-    std::cout << "✓ Scalers fitted\n\n";
-
-
-    // Step 4. Transform performance
-    std::cout << "Transforming data...\n";
-    Eigen::MatrixXd X1 = X, X2 = X, X3 = X;
-    Eigen::Map<Eigen::MatrixXd> X1_map(X1.data(), n, p);
-    Eigen::Map<Eigen::MatrixXd> X2_map(X2.data(), n, p);
-    Eigen::Map<Eigen::MatrixXd> X3_map(X3.data(), n, p);
-
-    zscaler.transform_inplace(X1_map);
-    l2scaler.transform_inplace(X2_map);
-    l1scaler.transform_inplace(X3_map);
-    std::cout << "✓ Data transformed\n\n";
+    const LCase l_cases[] = {
+        {scaler::LpNormScaler::NormType::L2, true,  "LpNorm(L2, center=true )"},
+        {scaler::LpNormScaler::NormType::L2, false, "LpNorm(L2, center=false)"},
+        {scaler::LpNormScaler::NormType::L1, true,  "LpNorm(L1, center=true )"},
+    };
+    for (const auto& c : l_cases) {
+        Eigen::MatrixXd Xt = X;
+        Eigen::Map<Eigen::MatrixXd> Xt_map(Xt.data(), n, p);
+        scaler::LpNormScaler lscaler(c.norm, c.center, /*scale=*/true);
+        lscaler.fit(Xt_map);
+        lscaler.transform_inplace(Xt_map);
+        print_column_stats(c.label, Xt);
+    }
 
     std::cout << "\n\n";
 }

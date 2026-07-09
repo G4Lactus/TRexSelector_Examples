@@ -7,13 +7,15 @@ This demo illustrates two column-scaling utilities used for data normalization:
 - `ZScoreScaler`, which standardizes columns using a mean-and-scale transformation,
 - `LpNormScaler`, which centers columns and rescales them to unit $L_p$-norm.
 
-In addition to basic in-memory usage, the demo also covers inverse-transform accuracy, serialization of fitted scaler parameters, and scaling on a memory-mapped matrix.
+In addition to basic in-memory usage, the demo also covers inverse-transform accuracy, serialization of fitted scaler
+parameters, and scaling on a memory-mapped matrix.
 
 ---
 
 ## Mathematical setup
 
-Let $\boldsymbol{X} \in \mathbb{R}^{n \times p}$ denote a data matrix with columns $\boldsymbol{x}_1, \dots, \boldsymbol{x}_p$.
+Let $\boldsymbol{X} \in \mathbb{R}^{n \times p}$ denote a data matrix with columns
+$\boldsymbol{x}_1, \dots, \boldsymbol{x}_p$.
 
 ### Z-score scaling
 
@@ -38,7 +40,8 @@ $$
 {\lVert \boldsymbol{x}_j - \bar{x}_j \mathbf{1} \rVert_p}.
 $$
 
-The demo explicitly uses both $p =2$ and $p =1$ in memory, and uses the $L_2$ version again in the memory-mapped example.
+The demo explicitly uses both $p =2$ and $p =1$ in memory, and uses the $L_2$ version again in the memory-mapped
+example.
 
 ---
 
@@ -62,15 +65,18 @@ This section is mainly about showing how the scaler interfaces are fit once and 
 
 ## Subproblem 2: Inverse-transform accuracy
 
-The second part tests whether scaling can be numerically reversed after an in-place transform. It generates a random matrix with
+The second part tests whether scaling can be numerically reversed after an in-place transform. It generates a random
+matrix with
 
 $$
 n = 1000, \qquad p = 5000,
 $$
 
-then applies `fit()`, `transform_inplace()`, and `inverse_transform_inplace()` for both `ZScoreScaler` and the $L_2$-based `LpNormScaler`.
+then applies `fit()`, `transform_inplace()`, and `inverse_transform_inplace()` for both `ZScoreScaler` and the
+$L_2$-based `LpNormScaler`.
 
-The source reports the maximum and mean absolute reconstruction errors after the round-trip, so this subproblem checks interface correctness and numerical reversibility rather than downstream modeling behavior.
+The source reports the maximum and mean absolute reconstruction errors after the round-trip, so this subproblem checks
+interface correctness and numerical reversibility rather than downstream modeling behavior.
 
 ---
 
@@ -82,9 +88,11 @@ $$
 n = 1000, \qquad p = 500,
 $$
 
-saved to disk, loaded back into a fresh scaler object, and then compared through the norms of the differences in stored means and scales.
+saved to disk, loaded back into a fresh scaler object, and then compared through the norms of the differences in stored
+means and scales.
 
-This section verifies that fitted preprocessing parameters can be serialized and restored without loss, which is useful when training and deployment happen in separate stages.
+This section verifies that fitted preprocessing parameters can be serialized and restored without loss, which is useful
+when training and deployment happen in separate stages.
 
 ---
 
@@ -96,9 +104,11 @@ $$
 n = 20000, \qquad p = 100000.
 $$
 
-The source creates a writable mapped matrix, fills it deterministically, fits an $L_2$-based `LpNormScaler`, performs in-place transform and inverse transform operations, and then removes the backing file.
+The source creates a writable mapped matrix, fills it deterministically, fits an $L_2$-based `LpNormScaler`, performs
+in-place transform and inverse transform operations, and then removes the backing file.
 
-This subproblem shows that the scaler interface works with mapped matrix objects in addition to ordinary in-memory Eigen matrices.
+This subproblem shows that the scaler interface works with mapped matrix objects in addition to ordinary in-memory Eigen
+matrices.
 
 ---
 
@@ -108,7 +118,8 @@ This subproblem shows that the scaler interface works with mapped matrix objects
 ./build/debug/bin/ml_methods/scaler_methods/demo_mlm_scaler_01/demo_mlm_scaler_01
 ```
 
-The demo prints status messages for fitting, transforming, inverse transforming, serialization checks, and mapped-matrix cleanup.
+The demo prints status messages for fitting, transforming, inverse transforming, serialization checks, and mapped-matrix
+cleanup.
 
 ---
 
@@ -126,9 +137,11 @@ When reading the console output, focus on these points:
 ## Technical notes
 
 - The source uses `ZScoreScaler` together with `LpNormScaler` in both $L_1$ and $L_2$ modes in the in-memory comparison.
-- The serialization example uses `ZScoreScaler::save()` and `ZScoreScaler::load()` and then compares stored means and scales numerically.
+- The serialization example uses `ZScoreScaler::save()` and `ZScoreScaler::load()` and then compares stored means and
+  scales numerically.
 - The mapped-matrix example uses `LpNormScaler` with $L_2$-norm rather than `ZScoreScaler`.
-- The fallback filenames in the current source are `scaler_test.bin` for serialization and `mmap_matrix.bin` for the mapped matrix, unless overridden by compile-time macros such as `TREX_DEMO_SCALER_SER_PATH` and `TREX_DEMO_MMAP_PATH`.
+- The fallback filenames in the current source are `scaler_test.bin` for serialization and `mmap_matrix.bin` for the
+  mapped matrix, unless overridden by compile-time macros such as `TREX_DEMO_SCALER_SER_PATH` and `TREX_DEMO_MMAP_PATH`.
 
 ---
 

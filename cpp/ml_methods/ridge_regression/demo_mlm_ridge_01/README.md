@@ -34,7 +34,7 @@ with Gaussian predictors and additive Gaussian noise.
 
 ## Ridge objective
 
-For a fixed penalty value $ \lambda $, ridge regression solves
+For a fixed penalty value $\lambda$, ridge regression solves
 
 $$
 \widehat{\boldsymbol{\beta}}(\lambda)
@@ -55,7 +55,8 @@ $$
 (\boldsymbol{X}^\top \boldsymbol{X} + \lambda \boldsymbol{I})^{-1}\boldsymbol{X}^\top \boldsymbol{y}.
 $$
 
-The effect of $\lambda$ is to shrink the coefficients toward zero while improving numerical stability relative to unregularized least squares.
+The effect of $\lambda$ is to shrink the coefficients toward zero while improving numerical stability relative to
+unregularized least squares.
 
 ---
 
@@ -69,7 +70,10 @@ $$
 
 so the regression problem lies in the $n \ge p$ regime.
 
-The code generates a dense Gaussian design, sets all true coefficients to 1, adds small Gaussian noise, solves the ridge problem, and reports the coefficient error $\lVert \widehat{\boldsymbol{\beta}} - \boldsymbol{\beta}_{\mathrm{true}} \rVert_2$ together with the residual norm $\lVert \boldsymbol{y} - \boldsymbol{X}\widehat{\boldsymbol{\beta}} \rVert_2$.
+The code generates a dense Gaussian design, sets all true coefficients to 1, adds small Gaussian noise, solves the ridge
+problem, and reports the coefficient error
+$\lVert \widehat{\boldsymbol{\beta}} - \boldsymbol{\beta}_{\mathrm{true}} \rVert_2$ together with the residual norm
+$\lVert \boldsymbol{y} - \boldsymbol{X}\widehat{\boldsymbol{\beta}} \rVert_2$.
 
 ---
 
@@ -83,7 +87,9 @@ $$
 
 so the problem lies in the $n < p$ regime.
 
-Here the true coefficient vector is sparse, with only the first 10 entries nonzero, and the demo again reports coefficient error and residual norm after solving the ridge problem. This part is useful because it shows that the same solver interface is used in a setting where regularization is especially important.
+Here the true coefficient vector is sparse, with only the first 10 entries nonzero, and the demo again reports
+coefficient error and residual norm after solving the ridge problem. This part is useful because it shows that the same
+solver interface is used in a setting where regularization is especially important.
 
 ---
 
@@ -101,7 +107,8 @@ $$
 \lambda \in \{10^{-4}, 10^{-2}, 0.1, 1, 10, 100, 1000\}
 $$
 
-For each penalty value, the demo prints both the coefficient error and the residual norm, which lets the reader inspect the trade-off between shrinkage and data fit as \( \lambda \) increases.
+For each penalty value, the demo prints both the coefficient error and the residual norm, which lets the reader inspect
+the trade-off between shrinkage and data fit as $\lambda$ increases.
 
 ---
 
@@ -121,17 +128,24 @@ When reading the output, focus on these points:
 
 - how the reported coefficient error differs between the $n \ge p$ and $n < p$ settings,
 - how the residual norm changes across scenarios,
-- how increasing $ \lambda $ changes the balance between coefficient shrinkage and fit to the observed response,
+- how increasing $\lambda$ changes the balance between coefficient shrinkage and fit to the observed response,
 - how the solver behaves under both dense and sparse ground-truth coefficient patterns.
+
+The same ridge regression workflow is also implemented in
+[Python](../../../../Python/ml_methods/ridge_regression/demo_ridge_01_in_memory.py) and
+[R](../../../../R/ml_methods/ridge_regression/demo_ridge_01_in_memory.R).
 
 ---
 
 ## Technical notes
 
-- The current source labels the first two cases as “Primal Path” and “Dual Path,” corresponding to the low-dimensional and high-dimensional regimes used in the demo output.
-- The demo does not compute or print an OLS ($\lambda = 0$) baseline; it reports coefficient error and residual norm for the penalized solutions only.
-- The examples use random Gaussian designs and report solver outputs rather than a dedicated ill-conditioning or collinearity study.
+- The current source labels the first two cases as “Primal Path” and “Dual Path,” corresponding to the low-dimensional
+  and high-dimensional regimes used in the demo output.
+- The demo does not compute or print an OLS ($\lambda = 0$) baseline; it reports coefficient error and residual norm for
+  the penalized solutions only.
+- The examples use random Gaussian designs and report solver outputs rather than a dedicated ill-conditioning or
+  collinearity study.
 
 ---
 
-**Last updated**: 2026-07-08
+**Last updated**: 2026-07-09

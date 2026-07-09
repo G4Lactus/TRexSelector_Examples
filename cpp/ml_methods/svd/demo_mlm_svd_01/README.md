@@ -48,7 +48,8 @@ $$
 
 and computes a truncated SVD in the regime $n \ge p$.
 
-The code then prints the dimensions of $\mathbf{U}$, $\mathbf{S}$, and $\mathbf{V}$, reports the relative reconstruction error
+The code then prints the dimensions of $\mathbf{U}$, $\mathbf{S}$, and $\mathbf{V}$, reports the relative reconstruction
+error
 
 $$
 \frac{\|\mathbf{X}_M - \mathbf{X}\|_F}{\|\mathbf{X}\|_F},
@@ -68,7 +69,9 @@ $$
 
 so that $p > 2n$ and the source explicitly labels this as the Gram-path case.
 
-This scenario is useful because wide matrices often benefit from alternative internal linear-algebra strategies. As in the first scenario, the demo reports output dimensions and the relative Frobenius reconstruction error of the truncated approximation.
+This scenario is useful because wide matrices often benefit from alternative internal linear-algebra strategies. As in
+the first scenario, the demo reports output dimensions and the relative Frobenius reconstruction error of the truncated
+approximation.
 
 ---
 
@@ -88,7 +91,8 @@ $$
 \|\mathbf{V}^\top \mathbf{V} - \mathbf{I}\|_F
 $$
 
-If both quantities are sufficiently small, the demo reports that $\mathbf{U}$ and $\mathbf{V}$ are orthonormal up to numerical precision.
+If both quantities are sufficiently small, the demo reports that $\mathbf{U}$ and $\mathbf{V}$ are orthonormal up to
+numerical precision.
 
 ---
 
@@ -109,15 +113,24 @@ When reading the console output, focus on these points:
 - whether the dimensions of $\mathbf{U}$, $\mathbf{S}$, and $\mathbf{V}$ match the requested truncated rank $M$,
 - whether the singular values are reported in descending order,
 - whether the truncated reconstruction error is numerically reasonable,
-- whether the orthogonality errors $\|\mathbf{U}^\top \mathbf{U} - \mathbf{I}\|_F$ and $\|\mathbf{V}^\top \mathbf{V} - \mathbf{I}\|_F$ are close to zero.
+- whether the orthogonality errors $\|\mathbf{U}^\top \mathbf{U} - \mathbf{I}\|_F$ and
+  $\|\mathbf{V}^\top \mathbf{V} - \mathbf{I}\|_F$ are close to zero.
+
+The same SVD workflow is also implemented in
+[Python](../../../../Python/ml_methods/svd/demo_svd_01_in_memory.py) and
+[R](../../../../R/ml_methods/svd/demo_svd_01_in_memory.R).
 
 ---
 
 ## Technical notes
 
-- The source labels the first scenario as the “Direct Path” for $n \ge p$ and the second as the “Gram Path” for the wide-matrix regime $p > 2n$.
-- The demo does not include a dedicated rank-deficient example; the three scenarios use full-rank random Gaussian matrices.
-- The reconstruction reported by the demo is a **truncated** reconstruction using only the top $M$ singular components, so the error is not expected to be near machine precision unless $M$ is large enough to capture essentially all variation.
+- The source labels the first scenario as the “Direct Path” for $n \ge p$ and the second as the “Gram Path” for the
+  wide-matrix regime $p > 2n$.
+- The demo does not include a dedicated rank-deficient example; the three scenarios use full-rank random Gaussian
+  matrices.
+- The reconstruction reported by the demo is a **truncated** reconstruction using only the top $M$ singular components,
+  so the error is not expected to be near machine precision unless $M$ is large enough to capture essentially all
+  variation.
 
 ---
 

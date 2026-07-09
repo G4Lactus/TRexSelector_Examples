@@ -711,7 +711,7 @@ void demo_compare_linkage() {
     // Test B: Single Linkage (via Dispatcher -> SLINK)
     // ---------------------------------------------------------------------------
     {
-    std::cout << "\n[Test B] Single Linkage (via Dispatcher):\n";
+        std::cout << "\n[Test B] Single Linkage (via Dispatcher):\n";
         double start = omp_get_wtime();
 
         auto merges = hac::AgglomerativeClustering::cluster<
@@ -1070,7 +1070,7 @@ void demo_ar1_linkage_comparison() {
 
         auto merges = hac::AgglomerativeClustering::cluster<
             Eigen::Map<Eigen::MatrixXd>,
-            ExactDistPol /* or ExactDistPol */,
+            ExactDistPol,
             hac::LinkageMethod::Complete /* or Average, etc */>(X_map);
 
         double end = omp_get_wtime();
@@ -1091,7 +1091,7 @@ void demo_ar1_linkage_comparison() {
 
         auto merges = hac::AgglomerativeClustering::cluster<
             Eigen::Map<Eigen::MatrixXd>,
-            ExactDistPol /* or ExactDistPol */,
+            ExactDistPol,
             hac::LinkageMethod::Average /* or Average, etc */>(X_map);
 
         double end = omp_get_wtime();
@@ -1105,14 +1105,6 @@ void demo_ar1_linkage_comparison() {
 
     std::cout << "\n[Demo 6 Complete]\n\n";
 }
-
-
-// NOTE: A former "Demo 5b: R Crash Reproduction" deliberately instantiated
-// ProjectedGeometricUpdatePolicy with Average linkage to reproduce a bug in the
-// LSH-approximate path. The library now rejects that combination at compile
-// time via a static_assert (ProjectedGeometricUpdatePolicy supports only Ward,
-// Centroid, and Median), so the reproduction is no longer expressible and the
-// function was removed.
 
 
 // ==================================================================================

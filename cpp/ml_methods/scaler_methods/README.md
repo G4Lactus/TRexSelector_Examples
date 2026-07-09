@@ -4,7 +4,9 @@
 
 This folder contains C++ examples for **column-wise scaling and normalization** utilities in the `ml_methods` module.
 
-These preprocessing methods are used to standardize features before downstream tasks such as penalized regression, and other numerical linear-algebra workflows. The current demo illustrates both variance-based standardization and norm-based normalization.
+These preprocessing methods are used to standardize features before downstream tasks such as penalized regression, and
+other numerical linear-algebra workflows. The current demo illustrates both variance-based standardization and
+norm-based normalization.
 
 ---
 
@@ -34,7 +36,7 @@ Two core transformations are demonstrated:
 ## Start here
 
 | Folder | Purpose |
-|------|---------|
+| ------ | ------- |
 | [demo_mlm_scaler_01/](demo_mlm_scaler_01/README.md) | Demonstrates `ZScoreScaler` and `LpNormScaler`, including inverse transforms, serialization, and memory-mapped usage |
 
 ---

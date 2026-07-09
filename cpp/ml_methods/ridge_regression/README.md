@@ -4,13 +4,20 @@
 
 This folder contains C++ examples for the **ridge regression** implementation in the `ml_methods` module.
 
-Ridge regression adds an $\ell_2$-penalty to least squares in order to stabilize estimation and shrink coefficients toward zero. The demo in this folder illustrates ridge fitting in both low-dimensional and high-dimensional settings, together with the effect of varying the penalty parameter.
+Ridge regression adds an $\ell_2$-penalty to least squares in order to stabilize estimation and shrink coefficients
+toward zero. The demo in this folder illustrates ridge fitting in both low-dimensional and high-dimensional settings,
+together with the effect of varying the penalty parameter.
+
+Equivalent ridge regression demos are also available in the Python and R packages; see
+[Python/ml_methods/ridge_regression/](../../../Python/ml_methods/ridge_regression/README.md) and
+[R/ml_methods/ridge_regression/](../../../R/ml_methods/ridge_regression/README.md) for the corresponding walkthroughs.
 
 ---
 
 ## Key concept
 
-Given a design matrix $\boldsymbol{X} \in \mathbb{R}^{n \times p}$, response vector $\boldsymbol{y} \in \mathbb{R}^n$, and penalty parameter $\lambda \ge 0$, ridge regression estimates
+Given a design matrix $\boldsymbol{X} \in \mathbb{R}^{n \times p}$, response vector $\boldsymbol{y} \in \mathbb{R}^n$,
+and penalty parameter $\lambda \ge 0$, ridge regression estimates
 
 $$
 \widehat{\boldsymbol{\beta}}_{\mathrm{ridge}}
@@ -28,7 +35,7 @@ $$
 ## Start here
 
 | Folder | Purpose |
-|------|---------|
+| ------ | --------- |
 | [demo_mlm_ridge_01/](demo_mlm_ridge_01/README.md) | Demonstrates ridge regression in primal and high-dimensional regimes, plus a lambda sweep |
 
 ---

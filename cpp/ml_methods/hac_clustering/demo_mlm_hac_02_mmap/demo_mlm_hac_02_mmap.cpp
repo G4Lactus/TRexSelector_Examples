@@ -8,7 +8,7 @@
  *
  * @details Replicates the geometry of demo_02_hac's `demo_lsh_linkage_comparison` at
  * extreme scale (N=100,000 samples, P=400,000 variables, K=10 clusters) without ever
- * allocating the full 320 GB matrix in RAM. The dataset is generated and standardised
+ * allocating the full ~298 GB matrix in RAM. The dataset is generated and standardised
  * in-place via a memory-mapped file; the OS page cache streams data on demand.
  *
  * The demo is organised into three sequential phases:
@@ -123,7 +123,7 @@ double compute_ari(
     for (Eigen::Index i = 0; i <= max_pred; ++i)
         sum_comb_b += choose2(contingency.col(i).sum());
 
-    const double n_choose_2    = choose2(static_cast<double>(n));
+    const double n_choose_2     = choose2(static_cast<double>(n));
     const double expected_index = (sum_comb_a * sum_comb_b) / n_choose_2;
     const double max_index      = (sum_comb_a + sum_comb_b) / 2.0;
 
@@ -335,6 +335,9 @@ void demo_lsh_linkage_comparison_mmap() {
     // Phase 1 — Data generation (ReadWrite)
     // Phase 2 — Standardisation (in-place, same ReadWrite mapping)
     // Skipped when the mmap file already exists and has the expected size.
+    // Note: MmapMatrix pre-allocates the file to its full size up front, so this
+    // size check cannot distinguish a complete file from one left behind by a run
+    // that crashed mid-Phase-1; a stale partial file would be silently reused.
     // -------------------------------------------------------------------------
     if (!std::filesystem::exists(MMAP_PATH) ||
          std::filesystem::file_size(MMAP_PATH) != file_bytes) {
