@@ -40,8 +40,7 @@ This is useful for:
 
 If you are new to memory mapping in TRexSelector, begin with:
 
-1. **`demo_memory_mapping/`**  
-   A self-contained demo covering matrix creation, read/write access, serial and parallel out-of-core generation, and safe cleanup.
+1. **`demo_memory_mapping/`** — a self-contained demo covering matrix creation, read/write access, serial and parallel out-of-core generation, and safe cleanup.
 
 ---
 
