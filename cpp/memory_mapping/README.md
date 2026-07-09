@@ -4,7 +4,9 @@
 
 This folder contains C++ examples for the **`MemoryMappedMatrix<Scalar>`** utility from `utils/memmap/`.
 
-The utility provides a disk-backed matrix interface that can be used like an Eigen matrix through `Eigen::Map`, making it useful when matrices are too large to keep entirely in RAM. In the TRexSelector project, this is especially relevant for large design matrices and dummy matrices that exceed available RAM in solver and selector workflows.
+The utility provides a disk-backed matrix interface that can be used like an Eigen matrix through `Eigen::Map`, making
+it useful when matrices are too large to keep entirely in RAM. In the TRexSelector project, this is especially relevant
+for large design matrices and dummy matrices that exceed available RAM in solver and selector workflows.
 
 The main goals of this folder are:
 
@@ -12,9 +14,11 @@ The main goals of this folder are:
 2. to demonstrate out-of-core workflows for large matrices,
 3. to illustrate safe file lifetime management via RAII.
 
-The demo showcases C++-specific features such as RAII, zero-copy access through `Eigen::Map`, and OpenMP-based parallel generation.
+The demo showcases C++-specific features such as RAII, zero-copy access through `Eigen::Map`, and OpenMP-based parallel
+generation.
 
-Equivalent memory-mapping functionality is also available in the Python and R packages; see `Python/memory_mapping/` and `R/memory_mapping/` for the corresponding walkthroughs.
+Equivalent memory-mapping functionality is also available in the Python and R packages; see `Python/memory_mapping/` and
+`R/memory_mapping/` for the corresponding walkthroughs.
 
 ---
 
@@ -26,7 +30,10 @@ $$
 \boldsymbol{X}_{\mathrm{mmap}} \in \mathbb{R}^{n \times p}.
 $$
 
-Conceptually, the matrix behaves like a regular numeric matrix, but its storage is file-backed rather than purely in-memory. The underlying `MemoryMappedMatrix<Scalar>` template supports any fixed-size scalar type — including real (`float`, `double`) and complex (`std::complex<float>`, `std::complex<double>`) entries — although the demos here use `double`.
+Conceptually, the matrix behaves like a regular numeric matrix, but its storage is file-backed rather than purely
+in-memory. The underlying `MemoryMappedMatrix<Scalar>` template supports any fixed-size scalar type — including real
+(`float`, `double`) and complex (`std::complex<float>`, `std::complex<double>`) entries — although the demos here use
+`double`.
 
 This is useful for:
 
@@ -40,15 +47,16 @@ This is useful for:
 
 If you are new to memory mapping in TRexSelector, begin with:
 
-1. **`demo_memory_mapping/`** — a self-contained demo covering matrix creation, read/write access, serial and parallel out-of-core generation, and safe cleanup.
+1. **`demo_memory_mapping/`** — a self-contained demo covering matrix creation, read/write access, serial and parallel
+   out-of-core generation, and safe cleanup.
 
 ---
 
 ## Demo overview
 
-| Folder                    | Purpose |
-|---------------------------|---------|
-| `demo_memory_mapping/`    | Demonstrates basic mmap usage, out-of-core writes, OpenMP-based parallel filling, and element-wise access checks |
+| Folder | Purpose |
+| ------ | ------- |
+| `demo_memory_mapping/` | Demonstrates basic mmap usage, out-of-core writes, OpenMP-based parallel filling, and element-wise access checks |
 
 ---
 
@@ -93,7 +101,8 @@ memory_mapping/
 
 - This demo prints results to the console and does not write simulation summary files.
 - Temporary backing files are created in the system temporary directory and removed automatically.
-- The demo is intended to explain the memory-mapping utility itself, not to benchmark maximum scale production performance.
+- The demo is intended to explain the memory-mapping utility itself, not to benchmark maximum scale production
+  performance.
 
 ---
 

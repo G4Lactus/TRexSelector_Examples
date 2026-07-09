@@ -4,14 +4,19 @@
 
 This demo illustrates how to use `MemoryMappedMatrix<Scalar>` in C++.
 
-It mirrors the corresponding R example in `R/memory_mapping/demo_memory_mapping.R`, but also includes C++-specific features such as RAII-based cleanup, direct `Eigen::Map` interoperability, OpenMP-based parallel generation, and element-wise access checks.
+It mirrors the corresponding R example in `R/memory_mapping/demo_memory_mapping.R`, but also includes C++-specific
+features such as RAII-based cleanup, direct `Eigen::Map` interoperability, OpenMP-based parallel generation, and
+element-wise access checks.
 
 The demo is organized into four scenarios:
 
-1. **Basics**: create a memory-mapped matrix, write data into it, inspect metadata, extract a block, verify a full roundtrip, and reopen the file in read-only mode.
+1. **Basics**: create a memory-mapped matrix, write data into it, inspect metadata, extract a block, verify a full
+   roundtrip, and reopen the file in read-only mode.
 2. **Out-of-core streaming (serial)**: generate a matrix column by column without allocating the full matrix in RAM.
-3. **Out-of-core generation (parallel)**: fill columns in parallel with OpenMP using deterministic per-column random seeds.
-4. **Element-wise access**: test scalar reads, scalar writes, compound assignment, bounds checking, and read-only protection.
+3. **Out-of-core generation (parallel)**: fill columns in parallel with OpenMP using deterministic per-column random
+   seeds.
+4. **Element-wise access**: test scalar reads, scalar writes, compound assignment, bounds checking, and read-only
+   protection.
 
 ---
 
@@ -54,7 +59,8 @@ When reading the console output, check the following points:
 
 - The backing files are created in the system temporary directory.
 - File cleanup is managed through an RAII guard so that unmapping happens before deletion.
-- The parallel example uses OpenMP and assigns independent random seeds to columns, which avoids thread-scheduling-dependent randomness.
+- The parallel example uses OpenMP and assigns independent random seeds to columns, which avoids
+  thread-scheduling-dependent randomness.
 
 ---
 
