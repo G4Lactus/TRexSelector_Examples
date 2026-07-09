@@ -19,7 +19,9 @@
  *      step 4  TRexGVSSelector (GVSType::EN, TENET_AUG) on (X, y)  ->  selected indices
  *      step 5  FDR / TPR of the PC1 support vs the R-dumped truth (optional)
  *
- *  Inputs (all under <rdump_dir>, default = the repo rdump/ folder):
+ *  Inputs (all under <rdump_dir>; <rdump_dir> defaults to a machine-specific
+ *  absolute path ending in R/trex_selector_methods/validation/trex_spca/rdump, and is
+ *  overridable at runtime with `--dir <path>`):
  *    - X_<mc>.csv         : REQUIRED. n x p centered design, comma-separated, no header.
  *    - truth.csv          : OPTIONAL. Header "mc,indices"; indices = dash-joined
  *                           0-based PC1 true support (e.g. "0,3-8-12-19-27").
@@ -219,7 +221,7 @@ int main(int argc, char** argv)
     // ----- configuration -----
     std::filesystem::path rdump_dir =
         "/Users/fabianscheidt/Documents/C++/TRexSelector_Examples/"
-        "R/trex_selector_methods/trex_spca/rdump";
+        "R/trex_selector_methods/validation/trex_spca/rdump";
     int    num_trials   = 100;
     double tFDR         = 0.10;
     Eigen::Index M      = 3;        // ordinary PCA rank (PC1 used for the metric)

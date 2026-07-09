@@ -157,11 +157,11 @@ This makes each demo self-contained and easier to inspect independently.
 | # | Name | Purpose | Setting | Main parameters |
 |---|------|---------|---------|-----------------|
 | **01** | Single Run | Demonstrates basic T-Rex usage | One low-dimensional and one high-dimensional scenario | $n \in \{150, 5000\}$, $p \in \{300, 1000\}$, $s = 6$, SNR = 1.0, tFDR = 0.1 |
-| **02** | MC: Fixed Support | Studies FDR/TPR over an SNR range | Moderate dimension, fixed support | $n = 300$, $p = 1000$, $s = 10$, SNR $ \in \{0.1, 0.5, 1, 2, 5\} $, tFDR = 0.1, MC = 200 |
-| **03** | MC: Variable Support | Studies the effect of varying sparsity patterns | Moderate dimension, variable support | $n = 300$, $p = 1000$, support size varies, SNR grid, tFDR = 0.1, MC = 200 |
-| **04** | MC: L-loop Strategies | Compares different L-calibration strategies | Moderate dimension | $n = 300$, $p = 1000$, $s = 10$, random support, SNR $ \in \{0.1, 1, 5\} $, tFDR = 0.1, MC = 200 |
-| **05** | Memory-Mapped Single Run | Demonstrates memory-mapped workflows | Larger data and reduced RAM usage | Two scenarios: in-memory + solver mmap, and full mmap pipeline |
-| **06** | MC: Memory-Mapped | Studies FDR/TPR under memory-mapped execution | Large-scale setting | $n = 5000$, $p = 10000$, SNR grid, mmap storage on disk |
+| **02** | MC: Fixed Support | Studies FDR/TPR over an SNR range for 14 base solvers | Moderate dimension, fixed random support | $n = 300$, $p = 1000$, $s = 10$ (fixed, random indices, seed 24), SNR $ \in \{0.1, 0.5, 1, 2, 5\} $, tFDR = 0.1, MC = 200 |
+| **03** | MC: Variable Support | Studies FDR/TPR/L/T when support indices are redrawn per trial | Moderate dimension, variable support indices | $n = 300$, $p = 1000$, $s = 10$ (cardinality fixed, indices vary per trial), 21-point SNR grid $\{0.1,\ldots,2.0, 5.0\}$, tFDR = 0.1, MC = 10 |
+| **04** | MC: L-loop Strategies | Compares the 6 L-loop strategy types (TLARS fixed) | Moderate dimension, random support | $n = 300$, $p = 1000$, $s = 10$, 21-point SNR grid, tFDR = 0.1, MC = 10, 8 strategy rows (incl. SKIPL 5p/10p/20p) |
+| **05** | Memory-Mapped Single Run | Demonstrates memory-mapped workflows | Larger data and reduced RAM usage | Two scenarios ($n=5000,p=1000$ and $n=1000,p=5000$): in-memory X + D mmap, and full X+D mmap pipeline |
+| **06** | MC: Memory-Mapped | Studies FDR/TPR under memory-mapped execution (TLARS) | Moderate dimension, mmap pipeline | $n = 300$, $p = 1000$, $s = 10$, SNR $\in \{0.1,0.5,1,2,5\}$, MC = 10 (Demo C) / 500 (Demo D), mmap storage on disk |
 | **07** | MC: Scalability | Reserved for future scalability experiments | Placeholder | To be completed |
 
 ---
@@ -208,8 +208,8 @@ trex/
   │   ├── README.md
   │   └── simulation_results/
   │
-  └── demo_trex_07_mc_sim_scalablity/
-      ├── demo_trex_07_mc_sim_scalablity.cpp
+  └── demo_trex_07_mc_sim_scalability/
+      ├── demo_trex_07_mc_sim_scalability.cpp
       ├── README.md
       └── simulation_results/
 ```
@@ -218,16 +218,17 @@ trex/
 
 ## Example results
 
-The following example comes from **Demo 02**, which evaluates performance across several SNR levels for multiple base
-solvers within the T-Rex framework. We depict here an exemplary result using the TLARS solver.
+The following comes from **Demo 02**, which evaluates performance across several SNR levels for multiple base
+solvers within the T-Rex framework. The numbers below are **illustrative** of the expected pattern for the TLARS
+solver (exact values depend on the run); consult the generated `simulation_results/` files for actual figures.
 
 | SNR | FDR (TLARS) | TPR (TLARS) |
 |-----|-------------|-------------|
-| 0.1 | 0.0050      | 0.0030      |
-| 0.5 | 0.0481      | 0.2600      |
-| 1.0 | 0.0427      | 0.7360      |
-| 2.0 | 0.0398      | 0.9845      |
-| 5.0 | 0.0279      | 1.0000      |
+| 0.1 | low         | low         |
+| 0.5 | ≤ tFDR      | rising      |
+| 1.0 | ≤ tFDR      | high        |
+| 2.0 | ≤ tFDR      | near 1.0    |
+| 5.0 | ≤ tFDR      | 1.0         |
 
 ### Interpretation
 
@@ -251,10 +252,10 @@ cmake -S . -B build/debug -DCMAKE_BUILD_TYPE=Debug \
 cmake --build build/debug
 ```
 
-The executables are written to:
+The executables are written under `build/debug/bin/`, mirroring the source-tree layout:
 
 ```txt
-build/debug/bin/
+build/debug/bin/trex_selector_methods/trex/<demo_folder>/<demo_name>
 ```
 
 ---
@@ -264,7 +265,7 @@ build/debug/bin/
 For example, to run Demo 02:
 
 ```bash
-./build/debug/bin/demo_trex_02_mc_sim_fixed_support
+./build/debug/bin/trex_selector_methods/trex/demo_trex_02_mc_sim_fixed_support/demo_trex_02_mc_sim_fixed_support
 ```
 
 The program writes its output to the console and also stores result files in the corresponding demo folder.
@@ -304,4 +305,4 @@ Depending on the demo, the `simulation_results/` folder may contain:
 
 ---
 
-**Last updated**: 2026-07-01
+**Last updated**: 2026-07-08

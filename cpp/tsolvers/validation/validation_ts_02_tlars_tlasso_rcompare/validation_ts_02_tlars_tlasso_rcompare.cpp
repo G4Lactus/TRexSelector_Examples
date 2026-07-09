@@ -8,7 +8,8 @@
  *        tsolvers solvers on the SPCA sparse factor-model data.
  *
  * @details
- *  Companion to  R/tsolvers/demo_ts_compare_tlars_tlasso.R, which generates data
+ *  Companion to  R/tsolvers/validation/validation_ts_02_tlars_tlasso_rcompare/
+ *  demo_ts_compare_tlars_tlasso.R, which generates data
  *  from the SPCA sparse factor model (with SNR control) and dumps, per dataset i:
  *      Xn_<i>.csv (n x p), Dn_<i>.csv (n x L), y_<i>.csv (n x 1)
  *          -- already centred + unit-L2 standardised; fed verbatim (no further
@@ -17,12 +18,14 @@
  *      r_lasso_beta_<i>.csv / r_lasso_act_<i>.csv   : LASSO (type="lasso")
  *      r_en_beta_<i>.csv    / r_en_act_<i>.csv      : EN (augmented lasso_star)
  *
- *  Four C++ solvers are checked against the matching R reference:
+ *  Five C++ solver runs are checked against the matching R reference:
  *      TLARS_Solver   vs r_lar      (pure LARS)
  *      TLASSO_Solver  vs r_lasso    (LARS-LASSO, sign-change drops)
  *      TENET_Solver   vs r_en       (Gram-based elastic net; LASSO-style drops)
  *      TENETAug_Solver vs r_en      (augmented-lasso elastic net; default TLASSO
  *                                    inner) -- same EN path as TENET.
+ *      TENETAug_Solver vs r_enlar   (augmented-lasso EN with use_lars_inner=true;
+ *                                    pure-LARS inner, augmented type="lar").
  *
  *  API mapping: R uses ONE matrix Z = cbind(X, D) with num_dummies = L; the C++
  *  solvers take X and D SEPARATELY. R column j (1-based) <-> C++ combined 0-based
@@ -213,7 +216,8 @@ int main(int argc, char** argv)
 
     std::filesystem::path dir =
         "/Users/fabianscheidt/Documents/C++/TRexSelector_Examples/"
-        "R/tsolvers/rdump_tlars";
+        "R/tsolvers/validation/validation_ts_02_tlars_tlasso_rcompare/"
+        "rdump_tlars";
     for (int a = 1; a < argc; ++a) {
         std::string arg = argv[a];
         if (arg == "--dir" && a + 1 < argc) dir = argv[++a];

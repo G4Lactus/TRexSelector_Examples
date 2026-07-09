@@ -26,18 +26,38 @@ here.
 > support `{27, 149, 43, 128, 42, 4}` corresponds to R's
 > `{28, 150, 44, 129, 43, 5}`.
 
+The folder layout mirrors the C++ suite: one subfolder per demo (each with its
+own `README.md` and `simulation_results/`), plus the suite-level helper modules.
+
+```txt
+trex/
+  ├── README.md
+  ├── dgp_gauss_snr.py        ┐
+  ├── support_generators.py   │  suite-level shared modules
+  ├── trex_helpers.py         │  (imported by every demo)
+  ├── trex_sim_common.py      ┘
+  ├── demo_trex_01_single_run/
+  │   ├── demo_trex_01_single_run.py
+  │   ├── README.md
+  │   └── simulation_results/
+  ├── demo_trex_02_mc_sim_fixed_support/
+  │   └── ...
+  └── demo_trex_07_scalability/
+```
+
 ---
 
 ## Demos
 
-| # | Script | Description | C++ counterpart |
+| # | Folder | Description | C++ counterpart |
 |---|---|---|---|
-| 01 | [demo_trex_01_single_run.py](demo_trex_01_single_run.py) | Single run of `ts.TRexSelector(...).select()` with the TLARS solver in one low-dimensional (n=5000, p=1000) and one high-dimensional (n=150, p=300) setting; fixed 6-element support; prints `phi_prime`, `phi_mat`, `fdp_hat_mat`, `r_mat`, and `voting_grid` via `print_single_run_result()` (console output only). | [demo_trex_01_single_run](../../../cpp/trex_selector_methods/trex/demo_trex_01_single_run/) |
-| 02 | [demo_trex_02_mc_sim_fixed_support.py](demo_trex_02_mc_sim_fixed_support.py) | Monte Carlo study (`run_mc_trex()`, num_MC=100) over all 14 solver descriptors in `SOLVERS_DEFAULT` and SNR in {0.1, 0.5, 1, 2, 5}; n=300, p=1000, s=10; fixed support drawn once with seed 24 and shared across all trials; reports averaged FDR/TPR per solver x SNR. | [demo_trex_02_mc_sim_fixed_support](../../../cpp/trex_selector_methods/trex/demo_trex_02_mc_sim_fixed_support/) |
-| 03 | [demo_trex_03_mc_sim_variable_support.py](demo_trex_03_mc_sim_variable_support.py) | Monte Carlo study (num_MC=100) over the same 14 solvers and a finer SNR sweep {0.1, 0.2, ..., 2.0, 5.0} (21 values); support (and optionally coefficients) redrawn each trial; additionally tracks average L and T per solver x SNR. | [demo_trex_03_mc_sim_variable_support](../../../cpp/trex_selector_methods/trex/demo_trex_03_mc_sim_variable_support/) |
-| 04 | [demo_trex_04_mc_sim_lloop_strategies.py](demo_trex_04_mc_sim_lloop_strategies.py) | L-loop strategy comparison with TLARS as the fixed base solver (num_MC=25, 21 SNR values, random or block support). The script documents six strategies (STANDARD, HCONCAT, PERMUTATION, PERMUTATION_DIRECT, DIRECT, SKIPL); as currently shipped only the `SKIPL_20p` and `SKIPL_50p` entries are enabled in `L_STRATEGIES` — uncomment the others to compare the full set. | [demo_trex_04_mc_sim_lloop_strategies](../../../cpp/trex_selector_methods/trex/demo_trex_04_mc_sim_lloop_strategies/) |
-| 05 | [demo_trex_05_mmap.py](demo_trex_05_mmap.py) | Single-run memory-mapped workflows (seed=58). Part A: in-memory X with `use_memory_mapping=True` (D-mmap + solver LARS-path serialization). Part B: fully memory-mapped pipeline — X written to a temp binary file via `numpy_to_memmap()` and passed to `TRexSelector` as the zero-copy `to_numpy()` view. Each part runs a low-dim (n=5000, p=1000) and a high-dim (n=1000, p=5000) case and saves a per-variable selection CSV. | [demo_trex_05_mmap](../../../cpp/trex_selector_methods/trex/demo_trex_05_mmap/) |
-| 06 | [demo_trex_06_mc_sim_mmap.py](demo_trex_06_mc_sim_mmap.py) | Monte Carlo study under memory mapping (TLARS only, num_MC=500, fixed support seed 24, SNR in {0.1, 0.5, 1, 2, 5}). Part C: in-memory X + `use_memory_mapping=True` via `run_mc_trex()`. Part D: fully mmapped X per trial via `run_mc_trex_full_mmap()` (each worker writes X to a unique temp file and deletes it afterwards). Both parts should produce statistically equivalent FDR/TPR — that equivalence is the verification goal. | [demo_trex_06_mc_sim_mmap](../../../cpp/trex_selector_methods/trex/demo_trex_06_mc_sim_mmap/) |
+| 01 | [demo_trex_01_single_run](demo_trex_01_single_run/) | Single run of `ts.TRexSelector(...).select()` with the TLARS solver in one low-dimensional (n=5000, p=1000) and one high-dimensional (n=150, p=300) setting; fixed 6-element support; prints `phi_prime`, `phi_mat`, `fdp_hat_mat`, `r_mat`, and `voting_grid` via `print_single_run_result()` (console output only). | [demo_trex_01_single_run](../../../cpp/trex_selector_methods/trex/demo_trex_01_single_run/) |
+| 02 | [demo_trex_02_mc_sim_fixed_support](demo_trex_02_mc_sim_fixed_support/) | Monte Carlo study (`run_mc_trex()`, num_MC=100) over all 14 solver descriptors in `SOLVERS_DEFAULT` and SNR in {0.1, 0.5, 1, 2, 5}; n=300, p=1000, s=10; fixed support drawn once with seed 24 and shared across all trials; reports averaged FDR/TPR per solver x SNR. | [demo_trex_02_mc_sim_fixed_support](../../../cpp/trex_selector_methods/trex/demo_trex_02_mc_sim_fixed_support/) |
+| 03 | [demo_trex_03_mc_sim_variable_support](demo_trex_03_mc_sim_variable_support/) | Monte Carlo study (num_MC=100) over the same 14 solvers and a finer SNR sweep {0.1, 0.2, ..., 2.0, 5.0} (21 values); support (and optionally coefficients) redrawn each trial; additionally tracks average L and T per solver x SNR. | [demo_trex_03_mc_sim_variable_support](../../../cpp/trex_selector_methods/trex/demo_trex_03_mc_sim_variable_support/) |
+| 04 | [demo_trex_04_mc_sim_lloop_strategies](demo_trex_04_mc_sim_lloop_strategies/) | L-loop strategy comparison with TLARS as the fixed base solver (num_MC=25, 21 SNR values, random or block support). The script documents six strategies (STANDARD, HCONCAT, PERMUTATION, PERMUTATION_DIRECT, DIRECT, SKIPL); as currently shipped only the `SKIPL_20p` and `SKIPL_50p` entries are enabled in `L_STRATEGIES` — uncomment the others to compare the full set. | [demo_trex_04_mc_sim_lloop_strategies](../../../cpp/trex_selector_methods/trex/demo_trex_04_mc_sim_lloop_strategies/) |
+| 05 | [demo_trex_05_mmap](demo_trex_05_mmap/) | Single-run memory-mapped workflows (seed=58). Part A: in-memory X with `use_memory_mapping=True` (D-mmap + solver LARS-path serialization). Part B: fully memory-mapped pipeline — X written to a temp binary file via `numpy_to_memmap()` and passed to `TRexSelector` as the zero-copy `to_numpy()` view. Each part runs a low-dim (n=5000, p=1000) and a high-dim (n=1000, p=5000) case and saves a per-variable selection CSV. | [demo_trex_05_mmap](../../../cpp/trex_selector_methods/trex/demo_trex_05_mmap/) |
+| 06 | [demo_trex_06_mc_sim_mmap](demo_trex_06_mc_sim_mmap/) | Monte Carlo study under memory mapping (TLARS only, num_MC=500, fixed support seed 24, SNR in {0.1, 0.5, 1, 2, 5}). Part C: in-memory X + `use_memory_mapping=True` via `run_mc_trex()`. Part D: fully mmapped X per trial via `run_mc_trex_full_mmap()` (each worker writes X to a unique temp file and deletes it afterwards). Both parts should produce statistically equivalent FDR/TPR — that equivalence is the verification goal. | [demo_trex_06_mc_sim_mmap](../../../cpp/trex_selector_methods/trex/demo_trex_06_mc_sim_mmap/) |
+| 07 | [demo_trex_07_scalability](demo_trex_07_scalability/) | Scalability benchmark: in-memory vs chunked, memory-mapped out-of-core execution over an exponential (n, p) grid targeting 1 GB–256 GB raw-X footprints. Each run is isolated in a subprocess to record per-run time and peak RSS and to survive OOM on the large scenarios; results saved to `simulation_results/d04_scalability_benchmark.csv`. Mirrors the R port `demo_trex_07_scalability.R`. | [demo_trex_07_mc_sim_scalability](../../../cpp/trex_selector_methods/trex/demo_trex_07_mc_sim_scalability/) (WIP placeholder in C++) |
 
 ---
 
@@ -103,17 +123,19 @@ built inside each worker, never pickled.
 
 ## Running the Demos
 
-No build step is needed; run any demo directly:
+No build step is needed; run any demo directly (repo venv at `.venv/`):
 
 ```bash
-python demo_trex_01_single_run.py
-python demo_trex_02_mc_sim_fixed_support.py
+python Python/trex_selector_methods/trex/demo_trex_01_single_run/demo_trex_01_single_run.py
+python Python/trex_selector_methods/trex/demo_trex_02_mc_sim_fixed_support/demo_trex_02_mc_sim_fixed_support.py
 ```
 
-Each demo inserts its own directory into `sys.path`, so the helper modules
-resolve regardless of the current working directory. The MC demos parallelize
-trials with `ProcessPoolExecutor` (`_NUM_WORKERS = 6` by default; adjust the
-module-level constants `_NUM_WORKERS` / `_NUM_MC` to match your machine).
+Each demo inserts both its own directory **and its parent suite directory**
+into `sys.path`, so the suite-level helper modules resolve regardless of the
+current working directory (and are re-importable by the `spawn`-launched worker
+processes). The MC demos parallelize trials with `ProcessPoolExecutor`
+(`_NUM_WORKERS = 6` by default; adjust the module-level constants
+`_NUM_WORKERS` / `_NUM_MC` to match your machine).
 
 ### Output files
 

@@ -368,8 +368,8 @@ int main() {
     omp_set_num_threads(6);
     std::cout << "Running with " << omp_get_max_threads() << " threads\n\n";
 
-    if (false) demo_ar1_mc_snr_sweep();
-    if (false) demo_ar1_mc_rho_sweep();
+    if (true) demo_ar1_mc_snr_sweep();
+    if (true) demo_ar1_mc_rho_sweep();
     if (true) demo_ar1_mc_gap_rho_sweep();
 
     std::cout << "\nAR(1) MC simulation complete.\n";

@@ -1,13 +1,13 @@
 // ==============================================================================
-// demo_trex_da_06_mc_sim_ht_block_sweeps.cpp
+// demo_trex_da_06_mc_sim_bt_ht_block_sweeps.cpp
 // ==============================================================================
 /**
- * @file demo_trex_da_06_mc_sim_ht_block_sweeps.cpp
+ * @file demo_trex_da_06_mc_sim_bt_ht_block_sweeps.cpp
  *
  * @brief DA-TRex MC simulations for the heavy-tailed block DGP (BT aggregation).
  *
  * @details
- *  Corresponds to R reference: demo_trex_da_06_bt_heavy_tailed_block_sweeps.R.
+ *  Corresponds to R reference: demo_trex_da_07_bt_heavy_tailed_sweeps.R.
  *
  *  DGP: dgp_block_toeplitz_hvt() -- block-diagonal Toeplitz covariance, predictors
  *  and optionally noise are t(nu=3)-distributed. G = M blocks of size g = Q each.

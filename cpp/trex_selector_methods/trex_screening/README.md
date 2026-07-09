@@ -168,8 +168,10 @@ cmake --build build/debug
 ## Running a demo
 
 ```bash
-./build/debug/bin/demo_trex_scr_01_screen_trex
+./build/debug/bin/trex_selector_methods/trex_screening/demo_trex_scr_01_screen_trex/demo_trex_scr_01_screen_trex
 ```
+
+(The build mirrors the source-tree layout under `bin/`, so each demo executable lives at `bin/trex_selector_methods/trex_screening/<demo_folder>/<demo_name>`.)
 
 Each demo writes both a `.txt` summary and a tidy `.csv` table into its local `simulation_results/` folder once run.
 
@@ -192,4 +194,4 @@ Each demo writes both a `.txt` summary and a tidy `.csv` table into its local `s
 
 ---
 
-**Last updated**: 2026-07-04
+**Last updated**: 2026-07-08

@@ -74,24 +74,27 @@ Notes:
 | ML methods — Ridge | [ml_methods/ridge_regression/](ml_methods/ridge_regression/) | L2-penalized least squares, primal/dual, lambda sweep | [cpp/ml_methods/ridge_regression/](../cpp/ml_methods/ridge_regression/) |
 | ML methods — Model selection | [ml_methods/model_selection/](ml_methods/model_selection/) | K-fold CV for ridge and elastic net (lambda.min / lambda.1se) | [cpp/ml_methods/model_selection/](../cpp/ml_methods/model_selection/) |
 | T-Rex selector | [trex_selector_methods/trex/](trex_selector_methods/trex/) | Classical T-Rex: single runs, Monte Carlo simulations, L-loop strategies, memory-mapped pipelines (Demos 01–06) | [cpp/trex_selector_methods/trex/](../cpp/trex_selector_methods/trex/) |
+| Dependency-Aware T-Rex | [trex_selector_methods/trex_da/](trex_selector_methods/trex_da/) | T-Rex+DA: AR(1)/MA/NN/BT-block/heavy-tailed DGPs, prior groups (Demos 01–08) | [cpp/trex_selector_methods/trex_da/](../cpp/trex_selector_methods/trex_da/) |
+| Grouped Variable Selection T-Rex | [trex_selector_methods/trex_gvs/](trex_selector_methods/trex_gvs/) | T-Rex+GVS: Hastie, scattered, mixed/negative-trap, heavy-tailed, AR(1), ARMA, block benchmark; EN / EN+AUG / IEN (Demos 01–08) | [cpp/trex_selector_methods/trex_gvs/](../cpp/trex_selector_methods/trex_gvs/) |
+| Screen-TRex | [trex_selector_methods/trex_screening/](trex_selector_methods/trex_screening/) | Ultra-high-dimensional screening: Ordinary/Bootstrap-CI, mmap, correlated designs, biobank routing, solver backends (Demos 01–06) | [cpp/trex_selector_methods/trex_screening/](../cpp/trex_selector_methods/trex_screening/) |
+| T-Rex Sparse PCA | [trex_selector_methods/trex_spca/](trex_selector_methods/trex_spca/) | T-Rex SPCA MC comparison (2 solvers × 2 modes) vs. ordinary/oracle PCA on a sparse 3-factor model (Demo 01) | [cpp/trex_selector_methods/trex_spca/](../cpp/trex_selector_methods/trex_spca/) |
+| T-Solvers | [tsolvers/](tsolvers/README.md) | 12 standalone terminating-solver demos (`demo_ts_01` … `demo_ts_12`: early stopping, external normalization, serialization, mmap) + validation tree | [cpp/tsolvers/](../cpp/tsolvers/) |
 
 ---
 
 ## Coverage vs. cpp
 
-The Python examples currently cover the classical T-Rex selector,
-memory mapping, and the full `ml_methods` demo set (HAC clustering,
-standardization, PCA, SVD, ridge regression, model selection). The following
-areas that exist in the [cpp/](../cpp/) tree are **not yet available in
-Python** — see cpp/ or R/ for those:
+The Python examples currently cover the classical T-Rex selector, the
+Dependency-Aware T-Rex, the Grouped-Variable-Selection T-Rex, Screen-TRex,
+T-Rex Sparse PCA, the standalone terminating solvers (`tsolvers/`, 12 demos +
+validation), memory mapping, and the full `ml_methods` demo set (HAC
+clustering, standardization, PCA, SVD, ridge regression, model selection) —
+every cpp demo suite is ported.
+The only area that exists in the [cpp/](../cpp/) tree and is **not yet
+available in Python** — see cpp/ or R/ for it:
 
-- `trex_da/` (Dependency-Aware T-Rex)
-- `trex_gvs/` (Grouped Variable Selection T-Rex)
-- `trex_spca/` (Sparse PCA with T-Rex)
-- `trex_screening/` (Ultra-high-dimensional screening)
-- `tsolvers/` (standalone T-Algorithm solver demos)
 - the `ml_methods/validation/` scaler/HAC cross-language reference programs
 
 ---
 
-**Last updated**: 2026-07-06
+**Last updated**: 2026-07-08

@@ -63,7 +63,7 @@ Both include a **Usage %** column per method per SNR level. The single-phenotype
 ## Running the Demo
 
 ```bash
-./build/debug/bin/demo_trex_scr_04_biobank_screen_trex_inmem
+./build/debug/bin/trex_selector_methods/trex_screening/demo_trex_scr_04_biobank_screen_trex_inmem/demo_trex_scr_04_biobank_screen_trex_inmem
 ```
 
 ---
@@ -77,4 +77,4 @@ Both include a **Usage %** column per method per SNR level. The single-phenotype
 
 ---
 
-**Last updated**: 2026-07-04
+**Last updated**: 2026-07-08

@@ -1,11 +1,11 @@
 // ==============================================================================
-// da_trex_sim_common.hpp
+// trex_da_sim_common.hpp
 // ==============================================================================
 #ifndef DEMOS_TREX_SELECTOR_METHODS_DA_TREX_SIM_COMMON_HPP
 #define DEMOS_TREX_SELECTOR_METHODS_DA_TREX_SIM_COMMON_HPP
 // ==============================================================================
 /**
- * @file da_trex_sim_common.hpp
+ * @file trex_da_sim_common.hpp
  *
  * @brief Shared infrastructure for DA-TRex MC simulations.
  *

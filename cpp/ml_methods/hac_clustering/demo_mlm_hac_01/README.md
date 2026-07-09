@@ -4,12 +4,14 @@
 
 This demo illustrates several in-memory uses of hierarchical agglomerative clustering (HAC) that are relevant for the TRexSelector project and, in particular, for grouped variable selection workflows.
 
-We focuse on four core subproblems:
+We focus on six core subproblems, all of which are enabled and run in `main()`:
 
 1. clustering samples with Euclidean distance,
 2. clustering variables with correlation-based distance,
 3. accelerating correlation-based clustering with Locality-Sensitive Hashing (LSH),
-4. comparing linkage strategies on structured synthetic data.
+4. comparing linkage strategies on structured synthetic data (exact correlation),
+5. comparing linkage strategies under the pure $O(1)$ LSH correlation approximation,
+6. clustering AR(1) Toeplitz block structures, where correlation decays with distance.
 
 Throughout the demo, clustering quality is assessed by the **Adjusted Rand Index (ARI)**, which compares the recovered cluster labels against the known ground-truth labels from the synthetic data generator.
 
@@ -169,7 +171,45 @@ $$
 d(A,B),
 $$
 
-where the definition of $d(A,B)$ depends on the chosen linkage rule. This subproblem studies how that choice affects both accuracy and computational behavior on the same synthetic structure.
+where the definition of $d(A,B)$ depends on the chosen linkage rule. This subproblem studies how that choice affects both accuracy and computational behavior on the same synthetic structure. The comparison here is run under the **exact** Pearson-correlation distance, and it also exercises centroid- and median-style variants that lack the reducibility property.
+
+---
+
+## Subproblem 5: LSH-approximate linkage comparison
+
+### SP5 Data model
+
+This subproblem uses the same block-correlated latent-factor model as Subproblems 2–4, but on a larger, imbalanced configuration. Because the latent factors create dense, well-separated blocks in correlation space, the geometry is favorable for approximate hashing.
+
+### SP5 Mathematical approach
+
+The comparison repeats the linkage study of Subproblem 4, but replaces the exact correlation distance with the pure $O(1)$ SimHash-style LSH approximation
+
+$$
+d_{\mathrm{LSH}}(j,\ell)
+\approx
+1 - \left| \mathrm{corr}(\boldsymbol{x}_j, \boldsymbol{x}_\ell) \right|.
+$$
+
+Single (SLINK), complete, average (UPGMA), and weighted-average (WPGMA) linkage are each run under this approximation. The purpose is to show that, when the block geometry is well separated, the approximate distance still recovers the correct structure at a substantially reduced per-distance cost.
+
+---
+
+## Subproblem 6: AR(1) Toeplitz block clustering
+
+### SP6 Data model
+
+Here the variables are generated with a **block-diagonal AR(1) Toeplitz** correlation structure. Within each block, the correlation between variables decays with their index separation,
+
+$$
+\mathrm{corr}(x_{j}, x_{j+m}) \approx \rho^{\,m},
+$$
+
+so that a variable is strongly correlated with its immediate neighbors but nearly uncorrelated with distant variables in the same block.
+
+### SP6 Mathematical approach
+
+This chaining geometry is used to contrast linkage rules under the **exact** Pearson-correlation distance. Single linkage (SLINK) follows the correlation gradient and chains each block together, whereas complete and average linkage tend to fragment the gradually decaying blocks. LSH is deliberately not used here, because the coarse angular quantization destroys the continuous correlation gradient.
 
 ---
 
@@ -198,10 +238,10 @@ You can also compare selected results with the validation material in [validatio
 
 ## Technical notes
 
-- This README focuses on the first four core subproblems of the source file.
-- The source currently contains additional experimental branches beyond these four.
-- Which scenario is executed depends on the dispatch logic enabled in `main()`.
+- All six subproblems are enabled in `main()`; each is guarded by its own `if(true)` toggle so an individual part can be switched off while iterating on another.
+- Subproblems 4 and 6 use the exact Pearson-correlation distance, while Subproblems 3 and 5 exercise the LSH filter and/or pure $O(1)$ LSH approximation.
+- The synthetic dimensions vary per subproblem (for example, $P$ ranges up to $100{,}000$ variables), so runtimes and memory footprints differ across the six parts.
 
 ---
 
-**Last updated**: 2026-07-01
+**Last updated**: 2026-07-08

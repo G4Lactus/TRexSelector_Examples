@@ -1,13 +1,13 @@
 // ==============================================================================
-// demo_trex_da_05_mc_sim_ar1_block_sweeps.cpp
+// demo_trex_da_05_mc_sim_bt_ar1_block_sweeps.cpp
 // ==============================================================================
 /**
- * @file demo_trex_da_05_mc_sim_ar1_block_sweeps.cpp
+ * @file demo_trex_da_05_mc_sim_bt_ar1_block_sweeps.cpp
  *
  * @brief DA-TRex MC simulations for the AR(1)-block + white-noise DGP.
  *
  * @details
- *  Corresponds to R reference: demo_trex_da_05_bt_ar1_plus_white_block_sweeps.R.
+ *  Corresponds to R reference: demo_trex_da_06_bt_ar1_plus_white_block_sweeps.R.
  *
  *  DGP: dgp_ar1_block_white() — M AR(1) blocks (p_ar columns) plus p_white
  *  i.i.d. N(0,1) white-noise columns; p_total = p_ar + p_white = 1000 fixed.

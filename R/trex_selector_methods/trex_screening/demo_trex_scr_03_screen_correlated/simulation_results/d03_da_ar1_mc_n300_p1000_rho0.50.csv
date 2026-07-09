@@ -1,0 +1,97 @@
+method,metric,SNR,value
+Screen-TRex Ordinary,FDR,0.01,0.5
+Screen-TRex Ordinary,TPR,0.01,0
+Screen-TRex Ordinary,Est. FDR,0.01,0.4
+Screen-TRex Ordinary,FDR,0.1,0.7
+Screen-TRex Ordinary,TPR,0.1,0
+Screen-TRex Ordinary,Est. FDR,0.1,0.533333333333333
+Screen-TRex Ordinary,FDR,0.2,0.315
+Screen-TRex Ordinary,TPR,0.2,0.16
+Screen-TRex Ordinary,Est. FDR,0.2,0.545
+Screen-TRex Ordinary,FDR,0.5,0.141666666666667
+Screen-TRex Ordinary,TPR,0.5,0.43
+Screen-TRex Ordinary,Est. FDR,0.5,0.280952380952381
+Screen-TRex Ordinary,FDR,0.6,0.123571428571429
+Screen-TRex Ordinary,TPR,0.6,0.48
+Screen-TRex Ordinary,Est. FDR,0.6,0.262619047619048
+Screen-TRex Ordinary,FDR,1,0.121717171717172
+Screen-TRex Ordinary,TPR,1,0.86
+Screen-TRex Ordinary,Est. FDR,1,0.103856421356421
+Screen-TRex Ordinary,FDR,2,0.135331335331335
+Screen-TRex Ordinary,TPR,2,1
+Screen-TRex Ordinary,Est. FDR,2,0.0864668664668665
+Screen-TRex Ordinary,FDR,5,0.0685314685314685
+Screen-TRex Ordinary,TPR,5,1
+Screen-TRex Ordinary,Est. FDR,5,0.0931468531468532
+Screen-TRex Bootstrap,FDR,0.01,0.3
+Screen-TRex Bootstrap,TPR,0.01,0
+Screen-TRex Bootstrap,Est. FDR,0.01,0.25
+Screen-TRex Bootstrap,FDR,0.1,0.45
+Screen-TRex Bootstrap,TPR,0.1,0.02
+Screen-TRex Bootstrap,Est. FDR,0.1,0.45
+Screen-TRex Bootstrap,FDR,0.2,0.231666666666667
+Screen-TRex Bootstrap,TPR,0.2,0.12
+Screen-TRex Bootstrap,Est. FDR,0.2,0.478333333333333
+Screen-TRex Bootstrap,FDR,0.5,0.085
+Screen-TRex Bootstrap,TPR,0.5,0.25
+Screen-TRex Bootstrap,Est. FDR,0.5,0.0942857142857143
+Screen-TRex Bootstrap,FDR,0.6,0.0541666666666667
+Screen-TRex Bootstrap,TPR,0.6,0.33
+Screen-TRex Bootstrap,Est. FDR,0.6,0.170833333333333
+Screen-TRex Bootstrap,FDR,1,0.0366666666666667
+Screen-TRex Bootstrap,TPR,1,0.18
+Screen-TRex Bootstrap,Est. FDR,1,0.0183333333333333
+Screen-TRex Bootstrap,FDR,2,0.120745920745921
+Screen-TRex Bootstrap,TPR,2,0.9
+Screen-TRex Bootstrap,Est. FDR,2,0.0779254079254079
+Screen-TRex Bootstrap,FDR,5,0.0776223776223776
+Screen-TRex Bootstrap,TPR,5,1
+Screen-TRex Bootstrap,Est. FDR,5,0.0922377622377622
+Screen-TRex Ord+DA-AR1,FDR,0.01,0.4
+Screen-TRex Ord+DA-AR1,TPR,0.01,0
+Screen-TRex Ord+DA-AR1,Est. FDR,0.01,0.35
+Screen-TRex Ord+DA-AR1,FDR,0.1,0.5
+Screen-TRex Ord+DA-AR1,TPR,0.1,0
+Screen-TRex Ord+DA-AR1,Est. FDR,0.1,0.433333333333333
+Screen-TRex Ord+DA-AR1,FDR,0.2,0.185
+Screen-TRex Ord+DA-AR1,TPR,0.2,0.13
+Screen-TRex Ord+DA-AR1,Est. FDR,0.2,0.595
+Screen-TRex Ord+DA-AR1,FDR,0.5,0.109444444444444
+Screen-TRex Ord+DA-AR1,TPR,0.5,0.33
+Screen-TRex Ord+DA-AR1,Est. FDR,0.5,0.251111111111111
+Screen-TRex Ord+DA-AR1,FDR,0.6,0.108333333333333
+Screen-TRex Ord+DA-AR1,TPR,0.6,0.42
+Screen-TRex Ord+DA-AR1,Est. FDR,0.6,0.286666666666667
+Screen-TRex Ord+DA-AR1,FDR,1,0.0886111111111111
+Screen-TRex Ord+DA-AR1,TPR,1,0.74
+Screen-TRex Ord+DA-AR1,Est. FDR,1,0.128888888888889
+Screen-TRex Ord+DA-AR1,FDR,2,0.0655011655011655
+Screen-TRex Ord+DA-AR1,TPR,2,0.99
+Screen-TRex Ord+DA-AR1,Est. FDR,2,0.0945609945609946
+Screen-TRex Ord+DA-AR1,FDR,5,0.0181818181818182
+Screen-TRex Ord+DA-AR1,TPR,5,1
+Screen-TRex Ord+DA-AR1,Est. FDR,5,0.0981818181818182
+Screen-TRex Boot+DA-AR1,FDR,0.01,0.2
+Screen-TRex Boot+DA-AR1,TPR,0.01,0
+Screen-TRex Boot+DA-AR1,Est. FDR,0.01,0.2
+Screen-TRex Boot+DA-AR1,FDR,0.1,0.2
+Screen-TRex Boot+DA-AR1,TPR,0.1,0
+Screen-TRex Boot+DA-AR1,Est. FDR,0.1,0.15
+Screen-TRex Boot+DA-AR1,FDR,0.2,0.05
+Screen-TRex Boot+DA-AR1,TPR,0.2,0.02
+Screen-TRex Boot+DA-AR1,Est. FDR,0.2,0.15
+Screen-TRex Boot+DA-AR1,FDR,0.5,0
+Screen-TRex Boot+DA-AR1,TPR,0.5,0
+Screen-TRex Boot+DA-AR1,Est. FDR,0.5,0
+Screen-TRex Boot+DA-AR1,FDR,0.6,0
+Screen-TRex Boot+DA-AR1,TPR,0.6,0.12
+Screen-TRex Boot+DA-AR1,Est. FDR,0.6,0.136666666666667
+Screen-TRex Boot+DA-AR1,FDR,1,0
+Screen-TRex Boot+DA-AR1,TPR,1,0
+Screen-TRex Boot+DA-AR1,Est. FDR,1,0
+Screen-TRex Boot+DA-AR1,FDR,2,0.0166666666666667
+Screen-TRex Boot+DA-AR1,TPR,2,0.3
+Screen-TRex Boot+DA-AR1,Est. FDR,2,0.0283333333333333
+Screen-TRex Boot+DA-AR1,FDR,5,0.0272727272727273
+Screen-TRex Boot+DA-AR1,TPR,5,0.7
+Screen-TRex Boot+DA-AR1,Est. FDR,5,0.0672727272727273

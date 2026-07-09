@@ -129,9 +129,9 @@ When reading the output, focus on these points:
 ## Technical notes
 
 - The current source labels the first two cases as “Primal Path” and “Dual Path,” corresponding to the low-dimensional and high-dimensional regimes used in the demo output.
-- The existing README phrase “Comparison against OLS ($ \lambda = 0 $) solution” should be removed, because the demo does not explicitly compute or print an OLS baseline.
-- Likewise, “ill-conditioned or collinear designs” is broader than what the current code actually demonstrates, since the examples use random Gaussian designs and report solver outputs rather than a dedicated conditioning study.
+- The demo does not compute or print an OLS ($\lambda = 0$) baseline; it reports coefficient error and residual norm for the penalized solutions only.
+- The examples use random Gaussian designs and report solver outputs rather than a dedicated ill-conditioning or collinearity study.
 
 ---
 
-**Last updated**: 2026-07-01
+**Last updated**: 2026-07-08

@@ -5,8 +5,9 @@
 This directory contains the standalone C++ examples project. It consumes the
 installed **TRexSelector** library via CMake's `find_package()` and covers the
 full library stack: data-preprocessing utilities, T-Algorithm solvers, and T-Rex
-selector variants. Each demo writes its output to a `simulation_results/` folder
-next to its own source file.
+selector variants. Demos that produce output files write them to a
+`simulation_results/` folder next to their source; the `ml_methods` and
+`memory_mapping` demos print to the console.
 
 ---
 
@@ -168,4 +169,4 @@ comparisons, solver equivalence checks, and R cross-validation pipelines.
 
 ---
 
-*Last updated: 2026-07-04*
+*Last updated: 2026-07-08*

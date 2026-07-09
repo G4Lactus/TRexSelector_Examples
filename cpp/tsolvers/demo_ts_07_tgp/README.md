@@ -15,7 +15,7 @@ T-GP is a pursuit-style variable-selection method that uses a cheaper gradient-b
 
 ## Key idea
 
-Like the other terminating solvers, T-GP is run only up to a prescribed stopping level $T_{\text{stop}}$:
+Like the other terminating solvers, T-GP stops early once a prescribed number $T_{\text{stop}}$ of dummy variables has entered the active set:
 
 $$
 \hat{\boldsymbol{\beta}}^{(T)} = \mathrm{TGP}(\mathbf{X}, \mathbf{D}, \mathbf{y}; T_{\text{stop}}).
@@ -27,7 +27,7 @@ In the demo, this is done through calls of the form
 executeStep(T_stop, /*early_stop=*/true)
 ```
 
-so the solver terminates once the requested number of steps has been reached.
+so, with `early_stop=true`, the solver terminates early once the number of dummy variables in the active set reaches $T_{\text{stop}}$.
 
 ---
 
@@ -91,4 +91,4 @@ Compared with T-OMP, T-GP uses a cheaper gradient-style update instead of a full
 
 ---
 
-**Last updated**: 2026-07-03
+**Last updated**: 2026-07-08

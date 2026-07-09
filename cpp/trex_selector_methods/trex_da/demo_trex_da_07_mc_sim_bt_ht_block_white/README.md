@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Combine Demo 05's white-noise dilution with Demo 06's heavy-tailed robustness study: heavy-tailed AR(1)-Toeplitz blocks embedded in a larger design padded with i.i.d. Student-$t$ white-noise columns. Corresponds to R reference `demo_trex_da_07_bt_ht_block_white_sweeps.R`.
+Combine Demo 05's white-noise dilution with Demo 06's heavy-tailed robustness study: heavy-tailed AR(1)-Toeplitz blocks embedded in a larger design padded with i.i.d. Student-$t$ white-noise columns. Corresponds to R reference `demo_trex_da_08_bt_heavy_tailed_plus_white_block_sweeps.R` (numbered "08" in the R suite but "07" in this C++ folder — a naming lineage quirk, not a bug).
 
 ---
 
@@ -29,14 +29,14 @@ Combine Demo 05's white-noise dilution with Demo 06's heavy-tailed robustness st
 
 ## Output Files
 
-Written to `simulation_results/` (48 files): naming pattern `da_trex_mc_da_ht_white_{snr|rho|Q|M|tFDR}_{s1_Gauss|s2_Heavy}_{Single|Complete|Average}.{txt,csv}`.
+Written to `simulation_results/` (60 files = 30 scenario stems, one `.txt`+`.csv` pair each): five sweeps (`snr`, `rho`, `Q`, `M`, `tFDR`) × 2 noise scenarios × 3 linkages, following the pattern `da_trex_mc_da_ht_white_{snr|rho|Q|M|tFDR}_{s1_Gauss|s2_Heavy}_{Single|Complete|Average}.{txt,csv}`.
 
 ---
 
 ## Running the Demo
 
 ```bash
-./build/debug/bin/demo_trex_da_07_mc_sim_bt_ht_block_white
+./build/debug/bin/trex_selector_methods/trex_da/demo_trex_da_07_mc_sim_bt_ht_block_white/demo_trex_da_07_mc_sim_bt_ht_block_white
 ```
 
 ---
@@ -62,4 +62,4 @@ Written to `simulation_results/` (48 files): naming pattern `da_trex_mc_da_ht_wh
 
 ---
 
-**Last updated**: 2026-07-04
+**Last updated**: 2026-07-08

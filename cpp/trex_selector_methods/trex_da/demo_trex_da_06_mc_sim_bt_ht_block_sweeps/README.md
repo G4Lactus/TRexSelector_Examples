@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Stress-test `BT`-based DA-TRex under **heavy-tailed (Student-t)** predictors and/or noise, using a block-diagonal Toeplitz design. Studies both statistical robustness (Gaussian vs. heavy-tailed scenarios) and sensitivity across five sweep dimensions plus a dedicated linkage-method sweep. Corresponds to R reference `demo_trex_da_06_bt_heavy_tailed_block_sweeps.R`.
+Stress-test `BT`-based DA-TRex under **heavy-tailed (Student-t)** predictors and/or noise, using a block-diagonal Toeplitz design. Studies both statistical robustness (Gaussian vs. heavy-tailed scenarios) and sensitivity across five sweep dimensions plus a dedicated linkage-method sweep. Corresponds to R reference `demo_trex_da_07_bt_heavy_tailed_sweeps.R` (numbered "07" in the R suite but "06" in this C++ folder — a naming lineage quirk, not a bug).
 
 ---
 
@@ -30,14 +30,14 @@ Outer loops: noise scenario $\in$ {**s1_Gauss** (Gaussian noise), **s2_Heavy** (
 
 ## Output Files
 
-Written to `simulation_results/` (60 files — the largest output set of any demo in this project): naming pattern `da_trex_mc_da_ht_{snr|rho|Q|M|tFDR|linkage}_{s1_Gauss|s2_Heavy}_{Single|Complete|Average}.{txt,csv}` (the dedicated linkage-sweep section omits the trailing linkage suffix since linkage itself is the swept variable: `da_trex_mc_da_ht_linkage_{s1_Gauss|s2_Heavy}.{txt,csv}`).
+Written to `simulation_results/` (64 files — the largest output set of any demo in this project): 32 scenario stems, one `.txt`+`.csv` pair each. Five sweeps (`snr`, `rho`, `Q`, `M`, `tFDR`) × 2 noise scenarios × 3 linkages = 30 stems, following the pattern `da_trex_mc_da_ht_{snr|rho|Q|M|tFDR}_{s1_Gauss|s2_Heavy}_{Single|Complete|Average}.{txt,csv}`, plus the dedicated linkage-sweep section's 2 stems `da_trex_mc_da_ht_linkage_{s1_Gauss|s2_Heavy}.{txt,csv}` (which omit the trailing linkage suffix since linkage itself is the swept variable).
 
 ---
 
 ## Running the Demo
 
 ```bash
-./build/debug/bin/demo_trex_da_06_mc_sim_bt_ht_block_sweeps
+./build/debug/bin/trex_selector_methods/trex_da/demo_trex_da_06_mc_sim_bt_ht_block_sweeps/demo_trex_da_06_mc_sim_bt_ht_block_sweeps
 ```
 
 ---
@@ -64,4 +64,4 @@ Written to `simulation_results/` (60 files — the largest output set of any dem
 
 ---
 
-**Last updated**: 2026-07-04
+**Last updated**: 2026-07-08

@@ -4,7 +4,7 @@
 
 A deliberate **misspecification stress test**: apply the **`DAMethod::NN`** (banded/nearest-neighbor) correction to data generated from an **AR(1)** process — a genuinely different (geometrically-decaying, not banded) correlation structure. This studies whether the NN correction, which assumes a finite-range dependency, can still usefully approximate a structure whose correlation never truly vanishes at any distance. Companion to Demo 03 (`dgp_nn`, correctly-specified NN data).
 
-> **Status**: `simulation_results/` is currently empty — this demo has not yet been run in this checkout.
+> **Status**: All three parts run in `main()` and write output when executed. The committed checkout does not yet include the result files under `simulation_results/`.
 
 ---
 
@@ -28,16 +28,20 @@ All parts: $s=10$, $K=20$, $\mathrm{tFDR}=0.2$, $\mathrm{MC}=200$, `base_seed=20
 
 ---
 
-## Output Files (expected)
+## Output Files
 
-Written to `simulation_results/` once run, following the shared `da_trex_mc_{scenario_tag}.{txt,csv}` naming convention (verify exact tag strings in the source if you rerun this demo).
+Written to `simulation_results/` when run (5 scenario stems, one `.txt`+`.csv` pair each = 10 files):
+
+- Part 1 (SNR): `da_trex_mc_da_nn_ar_snr_capped.txt` / `.csv`, `da_trex_mc_da_nn_ar_snr_random.txt` / `.csv`
+- Part 2 ($\rho$): `da_trex_mc_da_nn_ar_rho_capped.txt` / `.csv`, `da_trex_mc_da_nn_ar_rho_random.txt` / `.csv`
+- Part 3 (2D SNR$\times\rho$): `da_trex_mc_da_nn_ar_snr_rho.txt` / `.csv`
 
 ---
 
 ## Running the Demo
 
 ```bash
-./build/debug/bin/demo_trex_da_03b_mc_sim_nn_ar
+./build/debug/bin/trex_selector_methods/trex_da/demo_trex_da_03b_mc_sim_nn_ar/demo_trex_da_03b_mc_sim_nn_ar
 ```
 
 ---
@@ -50,4 +54,4 @@ Written to `simulation_results/` once run, following the shared `da_trex_mc_{sce
 
 ---
 
-**Last updated**: 2026-07-04
+**Last updated**: 2026-07-08

@@ -28,9 +28,9 @@ Evaluate T-Rex+GVS on a more realistic grouped design: four contiguous equicorre
 ### Preset 2 — Mixed-Blocks-Rho075 (fixed $\rho = 0.75$)
 - Part 1: SNR sweep at fixed $\rho = 0.75$ (derived $\sigma_x$).
 - Part 2: $\rho$ sweep at fixed $\mathrm{SNR}=2.0$, with expanded coverage (11 levels, including $0.40$ and $0.60$).
-- Part 3: 2-D SNR $\times$ $\rho$ grid with expanded $\rho$ coverage (up to $0.99$).
+- Part 3: 2-D SNR $\times$ $\rho$ grid. Its $\rho$ axis is $\{0.30, 0.50, 0.70, 0.85, 0.90, 0.99\}$, which replaces Preset 1's $0.95$ with $0.85$ — shifting coverage toward a lower $\rho$ rather than extending it (both presets already reach $0.99$).
 
-Both presets share $\mathrm{SNR} \in \{0.1, 0.2, 0.5, 1.0, 2.0, 5.0\}$ for the SNR sweep and the same 2-D SNR grid $\{0.2, 0.5, 1.0, 2.0, 5.0\}$.
+Both presets share $\mathrm{SNR} \in \{0.1, 0.2, 0.5, 1.0, 2.0, 5.0\}$ for the SNR sweep and the same 2-D SNR grid $\{0.2, 0.5, 1.0, 2.0, 5.0\}$. Preset 1's 2-D $\rho$ axis is $\{0.30, 0.50, 0.70, 0.90, 0.95, 0.99\}$.
 
 ---
 
@@ -65,7 +65,7 @@ Written to `simulation_results/`:
 ## Running the Demo
 
 ```bash
-./build/debug/bin/demo_trex_gvs_03_mc_sim_mixed_blocks
+./build/debug/bin/trex_selector_methods/trex_gvs/demo_trex_gvs_03_mc_sim_mixed_blocks/demo_trex_gvs_03_mc_sim_mixed_blocks
 ```
 
 Both presets run in the same executable invocation.
@@ -81,4 +81,4 @@ Both presets run in the same executable invocation.
 
 ---
 
-**Last updated**: 2026-07-04
+**Last updated**: 2026-07-08

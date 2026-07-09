@@ -170,14 +170,14 @@ int main() {
     cfg.tFDR              = 0.10;
     cfg.num_MC            = 200;
     cfg.base_seed         = 42;
-    cfg.lambda_2          = 0.0; // 0.0 triggers k-fold CV for lambda_2 selection
+    cfg.lambda_2          = -1.0; // < 0 triggers k-fold CV for lambda_2 selection (0 = no ridge)
 
     const std::vector<double> snr_values = {-10.0, -7, -5.0, -3,
                                             0.0,
                                             3.0, 5.0, 7.0, 10.0};
 
     demo_trex_spca_scaling_sweep(cfg, snr_values,
-                                 "demo_trex_spca_04_scaling_comparison");
+                                 "validation_trex_spca_03_scaling_comparison");
 
     return 0;
 }

@@ -13,8 +13,8 @@ that generates data, runs a selector (or building block), and explains the outpu
 | Folder | Language | Status | Description |
 |---|---|---|---|
 | [cpp/](cpp/) | C++20 | reference | The most complete example set: all selector variants, 12 terminating solvers, ML building blocks, memory mapping, and validation programs. Has its own CMake build; see [cpp/README.md](cpp/README.md). |
-| [R/](R/) | R | partially updated | Demos for the `TRexSelectorNeo` R package. The classical T-Rex, memory-mapping, and ML-method demos use the new R6 API; the `trex_da`/`trex_gvs`/`trex_spca` suites are legacy (CRAN `TRexSelector` 1.0.0) pending migration. See [R/README.md](R/README.md). |
-| [Python/](Python/) | Python ≥ 3.10 | updated subset | Demos for the `TRexSelectorNeo` Python package (`import trex_selector_neo`): classical T-Rex, memory mapping, and the full ml_methods set (HAC clustering, standardization, PCA, SVD, ridge regression). Selector-variant areas are not yet ported. See [Python/README.md](Python/README.md). |
+| [R/](R/) | R | mirrors cpp | Demos for the `TRexSelectorNeo` R package (R6 API): all selector suites (trex, trex_da, trex_gvs, trex_spca, trex_screening), the 12 terminating-solver demos (`tsolvers/`) + validation, memory mapping, and the full ml_methods set. CRAN `TRexSelector` 1.0.0 is used only as an independent reference in the tsolvers cross-check. See [R/README.md](R/README.md). |
+| [Python/](Python/) | Python ≥ 3.10 | mirrors cpp | Demos for the `TRexSelectorNeo` Python package (`import trex_selector_neo`): all selector suites (trex, trex_da, trex_gvs, trex_spca, trex_screening), the 12 terminating-solver demos (`tsolvers/`) + validation, memory mapping, and the full ml_methods set. Only the `ml_methods/validation/` reference programs are not ported. See [Python/README.md](Python/README.md). |
 
 Demo naming follows the C++ convention `demo_<area>_NN_<topic>`; R and Python demos state their
 C++ counterpart in the file header so the three implementations can be compared side by side.
@@ -81,4 +81,4 @@ The [cpp/](cpp/) folder is a standalone CMake project; build it with the provide
 
 ---
 
-**Last updated**: 2026-07-06
+**Last updated**: 2026-07-08

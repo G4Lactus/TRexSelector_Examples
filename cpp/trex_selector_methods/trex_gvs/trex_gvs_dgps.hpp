@@ -23,6 +23,11 @@
  *   - make_neg_corr_dgp()           — active group + negative-correlation trap
  *   - make_neg_traps_dgp()          — active group + two spatially separated traps
  *   - make_block_equicorr_dgp()     — G equal-size blocks, 3 truth scenarios
+ *   - make_t3_equicorr_blocks_dgp() — 4 heavy-tailed t(3) equicorrelated blocks
+ *   - make_ar1_blocks_dgp()         — 4 blocks with AR(1) Toeplitz within-block covariance
+ *   - make_arma_blocks_dgp()        — 4 blocks with heterogeneous AR/MA/ARMA structure
+ *   - make_hapgen_cholesky()        — Cholesky factor of the quasi-hapgen LD-block correlation
+ *   - make_hapgen_dgp()             — quasi-hapgen 7-block LD design (p=500, s=130)
  *
  */
 // ==============================================================================
@@ -1171,7 +1176,7 @@ inline GVSDGPResult make_block_equicorr_dgp(
 
 
 // ==============================================================================
-// DGP: Heavy-tailed equicorrelated blocks  (Scenario 10 / R Scenario 09)
+// DGP: Heavy-tailed equicorrelated blocks  (used by Demo 05)
 // ==============================================================================
 
 /**
@@ -1299,7 +1304,7 @@ inline GVSDGPResult make_t3_equicorr_blocks_dgp(int n, int p, double snr,
 
 
 // ==============================================================================
-// DGP: AR(1)-within-block  (Scenario 11 / R Scenario 10)
+// DGP: AR(1)-within-block  (used by Demo 06)
 // ==============================================================================
 
 /**
@@ -1434,7 +1439,7 @@ inline GVSDGPResult make_ar1_blocks_dgp(int n, int p, double snr,
 
 
 // ==============================================================================
-// DGP: Heterogeneous ARMA blocks  (Scenario 12 / R Scenario 11)
+// DGP: Heterogeneous ARMA blocks  (used by Demo 07)
 // ==============================================================================
 
 /**
@@ -1610,7 +1615,7 @@ inline GVSDGPResult make_arma_blocks_dgp(int n, int p, double snr,
 
 
 // ==============================================================================
-// DGP: Quasi-hapgen LD blocks  (Scenario 13 / R Scenario 12)
+// DGP: Quasi-hapgen LD blocks  (auxiliary; not wired into a numbered demo)
 // ==============================================================================
 
 /**

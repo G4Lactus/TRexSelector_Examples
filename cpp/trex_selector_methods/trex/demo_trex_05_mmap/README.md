@@ -2,40 +2,40 @@
 
 ## Purpose
 
-Demonstrate **memory-mapped (mmap) I/O workflows** for large datasets that do not fit in RAM. This demo shows how the T-Rex selector can handle design matrices $\mathbf{X}$ and dummy matrices $\mathbf{D}$ via disk-based storage with minimal performance overhead.
+Demonstrate **memory-mapped (mmap) I/O workflows** for the T-Rex selector via two single-run usage patterns. Enabling `use_memory_mapping = true` couples two behaviours: the internal dummy matrices $\mathbf{D}$ are memory-mapped, and solver warm-start (LARS-path) state is serialized to disk between T-loop iterations. Demo B additionally memory-maps the design matrix $\mathbf{X}$ itself.
 
 ---
 
 ## Data Generation Parameters
 
-- **Sample size**: $n = 5000$ (large)
-- **Number of features**: $p = 10000$ (very high-dimensional)
-- **True support**: $\mathcal{S}^* = \{$first 20 features$\}$
-- **True coefficients**: Uniform $\pm 1$
-- **SNR**: $1.0$ or $2.0$
-- **DGP**: $\mathbf{y} = \mathbf{X}\boldsymbol{\beta} + \boldsymbol{\epsilon}$, $\boldsymbol{\epsilon} \sim N(0, I_n)$
+Each demo function runs twice — once low-dimensional and once high-dimensional (`make_mmap_demo_config`):
 
-**Data size estimate**: 
-- $\mathbf{X}$: $5000 \times 10000 \times 8$ bytes $\approx 400$ GB (impractical to hold in RAM)
-- Mmap allows working with disk-resident files as if they were in-memory arrays
+- **Low-dimensional** ($n > p$): $n = 5000$, $p = 1000$
+- **High-dimensional** ($p > n$): $n = 1000$, $p = 5000$
+- **True support**: fixed index set $\mathcal{S}^* = \{27, 149, 398, 420, 4\}$ ($s = 5$)
+- **True coefficients**: fixed $\beta_j = 1$ (`rnd_coef = false`; the `rnd_coef` path uses a fixed hardcoded vector $\{-0.4, -0.25, -0.8, 1.1, 2.5\}$, not a random draw)
+- **SNR**: $1.0$
+- **tFDR**: $0.1$
+- Data seed: `58`
+
+**Data size (largest config, $n = 1000$, $p = 5000$)**: the design matrix $\mathbf{X}$ is $1000 \times 5000 \times 8$ bytes $\approx 40$ MB — comfortably in RAM. The motivation for mmap here is the **augmented dummy space**: with up to $L = 10p$ dummy columns, the internal dummy matrices $\mathbf{D}$ and serialized solver state are the dominant memory consumers (on the order of a few hundred MB), which is what `use_memory_mapping = true` offloads to disk. (This is an ~MB/hundreds-of-MB workload, not the hundreds-of-GB range.)
 
 ---
 
 ## Scenarios
 
-### Scenario A: In-Memory $\mathbf{X}$, Mmap $\mathbf{D}$ (Dummies)
-- Design matrix $\mathbf{X}$ stored in RAM
-- Dummy matrices $\mathbf{D}$ created and stored on disk (mmap'd)
-- Solvers read dummy columns on-demand via page fault mechanism
+### Demo A: In-Memory $\mathbf{X}$ + `use_memory_mapping = true`
+- Design matrix $\mathbf{X}$ is generated and held in RAM (`SyntheticData`).
+- Internal dummy matrices $\mathbf{D}$ are memory-mapped, and solver LARS-path checkpoints are serialized to disk between T-loop iterations.
 
-**Use case**: Medium-scale problems where $\mathbf{X}$ fits but $\mathbf{D}$ does not
+**Use case**: $\mathbf{X}$ fits in RAM but the dummy/solver working set is large.
 
-### Scenario B: Fully Mmap'd ($\mathbf{X}$ and $\mathbf{D}$)
-- Both $\mathbf{X}$ and $\mathbf{D}$ stored on disk
-- All matrix access goes through mmap interface
-- Maximum memory efficiency
+### Demo B: Fully Memory-Mapped Pipeline ($\mathbf{X}$ + $\mathbf{D}$ + solver serialization)
+- $\mathbf{X}$ itself is backed by a Boost memory-mapped file (`SyntheticDataMapped`) written to `X_mmap.dat` / `y_mmap.dat` in the **current working directory**.
+- These backing files are removed automatically on scope exit by an RAII `MmapFileGuard` (declared before the data object so mmap handles close before the files are deleted — exception-safe).
+- Combined with `use_memory_mapping = true`, this exercises the full pipeline: X mmap + D mmap + solver serialization.
 
-**Use case**: Very large-scale problems; worst-case IO overhead
+**Use case**: $\mathbf{X}$ too large for RAM; maximum memory efficiency.
 
 ---
 
@@ -45,87 +45,63 @@ Demonstrate **memory-mapped (mmap) I/O workflows** for large datasets that do no
 K = 20                           # Random experiments per T-loop iteration
 max_dummy_multiplier = 10        # Max L = 10p
 use_max_T_stop = true            # Cap T ≤ ceil(n/2)
-tloop_stagnation_stop = true     # Early exit
-opt_threshold = 0.75             # Optimization grid point
-target_fdr = 0.1                 # Target FDR
-use_memory_mapping = VARIES      # Main variable: toggle mmap on/off
-mmap_data_dir = "/tmp/trex_mmaps/" # Disk location for mmap files
+dummy_distribution = Normal      # Dummy predictors drawn from N(0,1)
+lloop_strategy = HCONCAT         # Horizontally concatenated dummy columns
+tloop_stagnation_stop = true     # Early exit when R_mat stagnates
+use_memory_mapping = true        # D mmap + solver serialization (both demos)
+solver_type = TLARS              # Base solver
+tFDR = 0.1                       # Target FDR control level
 ```
 
 ---
 
 ## Output Files
 
-### Scenario A Output
-**`demo_trex_05_mmap_scenario_A_n5000_p10000_snr1p0.txt`**
+Written to `simulation_results/`. Each demo writes one `.txt` (dual console + file) and one `.csv` per configuration. Stems are `d02_trex_mmap_demo_a_n{n}_p{p}` (Demo A) and `d02_trex_mmap_demo_b_n{n}_p{p}` (Demo B):
 
-Contains selection results and timing:
+- `d02_trex_mmap_demo_a_n5000_p1000.{txt,csv}`
+- `d02_trex_mmap_demo_a_n1000_p5000.{txt,csv}`
+- `d02_trex_mmap_demo_b_n5000_p1000.{txt,csv}`
+- `d02_trex_mmap_demo_b_n1000_p5000.{txt,csv}`
+
+The `.txt` file records the run (selected indices, FDP, TPP, and the Phi', Phi, FDP_hat, R matrices and voting grid — via the shared `print_results`). There is **no** timing block. The `.csv` is a per-variable selection table written by `save_selection_csv`, with header:
 ```
-=== T-Rex Selector: Mmap Scenario A ===
-Design matrix (X) location: RAM
-Dummy matrices (D) location: Disk (/tmp/trex_mmaps/)
-
-Selected variables: ...
-True positives: ...
-FDR: ...
-
-Timing:
-  Data generation: 12.34 s
-  T-Rex execution (mmap D): 45.67 s
-  Total: 57.98 s
+variable_index,phi_prime,selected,true_positive
 ```
 
-### Scenario B Output
-**`demo_trex_05_mmap_scenario_B_n5000_p10000_snr2p0.txt`**
-
-Similar format; timing will be higher due to $\mathbf{X}$ page faults.
+Note: the Demo B mmap backing files `X_mmap.dat` / `y_mmap.dat` are created in the working directory and deleted on scope exit; they are not written under `/tmp/trex_mmaps/`.
 
 ---
 
 ## Running the Demo
 
 ```bash
-./build/debug/bin/demo_trex_05_mmap
+./build/debug/bin/trex_selector_methods/trex/demo_trex_05_mmap/demo_trex_05_mmap
 ```
 
-**Computation time**: 5–15 minutes depending on disk speed and mmap page fault rate.
-
-**Disk space**: The demo creates temporary mmap files in `/tmp/trex_mmaps/` (or configured directory). Ensure ~1–2 GB free space.
+`main()` runs Demo A (low-dim then high-dim) followed by Demo B (low-dim then high-dim).
 
 ---
 
 ## Expected Results
 
-- **Selection quality**: Identical FDR/TPR regardless of mmap setting (FDP estimation is unaffected by storage medium)
-- **Timing overhead**: Scenario B typically runs 1.5–3× slower than Scenario A due to $\mathbf{X}$ page faults
-- **Memory footprint**: RAM usage is minimal when mmap is fully enabled (Scenario B)
+- **Selection quality**: the mmap pipeline produces the same kind of FDP/TPP result as an in-memory run — storage medium does not change the algorithm's selection.
+- **Memory footprint**: with `use_memory_mapping = true`, the dummy matrices and solver state live on disk, keeping RAM usage low; Demo B additionally keeps $\mathbf{X}$ off the heap.
+- Disk speed (SSD vs. HDD) drives the wall-clock cost of the page-fault-driven access.
 
 ---
 
 ## Interpretation Guide
 
 **What to look for:**
-1. **Correctness**: Does mmap produce the same selection as in-memory data?
-   - Expected: Yes, identical results
-2. **Performance trade-off**: How much faster is Scenario A vs. B?
-   - Expected: A is 1.5–3× faster
-3. **Disk IO statistics**: How many page faults occur?
-   - Expected: Thousands to tens of thousands (visible in system monitoring)
+1. **Correctness**: Demo A and Demo B select consistently for the same configuration.
+2. **Resource behaviour**: RAM stays low while dummy/solver state is offloaded to disk.
+3. **Cleanup**: Demo B's backing files are removed automatically by the RAII guard.
 
 **Practical guidance:**
-- Use mmap when RAM is insufficient
-- For optimal performance: keep $\mathbf{X}$ in RAM if possible; only mmap $\mathbf{D}$
-- Disk speed significantly impacts runtime (SSD >> HDD)
+- Enable mmap when the dummy/solver working set (or $\mathbf{X}$ itself) does not fit comfortably in RAM.
+- Prefer an SSD for the backing files to reduce page-fault latency.
 
 ---
 
-## Cleanup
-
-After the demo, remove temporary mmap files:
-```bash
-rm -rf /tmp/trex_mmaps/
-```
-
----
-
-**Last updated**: 2026-07-01
+**Last updated**: 2026-07-08

@@ -47,7 +47,7 @@ namespace {
 
 // ==============================================================================
 //  MC SNR sweep
-//  DGP: dgp_groups() with 3-level hierarchy, Random support.
+//  DGP: dgp_groups_toeplitz_leaf() with 3-level hierarchy, Random support.
 //  Fixed: n=300, p=1000, s=10 (SimConfig defaults), tFDR=0.2, K=20, num_MC=200.
 //  Swept: SNR in {0.1, 0.2, 0.5, 1.0, 2.0, 5.0}.
 // ==============================================================================

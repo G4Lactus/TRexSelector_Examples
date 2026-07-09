@@ -15,7 +15,7 @@ T-ENET combines L1-style sparsity with an additional L2 component, making it use
 
 ## Key idea
 
-Like the other terminating solvers, T-ENET is run only up to a prescribed stopping level $T_{\text{stop}}$:
+Like the other terminating solvers, T-ENET stops early once a prescribed number $T_{\text{stop}}$ of dummy variables has entered the active set:
 
 $$
 \hat{\boldsymbol{\beta}}^{(T)} = \mathrm{TENET}(\mathbf{X}, \mathbf{D}, \mathbf{y}; T_{\text{stop}}, \lambda_2).
@@ -27,7 +27,7 @@ In this demo, the solver is constructed with a fixed L2 parameter and then advan
 executeStep(T_stop, /*early_stop=*/true)
 ```
 
-so the run terminates once the requested number of steps has been reached.
+so, with `early_stop=true`, the run terminates early once the number of dummy variables in the active set reaches $T_{\text{stop}}$.
 
 ---
 
@@ -93,4 +93,4 @@ For the dedicated equivalence check between the Gram-based T-ENET formulation an
 
 ---
 
-**Last updated**: 2026-07-03
+**Last updated**: 2026-07-08

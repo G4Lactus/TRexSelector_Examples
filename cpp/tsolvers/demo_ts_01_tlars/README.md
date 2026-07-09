@@ -17,7 +17,7 @@ The demo is intended to explain solver behavior and interface usage in isolation
 
 ## Key idea
 
-A terminating solver does not compute a full path over all possible steps. Instead, it is run only up to a prescribed stopping level $T_{\text{stop}}$:
+A terminating solver does not compute a full path over all possible steps. Instead, it stops early once a prescribed number $T_{\text{stop}}$ of dummy variables has entered the active set:
 
 $$
 \hat{\boldsymbol{\beta}}^{(T)} = \mathrm{TLARS}(\mathbf{X}, \mathbf{D}, \mathbf{y}; T_{\text{stop}}).
@@ -29,7 +29,7 @@ In the demo, this is done through calls of the form:
 executeStep(T_stop, /*early_stop=*/true)
 ```
 
-which stop the solver once the requested number of steps has been reached.
+where `T_stop` is the number of dummy variables that must enter the active set before the solver terminates early: with `early_stop=true` the run stops as soon as the count of active dummies reaches $T_{\text{stop}}$.
 
 ---
 
@@ -92,4 +92,4 @@ When reading the console output, focus on the following points:
 
 ---
 
-**Last updated**: 2026-07-03
+**Last updated**: 2026-07-08

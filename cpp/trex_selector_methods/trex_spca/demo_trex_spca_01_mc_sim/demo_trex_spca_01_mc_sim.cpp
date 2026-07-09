@@ -11,7 +11,9 @@
  *       n=50, p=100, M=3 latent factors, p1=5 active loadings per factor,
  *       overlap_pool_size=30 (shared candidate-index pool across factors).
  *
- *  Section 1: SNR sweep   snr_db in {-10, -5, 0, 5, 10} dB, num_MC=100.
+ *  Section 1: SNR sweep over the snr_values grid set in main()
+ *             (currently {-10, -7, -5, -3, 0, 3, 5, 7, 10} dB, num_MC=200 —
+ *             the legacy CRAN reference grid).
  *    Methods compared:
  *      1. OrdPCA             — ordinary PCA (baseline; no sparsity constraint)
  *      2. OraclePCA          — thresholded PCA with known support cardinality p1
@@ -20,8 +22,8 @@
  *      5. TRexSPCA-EN-Thr    — T-Rex+GVS(EN/TENET, Gram-based) + Thresholded
  *      6. TRexSPCA-ENaug-Thr — T-Rex+GVS(EN/TENETAug, augmented) + Thresholded
  *
- *    All methods see the same z-score-standardized X (correlation-PCA footing);
- *    the per-PC T-Rex selector runs with ScalingMode::ZSCORE.
+ *    All methods see the same center-only X (covariance-PCA footing, as in the
+ *    legacy R reference); the per-PC T-Rex selector uses the default L2 scaling.
  *
  *    EN augmentation follows lm_dummy.R exactly:
  *      X_aug = d₂·[X; d₁·Iₚ; 0_L],  D_aug = d₂·[D; 0_p; d₁·I_L],
@@ -141,8 +143,7 @@ void demo_trex_spca_mc_snr_sweep(const SimConfig&           cfg,
             SPCAMode::ActiveSet,
             offset,
             cfg.lambda_2,
-            ENSolverType::TENET,
-            ScalingMode::ZSCORE);
+            ENSolverType::TENET);
         fdr_map["TRexSPCA-EN-Act"](ei) = r3.avg_fdr;
         tpr_map["TRexSPCA-EN-Act"](ei) = r3.avg_tpr;
         pev_map["TRexSPCA-EN-Act"](ei) = r3.avg_pev;
@@ -155,8 +156,7 @@ void demo_trex_spca_mc_snr_sweep(const SimConfig&           cfg,
             SPCAMode::ActiveSet,
             offset,
             cfg.lambda_2,
-            ENSolverType::TENET_AUG,
-            ScalingMode::ZSCORE);
+            ENSolverType::TENET_AUG);
         fdr_map["TRexSPCA-ENaug-Act"](ei) = r4.avg_fdr;
         tpr_map["TRexSPCA-ENaug-Act"](ei) = r4.avg_tpr;
         pev_map["TRexSPCA-ENaug-Act"](ei) = r4.avg_pev;
@@ -169,8 +169,7 @@ void demo_trex_spca_mc_snr_sweep(const SimConfig&           cfg,
             SPCAMode::Thresholded,
             offset,
             cfg.lambda_2,
-            ENSolverType::TENET,
-            ScalingMode::ZSCORE);
+            ENSolverType::TENET);
         fdr_map["TRexSPCA-EN-Thr"](ei) = r5.avg_fdr;
         tpr_map["TRexSPCA-EN-Thr"](ei) = r5.avg_tpr;
         pev_map["TRexSPCA-EN-Thr"](ei) = r5.avg_pev;
@@ -183,8 +182,7 @@ void demo_trex_spca_mc_snr_sweep(const SimConfig&           cfg,
             SPCAMode::Thresholded,
             offset,
             cfg.lambda_2,
-            ENSolverType::TENET_AUG,
-            ScalingMode::ZSCORE);
+            ENSolverType::TENET_AUG);
         fdr_map["TRexSPCA-ENaug-Thr"](ei) = r6.avg_fdr;
         tpr_map["TRexSPCA-ENaug-Thr"](ei) = r6.avg_tpr;
         pev_map["TRexSPCA-ENaug-Thr"](ei) = r6.avg_pev;
@@ -223,7 +221,7 @@ int main() {
         cfg.base_seed         = 42;
         cfg.lambda_2          = -1; // -1 triggers k-fold CV for lambda_2 selection
 
-        const std::vector<double> snr_values = {-10.0}; // TEMP fast-validation
+        const std::vector<double> snr_values = {-10.0, -7.0, -5, -3.0, 0, 3, 5, 7, 10}; // TEMP fast-validation
 
         demo_trex_spca_mc_snr_sweep(cfg, snr_values, "demo_trex_spca_01_mc_sim");
     }

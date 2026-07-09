@@ -207,15 +207,17 @@ void demo_TNCGMP_with_external_normalizer(bool high_dim, bool rnd_coef, std::siz
     // Center y
     y_map.array() -= y_map.mean();
 
-    // Run T-NCGMP
+    // Run T-NCGMP. The data was already externally L2-normalized and y centered
+    // above, so the solver's own normalization and intercept are disabled here —
+    // enabling them would normalize twice and fit an intercept on centered y.
     tsolvers::TNCGMP_Solver tncgmp(
-         X_map,
+        X_map,
         D_map,
         y_map,
         tsolvers::NCGMPVariant::LineSearch,
-        true,
-        true,
-        true
+        /*normalize=*/false,
+        /*intercept=*/false,
+        /*verbose=*/true
     );
 
     // Execute with early stopping

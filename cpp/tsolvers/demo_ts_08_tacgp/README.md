@@ -15,7 +15,7 @@ T-ACGP is a pursuit-style variable-selection method that uses a conjugate-gradie
 
 ## Key idea
 
-Like the other terminating solvers, T-ACGP is run only up to a prescribed stopping level $T_{\text{stop}}$:
+Like the other terminating solvers, T-ACGP stops early once a prescribed number $T_{\text{stop}}$ of dummy variables has entered the active set:
 
 $$
 \hat{\boldsymbol{\beta}}^{(T)} = \mathrm{TACGP}(\mathbf{X}, \mathbf{D}, \mathbf{y}; T_{\text{stop}}).
@@ -27,7 +27,7 @@ In the demo, this is done through calls of the form
 executeStep(T_stop, /*early_stop=*/true)
 ```
 
-so the solver terminates once the requested number of steps has been reached.
+so, with `early_stop=true`, the solver terminates early once the number of dummy variables in the active set reaches $T_{\text{stop}}$.
 
 ---
 
@@ -91,4 +91,4 @@ Conceptually, T-ACGP sits between T-GP and T-OMP: it aims to approximate the ort
 
 ---
 
-**Last updated**: 2026-07-03
+**Last updated**: 2026-07-08

@@ -47,7 +47,7 @@ using namespace scr_demo;
 /**
  * @brief Run a single Screen-TRex selection and print detailed diagnostics.
  *
- * @param high_dim  If true, generate p > n data (n=1000, p=5000).
+ * @param high_dim  If true, generate p > n data (n=300, p=1000).
  * @param rnd_coef  If true, use heterogeneous random coefficients.
  * @param method    Screen-TRex variant (TREX, TREX_DA_AR1, TREX_DA_EQUI).
  * @param bootstrap If true, use bootstrap-CI selection instead of Phi > 0.5.

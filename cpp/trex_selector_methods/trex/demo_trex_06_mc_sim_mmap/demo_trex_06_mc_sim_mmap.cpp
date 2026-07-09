@@ -1,8 +1,8 @@
 // ==============================================================================
-// demo_trex_06_mmap_mc_sim.cpp
+// demo_trex_06_mc_sim_mmap.cpp
 // ==============================================================================
 /**
- * @file demo_trex_06_mmap_mc_sim.cpp
+ * @file demo_trex_06_mc_sim_mmap.cpp
  *
  * @brief Monte Carlo simulations for T-Rex Selector with memory-mapped workflows.
  *
@@ -19,8 +19,8 @@
  *      via a RAII guard at the end of the iteration scope — exception-safe.
  *
  * Results are written as:
- *  - Aligned text table (.txt) to simulations/ (dual console + file output)
- *  - Tidy long-format CSV (.csv) to simulations/ for plotting
+ *  - Aligned text table (.txt) to simulation_results/ (dual console + file output)
+ *  - Tidy long-format CSV (.csv) to simulation_results/ for plotting
  */
 // ==============================================================================
 

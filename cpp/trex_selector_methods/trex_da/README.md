@@ -13,7 +13,7 @@ The demos cover four dependency structures and their matching DA methods: **AR(1
 - **AR(1) Toeplitz correlation** (Demo 01): the classical case DA-TRex was designed for — correlation decays geometrically with column distance.
 - **Equicorrelation and hierarchical blocks** (Demo 02): compound-symmetry correlation, and a two-level block structure handled via BT.
 - **Banded/nearest-neighbor correlation** (Demo 03) and a **method-mismatch stress test** (Demo 03b: applying NN correction to AR(1) data).
-- **Block-diagonal AR(1) designs**, with and without appended white-noise columns (Demos 04–05, 07), using BT aggregation with a sweep over HAC linkage methods.
+- **Block-diagonal AR(1) designs**, with and without appended white-noise columns (Demos 04–05), using BT aggregation with a sweep over HAC linkage methods.
 - **Heavy-tailed (Student-t) block designs** (Demos 06–07): testing DA-TRex robustness when predictors and/or noise depart from Gaussianity.
 - **Multi-level nested group structures** (Demo 08): three-level hierarchical latent factors with a non-exchangeable Toeplitz leaf layer.
 
@@ -148,8 +148,10 @@ cmake --build build/debug
 ## Running a demo
 
 ```bash
-./build/debug/bin/demo_trex_da_01_mc_sim_ar1
+./build/debug/bin/trex_selector_methods/trex_da/demo_trex_da_01_mc_sim_ar1/demo_trex_da_01_mc_sim_ar1
 ```
+
+(Each demo's binary mirrors the source tree: `./build/debug/bin/trex_selector_methods/trex_da/<demo_folder>/<demo_name>`.)
 
 Most demos write both `.txt` and `.csv` files per scenario into their local `simulation_results/` folder, following the naming pattern `da_trex_mc_{scenario_tag}.{txt,csv}`.
 
@@ -161,7 +163,7 @@ Most demos write both `.txt` and `.csv` files per scenario into their local `sim
 - Use **Demos 04–07** to explore the `BT` method and HAC linkage sensitivity on block-structured designs, including heavy-tailed robustness.
 - Use **Demo 08** for the richest hierarchical dependency structure.
 - See [../validation/trex_da/](../validation/trex_da/README.md) if you need to debug or verify the BT clustering pipeline itself against the R reference.
-- Cross-check against the R reference implementation in `R/trex_selector_methods/trex_da/` (extensive: per-demo `.R` scripts plus shared `dgp_*.R`, `simulation_utils.R`, `support_generators.R`).
+- Cross-check against the R reference implementation in `R/trex_selector_methods/trex_da/` (extensive: per-demo `.R` scripts plus shared `dgp_*.R`). The shared `simulation_utils.R` and `support_generators.R` helpers live one level up, in `R/trex_selector_methods/`.
 
 ---
 
@@ -172,4 +174,4 @@ Most demos write both `.txt` and `.csv` files per scenario into their local `sim
 
 ---
 
-**Last updated**: 2026-07-04
+**Last updated**: 2026-07-08

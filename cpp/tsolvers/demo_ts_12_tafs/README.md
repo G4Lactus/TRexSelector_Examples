@@ -15,7 +15,7 @@ T-AFS is a forward-selection method with an adaptive decision rule that adjusts 
 
 ## Key idea
 
-Like the other terminating solvers, T-AFS is run only up to a prescribed stopping level $T_{\text{stop}}$:
+Like the other terminating solvers, T-AFS stops early once a prescribed number $T_{\text{stop}}$ of dummy variables has entered the active set:
 
 $$
 \hat{\boldsymbol{\beta}}^{(T)} = \mathrm{TAFS}(\mathbf{X}, \mathbf{D}, \mathbf{y}; T_{\text{stop}}).
@@ -27,7 +27,7 @@ In the demo, this is done through calls of the form
 executeStep(T_stop, /*early_stop=*/true)
 ```
 
-so the solver terminates once the requested number of steps has been reached.
+so, with `early_stop=true`, the solver terminates early once the number of dummy variables in the active set reaches $T_{\text{stop}}$.
 
 ---
 
@@ -91,4 +91,4 @@ Conceptually, T-AFS is a useful counterpart to plain T-Stepwise because its adap
 
 ---
 
-**Last updated**: 2026-07-03
+**Last updated**: 2026-07-08

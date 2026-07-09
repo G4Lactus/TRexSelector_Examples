@@ -1,8 +1,8 @@
 // ===================================================================================
-// demo_mlm_01_scaler.cpp
+// demo_mlm_scaler_01.cpp
 // ===================================================================================
 /**
- * @file demo_mlm_01_scaler.cpp
+ * @file demo_mlm_scaler_01.cpp
  *
  * @brief Demonstration of ZScoreScaler and LpNormScaler usage.
  *

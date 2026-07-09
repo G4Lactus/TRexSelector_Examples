@@ -368,10 +368,12 @@ void demo_memory_mapped(bool high_dim, bool rnd_coef, std::size_t T_stop) {
 
     std::cout << "Generating memory-mapped data...\n";
 
-    // We now define separate filepaths for X, D, and y
-    const std::string X_file = "demo_tlars_X.bin";
-    const std::string D_file = "demo_tlars_D.bin";
-    const std::string y_file = "demo_tlars_y.bin";
+    // We now define separate filepaths for X, D, and y. The stems are demo-specific
+    // so running several tsolver demos from the same directory does not clobber
+    // each other's memory-mapped data files.
+    const std::string X_file = "demo_tomp_X.bin";
+    const std::string D_file = "demo_tomp_D.bin";
+    const std::string y_file = "demo_tomp_y.bin";
 
     // Generate memory-mapped data directly on disk using the unified class
     datagen::SyntheticDataMapped data(

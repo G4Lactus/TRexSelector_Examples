@@ -119,7 +119,9 @@
             "demo_trex_scr_03_screen_trex_correlated",
             "demo_trex_scr_04_biobank_screen_trex_inmem",
             "demo_trex_scr_05_biobank_screen_trex_mmap",
-            "demo_trex_scr_06_screen_trex_solvers"
+            "demo_trex_scr_06_screen_trex_solvers",
+            // trex_spca
+            "demo_trex_spca_01_mc_sim",
         ]
     }
   ]

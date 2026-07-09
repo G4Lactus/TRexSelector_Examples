@@ -52,7 +52,7 @@ snr_grid = {0.1, 0.2, 0.5, 1.0, 2.0, 5.0}
 MC = 500 per (rho, snr) cell, per scenario
 ```
 
-Seeds are staggered per grid cell (`base_seed + cell_index * num_MC`) so that every $(\rho, \mathrm{SNR})$ cell across all three scenarios draws from a distinct, non-overlapping seed range.
+Seeds are staggered per grid cell (`cell_base_seed = base_seed + cell_index * num_MC`, with `cell_index = i_rho * n_snr + i_snr`) so that each $(\rho, \mathrm{SNR})$ cell draws from a distinct, non-overlapping seed band. The formula has no scenario term, so the three truth scenarios reuse the same per-cell seed bands — a given $(\rho, \mathrm{SNR})$ cell sees identical underlying draws across INDIVIDUAL/REPRESENTATIVE/WHOLE.
 
 ---
 
@@ -70,7 +70,7 @@ Beyond the usual coordinate-level FDR/TPR, this demo reports **block-level diagn
 ## Running the Demo
 
 ```bash
-./build/debug/bin/demo_trex_gvs_08_mc_sim_block_bench
+./build/debug/bin/trex_selector_methods/trex_gvs/demo_trex_gvs_08_mc_sim_block_bench/demo_trex_gvs_08_mc_sim_block_bench
 ```
 
 All three scenarios run in the same invocation and print one grid table per scenario, per $\rho$ value.
@@ -86,4 +86,4 @@ All three scenarios run in the same invocation and print one grid table per scen
 
 ---
 
-**Last updated**: 2026-07-04
+**Last updated**: 2026-07-08

@@ -24,7 +24,7 @@
  *   1. Merge heights: max |Δ| between the C++ sorted merge distances and R's
  *      sorted hclust heights (the dendrogram heights are well-defined even when
  *      internal node IDs / merge-row order differ between implementations).
- *   2. Flat partitions: for every K = 2..p, cut_tree(K) in C++ vs cutree(k=K)
+ *   2. Flat partitions: for every K = 2..p-1, cut_tree(K) in C++ vs cutree(k=K)
  *      in R, compared by the Adjusted Rand Index (label-permutation invariant).
  *      ARI = 1 means the partitions are identical.  We report the minimum ARI
  *      over K and the number of K with ARI < 1.

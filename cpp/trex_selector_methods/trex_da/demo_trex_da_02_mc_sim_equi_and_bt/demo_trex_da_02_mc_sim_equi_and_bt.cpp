@@ -150,8 +150,12 @@ void demo_bt_mc_snr_sweep()
     auto da_ctrl = make_da_bt_control();
     da_ctrl.hc_linkage = hac::LinkageMethod::Single;
 
+    // Stem is deliberately distinct from Part 4's per-linkage stems
+    // ("da_bt_snr_Single" etc.): on a case-insensitive filesystem
+    // "da_bt_snr_single" and "da_bt_snr_Single" would otherwise be the same
+    // file and silently overwrite each other.
     run_snr_sweep(
-        "da_bt_snr_single",
+        "da_bt_snr_single_baseline",
         snr_grid,
         num_MC,
         tFDR,
@@ -245,9 +249,9 @@ int main() {
     std::cout << "Running with " << omp_get_max_threads() << " threads\n\n";
 
     if (true) demo_equi_mc_snr_sweep();
-    if (false) demo_equi_mc_rho_sweep();
-    if (false) demo_bt_mc_snr_sweep();
-    if (false) demo_bt_mc_linkage_sweep();
+    if (true) demo_equi_mc_rho_sweep();
+    if (true) demo_bt_mc_snr_sweep();
+    if (true) demo_bt_mc_linkage_sweep();
 
     std::cout << "\nEqui + BT MC simulation complete.\n";
     return 0;
