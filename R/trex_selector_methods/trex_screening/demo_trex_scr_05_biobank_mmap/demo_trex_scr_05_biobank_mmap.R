@@ -40,7 +40,7 @@ this_dir_ <- tryCatch(
     if (length(file_arg) > 0) dirname(normalizePath(sub("--file=", "", file_arg[1]))) else "."
   }
 )
-source(file.path(this_dir_, "trex_scr_sim_utils.R"))
+source(file.path(this_dir_, "..", "trex_scr_sim_utils.R"))
 
 OUT_DIR <- file.path(this_dir_, "simulation_results")
 
@@ -83,7 +83,7 @@ part_a <- function() {
   cat(strrep("=", 70L), "\n", sep = "")
   true_support <- c(5L, 28L, 43L, 150L, 399L)   # C++ 0-based {4,27,42,149,398}
   dat <- dgp_iid_snr(N, P, true_support, rep(1, length(true_support)), snr = 1.0, seed = 123L)
-  res <- run_biobank_mmap(dat$X, matrix(dat$y, N, 1L))
+  res <- run_biobank_mmap(dat$X, dat$y)   # vector y -> single record
   .print_biobank_single(res, dat$true_support)
 }
 
@@ -102,7 +102,7 @@ part_b <- function() {
   dat <- dgp_iid_snr(N, P, true_support, rep(1, length(true_support)), snr = 1.0, seed = 123L)
   cat("Single phenotype on memory-mapped X ...\n")
   with_temp_mmap(dat$X, function(X_mmap) {
-    res <- run_biobank_mmap(X_mmap, matrix(dat$y, N, 1L))
+    res <- run_biobank_mmap(X_mmap, dat$y)   # vector y -> single record
     .print_biobank_single(res, dat$true_support)
   })
 
@@ -152,14 +152,14 @@ part_c <- function() {
       sup <- sample.int(P, support_size)
       dat <- dgp_iid_snr(N, P, sup, rep(1, support_size), snr, seed = seed)
       res <- with_temp_mmap(dat$X, function(X_mmap)
-        run_biobank_mmap(X_mmap, matrix(dat$y, N, 1L), seed = -1L, R_boot = 500L))
-      st <- res$statistics[1L, ]; sel <- res$selected_indices[[1L]]
-      m <- st$method_used
+        run_biobank_mmap(X_mmap, dat$y, seed = -1L, R_boot = 500L))  # single record
+      sel <- res$selected_indices
+      m <- res$method_used
       fdp[[m]][si]   <- fdp[[m]][si]   + compute_fdp(sel, dat$true_support)
       tpp[[m]][si]   <- tpp[[m]][si]   + compute_tpp(sel, dat$true_support)
       usage[[m]][si] <- usage[[m]][si] + 1
-      est[["Screen-TRex (ordinary)"]][si]    <- est[["Screen-TRex (ordinary)"]][si]    + st$estimated_FDR_screen_ordinary
-      est[["Screen-TRex (bootstrap-CI)"]][si] <- est[["Screen-TRex (bootstrap-CI)"]][si] + st$estimated_FDR_screen_bootstrap
+      est[["Screen-TRex (ordinary)"]][si]    <- est[["Screen-TRex (ordinary)"]][si]    + res$estimated_FDR_screen_ordinary
+      est[["Screen-TRex (bootstrap-CI)"]][si] <- est[["Screen-TRex (bootstrap-CI)"]][si] + res$estimated_FDR_screen_bootstrap
       est[["T-Rex (fallback)"]][si]          <- est[["T-Rex (fallback)"]][si]          + tFDR
     }
     cat(sprintf("  SNR %.2f -- completed %d runs.\n", snr, NUM_MC))

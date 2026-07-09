@@ -52,37 +52,9 @@ this_dir_ <- tryCatch(
 )
 
 # Source files
-source(file.path(this_dir_, "..", "support_generators.R"))
-source(file.path(this_dir_, "dgp_ar1_snr.R"))
-source(file.path(this_dir_, "dgp_nn_snr.R"))
-source(file.path(this_dir_, "..", "simulation_utils.R"))
-
-# ------------------------------------------------------------------------------
-# NN availability guard
-# ------------------------------------------------------------------------------
-# The trex+DA+NN (nearest-neighbour / MA-band) correction is implemented in the
-# C++ core (DAMethod::NN) but is not yet exposed by the installed TRexSelectorNeo
-# R binding (trex_da_control() accepts AR1, EQUI, BT only; NN throws
-# "Unknown DAMethod: NN" at select()). Detect this once and exit cleanly with an
-# explanation instead of erroring mid-run. Remove this guard once the R binding
-# exposes DAMethod::NN.
-.nn_supported <- tryCatch({
-  .x_ <- matrix(stats::rnorm(20L * 8L), 20L, 8L)
-  .s_ <- TRexSelectorNeo::TRexDASelector$new(
-    .x_, as.numeric(.x_[, 1L]), tFDR = 0.5, seed = 1L, verbose = FALSE,
-    da_control = TRexSelectorNeo::trex_da_control(da_method = "NN"),
-    control    = TRexSelectorNeo::trex_control(K = 5L))
-  .s_$select()
-  TRUE
-}, error = function(e) FALSE)
-
-if (!.nn_supported) {
-  cat("\n[SKIP] trex+DA+NN is not exposed by the installed TRexSelectorNeo ",
-      "R binding.\n",
-      "       The C++ core supports DAMethod::NN; this demo will run once the\n",
-      "       R binding adds it. Skipping (nothing to compute).\n\n", sep = "")
-  if (!interactive()) quit(save = "no", status = 0)
-}
+source(file.path(this_dir_, "..", "..", "support_generators.R"))
+source(file.path(this_dir_, "..", "trex_da_dgps.R"))
+source(file.path(this_dir_, "..", "..", "simulation_utils.R"))
 
 # ==============================================================================
 # Base parameters
@@ -205,7 +177,8 @@ if (TRUE) {
     res_p1 <- TRexSelectorNeo::TRexDASelector$new(
       dat_p1$X, dat_p1$y, tFDR = PARAMS$tFDR, seed = -1L, verbose = FALSE,
       da_control = TRexSelectorNeo::trex_da_control(da_method = "NN"),
-      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = PARAMS$K))
+      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = PARAMS$K)
+    )
     res_p1$select()
 
     # Print results

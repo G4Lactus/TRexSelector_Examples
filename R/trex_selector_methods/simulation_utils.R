@@ -23,16 +23,11 @@
 #   .run_mc_nn_2d()            — 2-D (row x col) grid sweep using .run_mc_nn().
 #   .run_mc_hastie()           — Wrapper: dgp_hastie_snr             + trex+GVS (EN or IEN).
 #   .run_mc_scattered()        — Wrapper: dgp_scattered_grouped_snr  + trex+GVS (EN or IEN).
-#   .run_mc_unequal_blocks()   — Wrapper: dgp_unequal_blocks_snr     + trex+GVS (EN or IEN).
 #   .run_mc_mixed_blocks()     — Wrapper: dgp_mixed_blocks_snr       + trex+GVS (EN or IEN).
-#   .run_mc_random_blocks()    — Wrapper: dgp_random_blocks_snr      + trex+GVS (EN or IEN).
-#   .run_mc_neg_corr()         — Wrapper: dgp_neg_corr_snr           + trex+GVS (EN or IEN).
 #   .run_mc_neg_traps()        — Wrapper: dgp_neg_traps_snr          + trex+GVS (EN or IEN).
-#   .run_mc_equi_blocks()      — Wrapper: dgp_equi_blocks_snr        + trex+GVS (EN or IEN).
 #   .run_mc_t3_equi_blocks()   — Wrapper: dgp_t3_equi_blocks_snr     + trex+GVS (EN or IEN).
 #   .run_mc_ar1_blocks()       — Wrapper: dgp_ar1_blocks_snr         + trex+GVS (EN or IEN).
 #   .run_mc_arma_blocks()      — Wrapper: dgp_arma_blocks_snr        + trex+GVS (EN or IEN).
-#   .run_mc_hapgen_snr()       — Wrapper: dgp_hapgen_snr             + trex+GVS (EN or IEN).
 # ==============================================================================
 
 
@@ -170,6 +165,7 @@ cap_hc <- function(hc_dist) {
          single   = "Single",
          complete = "Complete",
          average  = "Average",
+         wpgma    = "WPGMA",
          hc_dist)
 }
 
@@ -238,6 +234,50 @@ cap_hc <- function(hc_dist) {
     X, y, tFDR = tFDR, seed = -1L, verbose = FALSE,
     da_control = do.call(TRexSelectorNeo::trex_da_control, da_args),
     control    = TRexSelectorNeo::trex_control(solver = solver, K = K))
+  sel$select()
+  sel
+}
+
+
+# ==============================================================================
+# GVS selector adapter
+# ==============================================================================
+
+#' Build and run a TRexGVSSelector with the given group-selection knobs.
+#'
+#' Centralizes the selector construction shared by every `.run_mc_*` GVS
+#' runner, so that solver / linkage / lambda_2 options are wired consistently.
+#'
+#' @param X,y            Design matrix and response vector.
+#' @param tFDR,K         Target FDR and number of random experiments.
+#' @param GVS_type       GVS variant: "EN" or "IEN".
+#' @param corr_max       HAC clustering correlation threshold.
+#' @param hc_dist        HAC linkage (legacy lowercase; mapped via `cap_hc()`).
+#' @param en_solver      EN dummy solver: "TENET" or "TENET_AUG" (EN only;
+#'                       ignored by IEN).
+#' @param lambda2_method lambda_2 selection rule, e.g. "CV_1SE_CCD" / "CV_1SE_SVD".
+#' @param groups         Optional oracle group labels: a length-p integer vector
+#'                       of contiguous 1-based cluster IDs (1..M). NULL (default)
+#'                       means groups are discovered from the data via HAC.
+#'
+#' @return The TRexGVSSelector object after `$select()` has been called.
+.gvs_select <- function(X, y, tFDR, K, GVS_type, corr_max,
+                        hc_dist        = "single",
+                        en_solver      = "TENET",
+                        lambda2_method = "CV_1SE_CCD",
+                        groups         = NULL) {
+  gvs_args <- list(
+    gvs_type       = GVS_type,
+    corr_max       = corr_max,
+    hc_linkage     = cap_hc(hc_dist),
+    en_solver      = en_solver,
+    lambda2_method = lambda2_method)
+  if (!is.null(groups)) gvs_args$groups <- groups
+
+  sel <- TRexSelectorNeo::TRexGVSSelector$new(
+    X, y, tFDR = tFDR, seed = -1L, verbose = FALSE,
+    gvs_control = do.call(TRexSelectorNeo::trex_gvs_control, gvs_args),
+    control     = TRexSelectorNeo::trex_control(solver = "TLARS", K = K))
   sel$select()
   sel
 }
@@ -808,18 +848,16 @@ cap_hc <- function(hc_dist) {
   GVS_type,
   corr_max,
   hc_dist  = "single",
+  en_solver      = "TENET",
+  lambda2_method = "CV_1SE_CCD",
   n_cores  = num_cores
 ) {
   one_trial <- function(mc) {
     trial_seed <- seed + mc - 1L
     dat <- dgp_hastie_snr(n = n, p = p, snr = snr, sd_x = sd_x,
                           seed = trial_seed)
-    sel <- TRexSelectorNeo::TRexGVSSelector$new(
-      dat$X, dat$y, tFDR = tFDR, seed = -1L, verbose = FALSE,
-      gvs_control = TRexSelectorNeo::trex_gvs_control(
-        gvs_type = GVS_type, corr_max = corr_max, hc_linkage = cap_hc(hc_dist)),
-      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = K))
-    sel$select()
+    sel <- .gvs_select(dat$X, dat$y, tFDR, K, GVS_type, corr_max,
+                       hc_dist, en_solver, lambda2_method)
     ts <- which(dat$beta != 0)
     c(FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, ts),
       TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, ts))
@@ -834,7 +872,9 @@ cap_hc <- function(hc_dist) {
     parallel::clusterExport(cl,
                             varlist = c("dgp_hastie_snr", "n", "p", "snr",
                                         "sd_x", "tFDR", "K", "GVS_type",
-                                        "hc_dist", "corr_max", "seed", "cap_hc"),
+                                        "hc_dist", "corr_max", "seed", "cap_hc",
+                                        "en_solver", "lambda2_method",
+                                        ".gvs_select"),
                             envir   = environment())
     parallel::clusterEvalQ(cl, library(TRexSelectorNeo))
     results <- parallel::parLapply(cl, mc_indices, one_trial)
@@ -890,6 +930,8 @@ cap_hc <- function(hc_dist) {
   GVS_type,
   corr_max,
   hc_dist  = "single",
+  en_solver      = "TENET",
+  lambda2_method = "CV_1SE_CCD",
   n_cores  = num_cores
 ) {
   one_trial <- function(mc) {
@@ -903,12 +945,8 @@ cap_hc <- function(hc_dist) {
       group_size = group_size,
       seed       = trial_seed
     )
-    sel <- TRexSelectorNeo::TRexGVSSelector$new(
-      dat$X, dat$y, tFDR = tFDR, seed = -1L, verbose = FALSE,
-      gvs_control = TRexSelectorNeo::trex_gvs_control(
-        gvs_type = GVS_type, corr_max = corr_max, hc_linkage = cap_hc(hc_dist)),
-      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = K))
-    sel$select()
+    sel <- .gvs_select(dat$X, dat$y, tFDR, K, GVS_type, corr_max,
+                       hc_dist, en_solver, lambda2_method)
     ts <- which(dat$beta != 0)
     c(FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, ts),
       TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, ts))
@@ -925,89 +963,9 @@ cap_hc <- function(hc_dist) {
                                         "n", "p", "snr", "sd_x",
                                         "n_groups", "group_size",
                                         "tFDR", "K", "GVS_type",
-                                        "hc_dist", "corr_max", "seed", "cap_hc"),
-                            envir   = environment())
-    parallel::clusterEvalQ(cl, library(TRexSelectorNeo))
-    results <- parallel::parLapply(cl, mc_indices, one_trial)
-    parallel::stopCluster(cl)
-  } else {
-    results <- lapply(mc_indices, one_trial)
-  }
-
-  fdp_vec <- sapply(results, `[[`, "FDP")
-  tpp_vec <- sapply(results, `[[`, "TPP")
-
-  list(
-    mean_FDP = mean(fdp_vec),
-    mean_TPP = mean(tpp_vec),
-    sd_FDP   = sd(fdp_vec),
-    sd_TPP   = sd(tpp_vec)
-  )
-}
-
-
-# ==============================================================================
-# .run_mc_unequal_blocks
-# ==============================================================================
-
-#' MC runner for the unequal-blocks DGP with trex+GVS.
-#'
-#' Three contiguous blocks (sizes 20, 50, 80 = 150 active variables).
-#' Each trial calls `dgp_unequal_blocks_snr()` then `TRexSelector::trex()`.
-#'
-#' @param n,p        Data dimensions.
-#' @param snr        Target SNR.
-#' @param sd_x       Within-block noise sd (rho = 1/(1+sd_x^2)).
-#' @param tFDR       Target FDR level.
-#' @param K          Random experiments per run.
-#' @param num_MC     Monte Carlo trials.
-#' @param seed       Base RNG seed.
-#' @param GVS_type   "EN" or "IEN".
-#' @param corr_max   HAC clustering threshold.
-#' @param hc_dist    HAC linkage (default "single").
-#' @param n_cores    Parallel cores (default num_cores).
-#'
-#' @return Named list: mean_FDP, mean_TPP, sd_FDP, sd_TPP.
-.run_mc_unequal_blocks <- function(
-  n,
-  p,
-  snr,
-  sd_x,
-  tFDR,
-  K,
-  num_MC,
-  seed,
-  GVS_type,
-  corr_max,
-  hc_dist  = "single",
-  n_cores  = num_cores
-) {
-  one_trial <- function(mc) {
-    trial_seed <- seed + mc - 1L
-    dat <- dgp_unequal_blocks_snr(n = n, p = p, snr = snr, sd_x = sd_x,
-                                  seed = trial_seed)
-    sel <- TRexSelectorNeo::TRexGVSSelector$new(
-      dat$X, dat$y, tFDR = tFDR, seed = -1L, verbose = FALSE,
-      gvs_control = TRexSelectorNeo::trex_gvs_control(
-        gvs_type = GVS_type, corr_max = corr_max, hc_linkage = cap_hc(hc_dist)),
-      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = K))
-    sel$select()
-    ts <- which(dat$beta != 0)
-    c(FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, ts),
-      TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, ts))
-  }
-
-  mc_indices <- seq_len(num_MC)
-
-  if (.Platform$OS.type == "unix" && n_cores > 1L) {
-    results <- parallel::mclapply(mc_indices, one_trial, mc.cores = n_cores)
-  } else if (n_cores > 1L) {
-    cl <- parallel::makeCluster(n_cores)
-    parallel::clusterExport(cl,
-                            varlist = c("dgp_unequal_blocks_snr",
-                                        "n", "p", "snr", "sd_x",
-                                        "tFDR", "K", "GVS_type",
-                                        "hc_dist", "corr_max", "seed", "cap_hc"),
+                                        "hc_dist", "corr_max", "seed", "cap_hc",
+                                        "en_solver", "lambda2_method",
+                                        ".gvs_select"),
                             envir   = environment())
     parallel::clusterEvalQ(cl, library(TRexSelectorNeo))
     results <- parallel::parLapply(cl, mc_indices, one_trial)
@@ -1037,7 +995,7 @@ cap_hc <- function(hc_dist) {
 #' 3 active blocks (20, 50, 80) + 1 inactive block (65), randomly ordered.
 #' Active set s = 150.
 #'
-#' @inheritParams .run_mc_unequal_blocks
+#' @inheritParams .run_mc_hastie
 #' @return Named list: mean_FDP, mean_TPP, sd_FDP, sd_TPP.
 .run_mc_mixed_blocks <- function(
   n,
@@ -1051,18 +1009,16 @@ cap_hc <- function(hc_dist) {
   GVS_type,
   corr_max,
   hc_dist  = "single",
+  en_solver      = "TENET",
+  lambda2_method = "CV_1SE_CCD",
   n_cores  = num_cores
 ) {
   one_trial <- function(mc) {
     trial_seed <- seed + mc - 1L
     dat <- dgp_mixed_blocks_snr(n = n, p = p, snr = snr, sd_x = sd_x,
                                 seed = trial_seed)
-    sel <- TRexSelectorNeo::TRexGVSSelector$new(
-      dat$X, dat$y, tFDR = tFDR, seed = -1L, verbose = FALSE,
-      gvs_control = TRexSelectorNeo::trex_gvs_control(
-        gvs_type = GVS_type, corr_max = corr_max, hc_linkage = cap_hc(hc_dist)),
-      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = K))
-    sel$select()
+    sel <- .gvs_select(dat$X, dat$y, tFDR, K, GVS_type, corr_max,
+                       hc_dist, en_solver, lambda2_method)
     ts <- which(dat$beta != 0)
     c(FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, ts),
       TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, ts))
@@ -1078,149 +1034,9 @@ cap_hc <- function(hc_dist) {
                             varlist = c("dgp_mixed_blocks_snr",
                                         "n", "p", "snr", "sd_x",
                                         "tFDR", "K", "GVS_type",
-                                        "hc_dist", "corr_max", "seed", "cap_hc"),
-                            envir   = environment())
-    parallel::clusterEvalQ(cl, library(TRexSelectorNeo))
-    results <- parallel::parLapply(cl, mc_indices, one_trial)
-    parallel::stopCluster(cl)
-  } else {
-    results <- lapply(mc_indices, one_trial)
-  }
-
-  fdp_vec <- sapply(results, `[[`, "FDP")
-  tpp_vec <- sapply(results, `[[`, "TPP")
-
-  list(
-    mean_FDP = mean(fdp_vec),
-    mean_TPP = mean(tpp_vec),
-    sd_FDP   = sd(fdp_vec),
-    sd_TPP   = sd(tpp_vec)
-  )
-}
-
-
-# ==============================================================================
-# .run_mc_random_blocks
-# ==============================================================================
-
-#' MC runner for the random-blocks DGP with trex+GVS.
-#'
-#' 3 active blocks (20, 50, 80) placed in a random order with noise gaps.
-#' Active set s = 150.
-#'
-#' @inheritParams .run_mc_unequal_blocks
-#' @return Named list: mean_FDP, mean_TPP, sd_FDP, sd_TPP.
-.run_mc_random_blocks <- function(
-  n,
-  p,
-  snr,
-  sd_x,
-  tFDR,
-  K,
-  num_MC,
-  seed,
-  GVS_type,
-  corr_max,
-  hc_dist  = "single",
-  n_cores  = num_cores
-) {
-  one_trial <- function(mc) {
-    trial_seed <- seed + mc - 1L
-    dat <- dgp_random_blocks_snr(n = n, p = p, snr = snr, sd_x = sd_x,
-                                 seed = trial_seed)
-    sel <- TRexSelectorNeo::TRexGVSSelector$new(
-      dat$X, dat$y, tFDR = tFDR, seed = -1L, verbose = FALSE,
-      gvs_control = TRexSelectorNeo::trex_gvs_control(
-        gvs_type = GVS_type, corr_max = corr_max, hc_linkage = cap_hc(hc_dist)),
-      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = K))
-    sel$select()
-    ts <- which(dat$beta != 0)
-    c(FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, ts),
-      TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, ts))
-  }
-
-  mc_indices <- seq_len(num_MC)
-
-  if (.Platform$OS.type == "unix" && n_cores > 1L) {
-    results <- parallel::mclapply(mc_indices, one_trial, mc.cores = n_cores)
-  } else if (n_cores > 1L) {
-    cl <- parallel::makeCluster(n_cores)
-    parallel::clusterExport(cl,
-                            varlist = c("dgp_random_blocks_snr",
-                                        "n", "p", "snr", "sd_x",
-                                        "tFDR", "K", "GVS_type",
-                                        "hc_dist", "corr_max", "seed", "cap_hc"),
-                            envir   = environment())
-    parallel::clusterEvalQ(cl, library(TRexSelectorNeo))
-    results <- parallel::parLapply(cl, mc_indices, one_trial)
-    parallel::stopCluster(cl)
-  } else {
-    results <- lapply(mc_indices, one_trial)
-  }
-
-  fdp_vec <- sapply(results, `[[`, "FDP")
-  tpp_vec <- sapply(results, `[[`, "TPP")
-
-  list(
-    mean_FDP = mean(fdp_vec),
-    mean_TPP = mean(tpp_vec),
-    sd_FDP   = sd(fdp_vec),
-    sd_TPP   = sd(tpp_vec)
-  )
-}
-
-
-# ==============================================================================
-# .run_mc_neg_corr
-# ==============================================================================
-
-#' MC runner for the negative-correlation DGP with trex+GVS.
-#'
-#' Active group 1-100 (+Z1/-Z1, beta = +3/-3); inactive trap 101-200.
-#' Active set s = 100.
-#'
-#' @inheritParams .run_mc_unequal_blocks
-#' @return Named list: mean_FDP, mean_TPP, sd_FDP, sd_TPP.
-.run_mc_neg_corr <- function(
-  n,
-  p,
-  snr,
-  sd_x,
-  tFDR,
-  K,
-  num_MC,
-  seed,
-  GVS_type,
-  corr_max,
-  hc_dist  = "single",
-  n_cores  = num_cores
-) {
-  one_trial <- function(mc) {
-    trial_seed <- seed + mc - 1L
-    dat <- dgp_neg_corr_snr(n = n, p = p, snr = snr, sd_x = sd_x,
-                            seed = trial_seed)
-    sel <- TRexSelectorNeo::TRexGVSSelector$new(
-      dat$X, dat$y, tFDR = tFDR, seed = -1L, verbose = FALSE,
-      gvs_control = TRexSelectorNeo::trex_gvs_control(
-        gvs_type = GVS_type, corr_max = corr_max, hc_linkage = cap_hc(hc_dist)),
-      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = K))
-    sel$select()
-    ts <- which(dat$beta != 0)
-    c(FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, ts),
-      TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, ts))
-  }
-
-  mc_indices <- seq_len(num_MC)
-
-  if (.Platform$OS.type == "unix" && n_cores > 1L) {
-    results <- parallel::mclapply(mc_indices, one_trial, mc.cores = n_cores)
-  } else if (n_cores > 1L) {
-    cl <- parallel::makeCluster(n_cores)
-    parallel::clusterExport(cl,
-                            varlist = c("dgp_neg_corr_snr",
-                                        "n", "p", "snr", "sd_x",
-                                        "tFDR", "K", "GVS_type",
-                                        "hc_dist", "corr_max", "seed", "cap_hc"),
+                                        "hc_dist", "corr_max", "seed", "cap_hc",
+                                        "en_solver", "lambda2_method",
+                                        ".gvs_select"),
                             envir   = environment())
     parallel::clusterEvalQ(cl, library(TRexSelectorNeo))
     results <- parallel::parLapply(cl, mc_indices, one_trial)
@@ -1250,7 +1066,7 @@ cap_hc <- function(hc_dist) {
 #' Active group 1-100 (+Z1/-Z1, beta = +3/-3); two inactive traps (100 + 60).
 #' Active set s = 100.
 #'
-#' @inheritParams .run_mc_unequal_blocks
+#' @inheritParams .run_mc_hastie
 #' @return Named list: mean_FDP, mean_TPP, sd_FDP, sd_TPP.
 .run_mc_neg_traps <- function(
   n,
@@ -1264,18 +1080,16 @@ cap_hc <- function(hc_dist) {
   GVS_type,
   corr_max,
   hc_dist  = "single",
+  en_solver      = "TENET",
+  lambda2_method = "CV_1SE_CCD",
   n_cores  = num_cores
 ) {
   one_trial <- function(mc) {
     trial_seed <- seed + mc - 1L
     dat <- dgp_neg_traps_snr(n = n, p = p, snr = snr, sd_x = sd_x,
                              seed = trial_seed)
-    sel <- TRexSelectorNeo::TRexGVSSelector$new(
-      dat$X, dat$y, tFDR = tFDR, seed = -1L, verbose = FALSE,
-      gvs_control = TRexSelectorNeo::trex_gvs_control(
-        gvs_type = GVS_type, corr_max = corr_max, hc_linkage = cap_hc(hc_dist)),
-      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = K))
-    sel$select()
+    sel <- .gvs_select(dat$X, dat$y, tFDR, K, GVS_type, corr_max,
+                       hc_dist, en_solver, lambda2_method)
     ts <- which(dat$beta != 0)
     c(FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, ts),
       TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, ts))
@@ -1291,86 +1105,9 @@ cap_hc <- function(hc_dist) {
                             varlist = c("dgp_neg_traps_snr",
                                         "n", "p", "snr", "sd_x",
                                         "tFDR", "K", "GVS_type",
-                                        "hc_dist", "corr_max", "seed", "cap_hc"),
-                            envir   = environment())
-    parallel::clusterEvalQ(cl, library(TRexSelectorNeo))
-    results <- parallel::parLapply(cl, mc_indices, one_trial)
-    parallel::stopCluster(cl)
-  } else {
-    results <- lapply(mc_indices, one_trial)
-  }
-
-  fdp_vec <- sapply(results, `[[`, "FDP")
-  tpp_vec <- sapply(results, `[[`, "TPP")
-
-  list(
-    mean_FDP = mean(fdp_vec),
-    mean_TPP = mean(tpp_vec),
-    sd_FDP   = sd(fdp_vec),
-    sd_TPP   = sd(tpp_vec)
-  )
-}
-
-
-# ==============================================================================
-# .run_mc_equi_blocks
-# ==============================================================================
-
-#' MC runner for the equi-correlated blocks DGP with trex+GVS.
-#'
-#' 4 blocks (sizes 20, 50, 80, 65): 3 active (beta=3), 1 inactive trap.
-#' Within-block equi-correlation = rho. Active set s = 150.
-#'
-#' @param n,p       Dataset dimensions.
-#' @param snr       Signal-to-noise ratio.
-#' @param rho       Within-block equi-correlation.
-#' @param tFDR,K    TRex parameters.
-#' @param num_MC,seed Monte Carlo parameters.
-#' @param GVS_type  "EN" or "IEN".
-#' @param corr_max  Hierarchical clustering threshold.
-#' @param hc_dist   HC linkage. Default "single".
-#' @param n_cores   Parallel worker count.
-#' @return Named list: mean_FDP, mean_TPP, sd_FDP, sd_TPP.
-.run_mc_equi_blocks <- function(
-  n,
-  p,
-  snr,
-  rho,
-  tFDR,
-  K,
-  num_MC,
-  seed,
-  GVS_type,
-  corr_max,
-  hc_dist  = "single",
-  n_cores  = num_cores
-) {
-  one_trial <- function(mc) {
-    trial_seed <- seed + mc - 1L
-    dat <- dgp_equi_blocks_snr(n = n, p = p, snr = snr, rho = rho,
-                               seed = trial_seed)
-    sel <- TRexSelectorNeo::TRexGVSSelector$new(
-      dat$X, dat$y, tFDR = tFDR, seed = -1L, verbose = FALSE,
-      gvs_control = TRexSelectorNeo::trex_gvs_control(
-        gvs_type = GVS_type, corr_max = corr_max, hc_linkage = cap_hc(hc_dist)),
-      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = K))
-    sel$select()
-    ts <- which(dat$beta != 0)
-    c(FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, ts),
-      TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, ts))
-  }
-
-  mc_indices <- seq_len(num_MC)
-
-  if (.Platform$OS.type == "unix" && n_cores > 1L) {
-    results <- parallel::mclapply(mc_indices, one_trial, mc.cores = n_cores)
-  } else if (n_cores > 1L) {
-    cl <- parallel::makeCluster(n_cores)
-    parallel::clusterExport(cl,
-                            varlist = c("dgp_equi_blocks_snr",
-                                        "n", "p", "snr", "rho",
-                                        "tFDR", "K", "GVS_type",
-                                        "hc_dist", "corr_max", "seed", "cap_hc"),
+                                        "hc_dist", "corr_max", "seed", "cap_hc",
+                                        "en_solver", "lambda2_method",
+                                        ".gvs_select"),
                             envir   = environment())
     parallel::clusterEvalQ(cl, library(TRexSelectorNeo))
     results <- parallel::parLapply(cl, mc_indices, one_trial)
@@ -1397,10 +1134,12 @@ cap_hc <- function(hc_dist) {
 
 #' MC runner for the heavy-tailed equi-correlated blocks DGP with trex+GVS.
 #'
-#' Same block structure as .run_mc_equi_blocks but with Student-t(df) noise.
+#' 4 equi-correlated blocks (sizes 20, 50, 80, 65): 3 active (beta=3), 1 inactive
+#' trap; within-block equi-correlation = rho, but with Student-t(df) noise.
 #' Active set s = 150.
 #'
-#' @inheritParams .run_mc_equi_blocks
+#' @inheritParams .run_mc_hastie
+#' @param rho Within-block equi-correlation.
 #' @param df Degrees of freedom for the t distribution. Default 3.
 #' @return Named list: mean_FDP, mean_TPP, sd_FDP, sd_TPP.
 .run_mc_t3_equi_blocks <- function(
@@ -1416,18 +1155,16 @@ cap_hc <- function(hc_dist) {
   corr_max,
   hc_dist  = "single",
   df       = 3L,
+  en_solver      = "TENET",
+  lambda2_method = "CV_1SE_CCD",
   n_cores  = num_cores
 ) {
   one_trial <- function(mc) {
     trial_seed <- seed + mc - 1L
     dat <- dgp_t3_equi_blocks_snr(n = n, p = p, snr = snr, rho = rho,
                                    df = df, seed = trial_seed)
-    sel <- TRexSelectorNeo::TRexGVSSelector$new(
-      dat$X, dat$y, tFDR = tFDR, seed = -1L, verbose = FALSE,
-      gvs_control = TRexSelectorNeo::trex_gvs_control(
-        gvs_type = GVS_type, corr_max = corr_max, hc_linkage = cap_hc(hc_dist)),
-      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = K))
-    sel$select()
+    sel <- .gvs_select(dat$X, dat$y, tFDR, K, GVS_type, corr_max,
+                       hc_dist, en_solver, lambda2_method)
     ts <- which(dat$beta != 0)
     c(FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, ts),
       TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, ts))
@@ -1443,7 +1180,9 @@ cap_hc <- function(hc_dist) {
                             varlist = c("dgp_t3_equi_blocks_snr",
                                         "n", "p", "snr", "rho", "df",
                                         "tFDR", "K", "GVS_type",
-                                        "hc_dist", "corr_max", "seed", "cap_hc"),
+                                        "hc_dist", "corr_max", "seed", "cap_hc",
+                                        "en_solver", "lambda2_method",
+                                        ".gvs_select"),
                             envir   = environment())
     parallel::clusterEvalQ(cl, library(TRexSelectorNeo))
     results <- parallel::parLapply(cl, mc_indices, one_trial)
@@ -1473,7 +1212,8 @@ cap_hc <- function(hc_dist) {
 #' 4 blocks (sizes 20, 50, 80, 65): 3 active (beta=3), 1 inactive trap.
 #' Within-block AR(1) correlation: Cor(j,k) = rho^|j-k|. Active set s = 150.
 #'
-#' @inheritParams .run_mc_equi_blocks
+#' @inheritParams .run_mc_hastie
+#' @param rho Within-block AR(1) correlation.
 #' @return Named list: mean_FDP, mean_TPP, sd_FDP, sd_TPP.
 .run_mc_ar1_blocks <- function(
   n,
@@ -1487,18 +1227,16 @@ cap_hc <- function(hc_dist) {
   GVS_type,
   corr_max,
   hc_dist  = "single",
+  en_solver      = "TENET",
+  lambda2_method = "CV_1SE_CCD",
   n_cores  = num_cores
 ) {
   one_trial <- function(mc) {
     trial_seed <- seed + mc - 1L
     dat <- dgp_ar1_blocks_snr(n = n, p = p, snr = snr, rho = rho,
                               seed = trial_seed)
-    sel <- TRexSelectorNeo::TRexGVSSelector$new(
-      dat$X, dat$y, tFDR = tFDR, seed = -1L, verbose = FALSE,
-      gvs_control = TRexSelectorNeo::trex_gvs_control(
-        gvs_type = GVS_type, corr_max = corr_max, hc_linkage = cap_hc(hc_dist)),
-      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = K))
-    sel$select()
+    sel <- .gvs_select(dat$X, dat$y, tFDR, K, GVS_type, corr_max,
+                       hc_dist, en_solver, lambda2_method)
     ts <- which(dat$beta != 0)
     c(FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, ts),
       TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, ts))
@@ -1514,7 +1252,9 @@ cap_hc <- function(hc_dist) {
                             varlist = c("dgp_ar1_blocks_snr",
                                         "n", "p", "snr", "rho",
                                         "tFDR", "K", "GVS_type",
-                                        "hc_dist", "corr_max", "seed", "cap_hc"),
+                                        "hc_dist", "corr_max", "seed", "cap_hc",
+                                        "en_solver", "lambda2_method",
+                                        ".gvs_select"),
                             envir   = environment())
     parallel::clusterEvalQ(cl, library(TRexSelectorNeo))
     results <- parallel::parLapply(cl, mc_indices, one_trial)
@@ -1566,18 +1306,16 @@ cap_hc <- function(hc_dist) {
   GVS_type,
   corr_max,
   hc_dist  = "single",
+  en_solver      = "TENET",
+  lambda2_method = "CV_1SE_CCD",
   n_cores  = num_cores
 ) {
   one_trial <- function(mc) {
     trial_seed <- seed + mc - 1L
     dat <- dgp_arma_blocks_snr(n = n, p = p, snr = snr, ar_coef = ar_coef,
                                seed = trial_seed)
-    sel <- TRexSelectorNeo::TRexGVSSelector$new(
-      dat$X, dat$y, tFDR = tFDR, seed = -1L, verbose = FALSE,
-      gvs_control = TRexSelectorNeo::trex_gvs_control(
-        gvs_type = GVS_type, corr_max = corr_max, hc_linkage = cap_hc(hc_dist)),
-      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = K))
-    sel$select()
+    sel <- .gvs_select(dat$X, dat$y, tFDR, K, GVS_type, corr_max,
+                       hc_dist, en_solver, lambda2_method)
     ts <- which(dat$beta != 0)
     c(FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, ts),
       TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, ts))
@@ -1593,89 +1331,11 @@ cap_hc <- function(hc_dist) {
                             varlist = c("dgp_arma_blocks_snr",
                                         "n", "p", "snr", "ar_coef",
                                         "tFDR", "K", "GVS_type",
-                                        "hc_dist", "corr_max", "seed", "cap_hc"),
+                                        "hc_dist", "corr_max", "seed", "cap_hc",
+                                        "en_solver", "lambda2_method",
+                                        ".gvs_select"),
                             envir   = environment())
     parallel::clusterEvalQ(cl, library(TRexSelectorNeo))
-    results <- parallel::parLapply(cl, mc_indices, one_trial)
-    parallel::stopCluster(cl)
-  } else {
-    results <- lapply(mc_indices, one_trial)
-  }
-
-  fdp_vec <- sapply(results, `[[`, "FDP")
-  tpp_vec <- sapply(results, `[[`, "TPP")
-
-  list(
-    mean_FDP = mean(fdp_vec),
-    mean_TPP = mean(tpp_vec),
-    sd_FDP   = sd(fdp_vec),
-    sd_TPP   = sd(tpp_vec)
-  )
-}
-
-
-# ==============================================================================
-# .run_mc_hapgen_snr
-# ==============================================================================
-#' MC runner for the quasi-hapgen LD-block DGP with trex+GVS.
-#'
-#' 7 irregular LD blocks (p = 500, fixed layout). Active set: blocks 1, 3, 4 (s = 130).
-#' Two weak long-range cross-block LD pairs. Sigma fixed per rho_scale, reused across trials.
-#'
-#' @param n         Number of observations.
-#' @param snr       Signal-to-noise ratio.
-#' @param rho_scale Overall correlation scale in [0, 1].
-#' @param tFDR,K    TRex parameters.
-#' @param num_MC,seed Monte Carlo parameters.
-#' @param GVS_type  "EN" or "IEN".
-#' @param corr_max  Hierarchical clustering threshold.
-#' @param hc_dist   HC linkage. Default "single".
-#' @param n_cores   Parallel worker count.
-#' @return Named list: mean_FDP, mean_TPP, sd_FDP, sd_TPP.
-.run_mc_hapgen_snr <- function(
-  n,
-  snr,
-  rho_scale,
-  tFDR,
-  K,
-  num_MC,
-  seed,
-  GVS_type,
-  corr_max,
-  hc_dist  = "single",
-  n_cores  = num_cores
-) {
-  one_trial <- function(mc) {
-    trial_seed <- seed + mc - 1L
-    dat <- dgp_hapgen_snr(n = n, snr = snr, rho_scale = rho_scale,
-                          seed = trial_seed)
-    sel <- TRexSelectorNeo::TRexGVSSelector$new(
-      dat$X, dat$y, tFDR = tFDR, seed = -1L, verbose = FALSE,
-      gvs_control = TRexSelectorNeo::trex_gvs_control(
-        gvs_type = GVS_type, corr_max = corr_max, hc_linkage = cap_hc(hc_dist)),
-      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = K))
-    sel$select()
-    ts <- which(dat$beta != 0)
-    c(FDP = TRexSelectorNeo::compute_fdp(sel$selected_indices, ts),
-      TPP = TRexSelectorNeo::compute_tpp(sel$selected_indices, ts))
-  }
-
-  mc_indices <- seq_len(num_MC)
-
-  if (.Platform$OS.type == "unix" && n_cores > 1L) {
-    results <- parallel::mclapply(mc_indices, one_trial, mc.cores = n_cores)
-  } else if (n_cores > 1L) {
-    cl <- parallel::makeCluster(n_cores)
-    parallel::clusterExport(cl,
-                            varlist = c("dgp_hapgen_snr",
-                                        "n", "snr", "rho_scale",
-                                        "tFDR", "K", "GVS_type",
-                                        "hc_dist", "corr_max", "seed", "cap_hc"),
-                            envir   = environment())
-    parallel::clusterEvalQ(cl, {
-      library(TRexSelectorNeo)
-      library(Matrix)
-    })
     results <- parallel::parLapply(cl, mc_indices, one_trial)
     parallel::stopCluster(cl)
   } else {

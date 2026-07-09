@@ -1,75 +1,130 @@
-# T-Solvers — R Cross-Validation Demo
+# T-Solvers: Demos and Validation (R)
 
-## Purpose
+## Overview
 
-Cross-validation of the C++ T-Algorithm solvers against an **independent
-reference implementation**: the CRAN `tlars` package. This is deliberate — the
-script uses CRAN `tlars` (and CRAN TRexSelector internals for the GVS
-dummy-from-clustering reference) as an external ground truth for a
-forward-selection **path-equivalence test** of the C++ solvers; it is not
-legacy code awaiting migration.
+This folder contains the R demos and validation programs for the
+**terminating solvers** exposed by the TRexSelectorNeo R6 API. It mirrors
+[cpp/tsolvers/](../../cpp/tsolvers/README.md) 1:1 (folder-per-demo, same
+numbering and content).
 
----
+These are variable-selection algorithms designed for high-dimensional
+linear-model problems inside the T-Rex framework. Each solver follows a
+different path-following, greedy, or pursuit-style strategy, but all share the
+same terminating principle: instead of computing a full regularization path,
+they stop early once a prescribed number $T_{\text{stop}}$ of dummy variables
+has entered the active set.
 
-## Demo
-
-| File | Description |
-|---|---|
-| [demo_ts_compare_tlars_tlasso.R](demo_ts_compare_tlars_tlasso.R) | Reference generator for the TLARS / TLASSO / TENET path-equivalence test on the sparse factor-model DGP (strongly correlated columns that actually trigger LARS ties and LASSO sign-change drops) |
-
-Solver pairings exercised:
-
-- **LARS** — CRAN `tlars` `type = "lar"` vs C++ `TLARS_Solver`;
-- **LASSO** — CRAN `tlars` `type = "lasso"` vs C++ `TLASSO_Solver`;
-- **EN** — CRAN augmented-lasso ("lasso_star" recipe) vs C++ `TENET_Solver`
-  (Gram-based EN) and `TENETAug_Solver` (augmented-lasso EN).
-
-Key API mapping: CRAN `tlars` takes one augmented matrix
-`Z = cbind(X, D)` plus `num_dummies = L`, while the C++ solvers take X and D
-separately; R column `j` (1-based) corresponds to the C++ combined 0-based
-index `j - 1`. To remove preprocessing confounds, Z is pre-standardized
-(center + unit L2 per column) and y centered once, then dumped verbatim so
-both sides see bit-identical inputs, with the complete path computed
-(`early_stop = FALSE`).
+The demos run each solver in a standalone way, outside the full T-Rex
+calibration workflow, so that solver behavior, normalization choices, and
+serialization can be inspected in isolation.
 
 ---
 
-## `rdump_tlars/` reference CSVs
+## Demo overview
 
-The script writes its dumps into `rdump_tlars/` next to the script; the C++
-comparison program reads them back:
+| # | Solver | Folder | Strategy | R6 class |
+|---|--------|--------|----------|----------|
+| 01 | **T-LARS** | [demo_ts_01_tlars/](demo_ts_01_tlars/README.md) | Least Angle Regression | `TLARS_Solver` |
+| 02 | **T-LASSO** | [demo_ts_02_tlasso/](demo_ts_02_tlasso/README.md) | Lasso path | `TLASSO_Solver` |
+| 03 | **T-Stepwise** | [demo_ts_03_tstepwise/](demo_ts_03_tstepwise/README.md) | Forward stepwise regression | `TSTEPWISE_Solver` |
+| 04 | **T-ENET** | [demo_ts_04_tenet/](demo_ts_04_tenet/README.md) | Elastic net | `TENET_Solver` |
+| 05 | **T-Stagewise** | [demo_ts_05_tstagewise/](demo_ts_05_tstagewise/README.md) | Forward stagewise regression | `TSTAGEWISE_Solver` |
+| 06 | **T-OMP** | [demo_ts_06_tomp/](demo_ts_06_tomp/README.md) | Orthogonal matching pursuit | `TOMP_Solver` |
+| 07 | **T-GP** | [demo_ts_07_tgp/](demo_ts_07_tgp/README.md) | Gradient pursuit | `TGP_Solver` |
+| 08 | **T-ACGP** | [demo_ts_08_tacgp/](demo_ts_08_tacgp/README.md) | Approximate conjugate gradient pursuit | `TACGP_Solver` |
+| 09 | **T-MP** | [demo_ts_09_tmp/](demo_ts_09_tmp/README.md) | Matching pursuit | `TMP_Solver` |
+| 10 | **T-NCGMP** | [demo_ts_10_tncgmp/](demo_ts_10_tncgmp/README.md) | Norm-corrective generalized matching pursuit | `TNCGMP_Solver` |
+| 11 | **T-OLS** | [demo_ts_11_tools/](demo_ts_11_tools/README.md) | Orthogonal least squares | `TOOLS_Solver` |
+| 12 | **T-AFS** | [demo_ts_12_tafs/](demo_ts_12_tafs/README.md) | Adaptive forward stepwise | `TAFS_Solver` |
 
-| File(s) | Content |
-|---|---|
-| `meta.csv` | Single row: `n, p, L, num, lambda2, snr_db` |
-| `Xn_<i>.csv`, `Dn_<i>.csv`, `y_<i>.csv` | Pre-standardized design (n x p), dummies (n x L), centered response, per trial |
-| `r_lar_beta_<i>.csv` / `r_lar_act_<i>.csv` | LARS reference coefficient path + action sequence |
-| `r_lasso_beta_<i>.csv` / `r_lasso_act_<i>.csv` | LASSO reference path + actions |
-| `r_en_beta_<i>.csv` / `r_en_act_<i>.csv` | EN (augmented lasso) reference path + actions |
+Every demo has the same four parts (mirroring the cpp files):
+
+1. **Early stopping** — internal normalization, high-dimensional $(p > n)$ and
+   low-dimensional $(n > p)$ regimes.
+2. **External normalization** — `LpNormScaler` (center + unit-L2 columns) on
+   X and D plus manual y-centering, solver run with
+   `normalize = FALSE, intercept = FALSE`.
+3. **Serialization & warm start** — save a partial path, reload, continue,
+   and compare against a reference run (steps, RSS, $R^2$, action path).
+4. **Memory-mapped data** — X written to disk via
+   `convert_to_memory_mapped()` and passed to the solver as an
+   `mmap_matrix`. The R binding accepts a memory-mapped X (D and y stay in
+   memory; cpp maps all three and generates $p = 500{,}000$ on disk — the
+   port scales this to $p = 5{,}000$).
+
+---
+
+## Validation
+
+| Folder | Purpose |
+|--------|---------|
+| [validation/validation_ts_01_tenet_aug_comparison/](validation/validation_ts_01_tenet_aug_comparison/README.md) | Equivalence check between Gram-based `TENET_Solver`, augmented-LASSO `TENETAug_Solver`, and a manual lasso_star augmentation solved with `TLASSO_Solver` |
+| [validation/validation_ts_02_tlars_tlasso_rcompare/](validation/validation_ts_02_tlars_tlasso_rcompare/README.md) | CRAN `tlars` reference **generator** (+ `rdump_tlars/` CSVs) for the cross-language path-equivalence test; consumed by the cpp and Python comparators of the same name |
+
+---
+
+## Key concepts
+
+### Terminating principle
+
+A terminating solver runs its selection path with
+`execute_step(T_stop, early_stop = TRUE)`, where $T_{\text{stop}}$ is the
+**number of dummy variables that must enter the active set before the solver
+terminates early**, usually well before the full path is computed. Passing
+`early_stop = FALSE` traces the complete path instead.
+
+### Shared helpers
+
+[`ts_demo_utils.R`](ts_demo_utils.R) replicates the cpp demo utilities:
+`gen_synthetic_data()` (R version of `datagen::SyntheticData` with
+SNR-calibrated Gaussian noise) and the `print_*` diagnostics (configuration,
+selection, and TPP/FDP/precision/recall/F1 quality measures via the
+TRexSelectorNeo `compute_*` helpers). Because the R binding's
+`get_actives()` returns active predictors only, the active-dummy count is
+reconstructed from the signed action path.
+
+### Serialization
+
+The binding serializes solver state with `solver$save(path)` and hydrates an
+existing instance with `solver$load(path)` (cpp uses a static
+`load(filename, X, D)` factory); `$new()` re-binds the data views.
 
 ---
 
 ## Running
 
-Requires the CRAN packages `tlars` and `TRexSelector`.
+Run any demo or validation program from the repository root, e.g.:
 
 ```bash
-Rscript R/tsolvers/demo_ts_compare_tlars_tlasso.R
+Rscript R/tsolvers/demo_ts_01_tlars/demo_ts_01_tlars.R
+```
+
+All demos print their diagnostics to the console and clean up any checkpoint
+or mmap files they create inside their own folder.
+
+---
+
+## Folder contents
+
+```txt
+tsolvers/
+  ├── README.md
+  ├── ts_demo_utils.R
+  ├── demo_ts_01_tlars/
+  ├── demo_ts_02_tlasso/
+  ├── demo_ts_03_tstepwise/
+  ├── demo_ts_04_tenet/
+  ├── demo_ts_05_tstagewise/
+  ├── demo_ts_06_tomp/
+  ├── demo_ts_07_tgp/
+  ├── demo_ts_08_tacgp/
+  ├── demo_ts_09_tmp/
+  ├── demo_ts_10_tncgmp/
+  ├── demo_ts_11_tools/
+  ├── demo_ts_12_tafs/
+  └── validation/
 ```
 
 ---
 
-## Counterparts and coverage
-
-- C++ comparison program:
-  [cpp/tsolvers/validation/](../../cpp/tsolvers/validation/) —
-  `validation_ts_02_tlars_tlasso_rcompare` (the script header still cites the
-  older name `demo_ts_14_tlars_tlasso_rcompare.cpp`).
-- The C++ tree ships **12 per-solver demos**
-  (`demo_ts_01_tlars` … `demo_ts_12_tafs`, see
-  [cpp/tsolvers/](../../cpp/tsolvers/)) that are not yet mirrored in R; this
-  folder currently contains only the cross-validation script above.
-
----
-
-**Last updated**: 2026-07-06
+**Last updated**: 2026-07-08

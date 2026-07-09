@@ -36,9 +36,9 @@ log_file <- file.path(this_dir_, "simulation_results",
 sink(log_file)
 on.exit(sink(), add = TRUE)
 
-source(file.path(this_dir_, "..", "support_generators.R"))  # make_support_bt_one_per_block
-source(file.path(this_dir_, "dgp_ht_snr.R"))           # dgp_ht_block_snr
-source(file.path(this_dir_, "..", "simulation_utils.R"))
+source(file.path(this_dir_, "..", "..", "support_generators.R"))  # make_support_bt_one_per_block
+source(file.path(this_dir_, "..", "trex_da_dgps.R"))
+source(file.path(this_dir_, "..", "..", "simulation_utils.R"))
 
 
 # ==============================================================================

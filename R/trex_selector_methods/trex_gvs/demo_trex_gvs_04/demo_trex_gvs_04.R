@@ -1,70 +1,94 @@
-# ==============================================================================
+# =================================================================================
 # demo_trex_gvs_04.R
-# ==============================================================================
+# =================================================================================
 #
-# T-Rex+GVS demo and MC simulation for the negative-traps DGP.
-# Group 1 (indices 1-100):   active, +Z1/-Z1, beta = +3/-3.  s = 100.
-# Group 2 (indices 101-200): inactive Trap 1, +Z2/-Z2.
-# Noise   (indices 201-300): white noise.
-# Group 3 (indices 301-360): inactive Trap 2, +Z3/-Z3.
-# Noise   (indices 361-500): white noise.
+# T-Rex+GVS on the negative-traps DGP.
 #
-#  Part 1: Single-run demo — trap FP autopsy + selector run.
+#   Group 1 (cols 1-100):   ACTIVE, +Z1 / -Z1, beta = +3 / -3.  s = 100.
+#   Group 2 (cols 101-200): inactive Trap 1, +Z2 / -Z2.
+#   Noise   (cols 201-300): white noise.
+#   Group 3 (cols 301-360): inactive Trap 2, +Z3 / -Z3.
+#   Noise   (cols 361-500): white noise.
 #
-# Monte Carlo simulations (Parts 2–4) are in simulation_trex_gvs_04.R.
+# The active group is negatively correlated within itself (sign-flipped halves)
+# and two spatially separated sign-flipped trap groups tempt false positives.
 #
-# ==============================================================================
+# Methods compared: EN (TENET), EN+AUG (TENET_AUG), IEN.
+#
+# Parts:
+#   Part 1: Single-run demo — negative-correlation checks, one EN/EN+AUG/IEN run,
+#                             and a false-positive autopsy by trap.
+#   Part 2: SNR sweep       — fixed sd_x = sqrt(0.01) (rho ~ 0.99).
+#   Part 3: rho sweep       — fixed SNR = 2.0 (sd_x derived from rho).
+#   Part 4: 2-D SNR x rho grid.
+#
+# =================================================================================
 
 library(TRexSelectorNeo)
 library(plotly)
 library(parallel)
 
-num_cores <- 6L
+num_cores <- local({
+  a <- suppressWarnings(as.integer(commandArgs(trailingOnly = TRUE)[1L]))
+  if (!is.na(a) && a > 0L) a else 6L
+})
 
 this_dir_ <- tryCatch(
   dirname(normalizePath(sys.frame(1)$ofile)),
   error = function(e) {
     args <- commandArgs(trailingOnly = FALSE)
-    file_arg <- grep("--file=", args, value = TRUE)
-    if (length(file_arg) > 0) dirname(normalizePath(sub("--file=", "", file_arg[1]))) else "."
+    flag <- grep("^--file=", args, value = TRUE)
+    if (length(flag) > 0L)
+      dirname(normalizePath(sub("^--file=", "", flag[1L])))
+    else "."
   }
 )
 
-source(file.path(this_dir_, "..", "support_generators.R"))
-source(file.path(this_dir_, "..", "simulation_utils.R"))
-source(file.path(this_dir_, "dgp_neg_traps.R"))
+source(file.path(this_dir_, "..", "..", "support_generators.R"))
+source(file.path(this_dir_, "..", "..", "simulation_utils.R"))
+source(file.path(this_dir_, "..", "trex_gvs_dgps.R"))
 
 
 # ==============================================================================
-# Base parameters
+# Configuration
 # ==============================================================================
 
-PARAMS <- list(
+CFG <- list(
   n        = 200L,
   p        = 500L,
-  sd_x     = sqrt(0.01),
-  snr      = 2.0,
+  sd_x     = sqrt(0.01),   # rho ~ 0.99
+  snr      = 2.0,          # fixed SNR for the rho sweep
   K        = 20L,
   tFDR     = 0.1,
   seed     = 2026L,
+  num_MC   = 200L,
   corr_max = 0.98,
   hc_dist  = "single"
 )
 
+GVS_METHODS <- list(
+  list(label = "EN",     GVS_type = "EN",  en_solver = "TENET"),
+  list(label = "EN+AUG", GVS_type = "EN",  en_solver = "TENET_AUG"),
+  list(label = "IEN",    GVS_type = "IEN", en_solver = "TENET")
+)
+
 run_part_1 <- TRUE
+run_part_2 <- TRUE
+run_part_3 <- TRUE
+run_part_4 <- TRUE
 
 
 # ==============================================================================
 # Local helpers
 # ==============================================================================
 
+#' Print a formatted single-run result block.
 .print_result <- function(scenario_name, dat, result, tFDR) {
-  sel_set <- which(result$selected_var == 1L)
+  ts      <- which(dat$beta != 0)
+  sel_set <- result$selected_indices
   n_sel   <- length(sel_set)
-  n_tp    <- length(intersect(sel_set, which(dat$beta != 0)))
+  n_tp    <- length(intersect(sel_set, ts))
   n_fp    <- n_sel - n_tp
-  tpp_val <- TRexSelectorNeo::compute_tpp(result$selected_indices, which(dat$beta != 0))
-  fdp_val <- TRexSelectorNeo::compute_fdp(result$selected_indices, which(dat$beta != 0))
 
   cat(strrep("=", 70), "\n")
   cat(sprintf("  %s\n", scenario_name))
@@ -73,21 +97,19 @@ run_part_1 <- TRUE
               dat$n, dat$p, tFDR, dat$s))
   cat(sprintf("       SNR = %.2f,  sigma_y = %.4f,  sd_x = %.4f\n",
               dat$snr, dat$sigma_y, dat$sd_x))
-  cat(sprintf("       Group 1 [1-100]:   active (+Z1/-Z1)\n"))
-  cat(sprintf("       Group 2 [101-200]: Trap 1 (+Z2/-Z2)\n"))
-  cat(sprintf("       Group 3 [301-360]: Trap 2 (+Z3/-Z3)\n"))
   cat(strrep("-", 70), "\n")
   cat(sprintf("  Calibration:  T_stop = %d,  L = %d\n",
               result$T_stop, result$L))
   cat(sprintf("  Selection:    %d selected  |  TP = %d  FP = %d\n",
               n_sel, n_tp, n_fp))
   cat(sprintf("  Rates:        TPP = %.3f  |  FDP = %.3f  (target tFDR <= %.2f)\n",
-              tpp_val, fdp_val, tFDR))
+              TRexSelectorNeo::compute_tpp(sel_set, ts),
+              TRexSelectorNeo::compute_fdp(sel_set, ts), tFDR))
   cat(strrep("=", 70), "\n\n")
   invisible(NULL)
 }
 
-#' Categorize false positives by source region (trap 1, trap 2, or noise).
+#' Classify false positives by their origin (trap 1, trap 2, or white noise).
 .fp_autopsy <- function(selected_var, beta) {
   sel_set    <- which(selected_var == 1L)
   fp_indices <- sel_set[beta[sel_set] == 0]
@@ -104,8 +126,17 @@ run_part_1 <- TRUE
   cat(sprintf("  --- FP Autopsy (%d total FPs) ---\n", length(fp_indices)))
   cat(sprintf("  Leaked from Trap 1 (101-200): %d\n", trap1_leaks))
   cat(sprintf("  Leaked from Trap 2 (301-360): %d\n", trap2_leaks))
-  cat(sprintf("  Leaked from white noise:       %d\n\n", noise_leaks))
+  cat(sprintf("  Leaked from white noise:      %d\n\n", noise_leaks))
   invisible(NULL)
+}
+
+#' Run one MC point on the neg-traps DGP for a given (method, snr, sd_x).
+.neg_traps_point <- function(method, snr, sd_x) {
+  .run_mc_neg_traps(
+    n = CFG$n, p = CFG$p, snr = snr, sd_x = sd_x,
+    tFDR = CFG$tFDR, K = CFG$K, num_MC = CFG$num_MC, seed = CFG$seed,
+    GVS_type = method$GVS_type, corr_max = CFG$corr_max, hc_dist = CFG$hc_dist,
+    en_solver = method$en_solver, n_cores = num_cores)
 }
 
 
@@ -114,67 +145,131 @@ run_part_1 <- TRUE
 # ==============================================================================
 
 if (run_part_1) {
-  trx_gvs_07_01 <- function() {
+  cat("\n", strrep("=", 70), "\n", sep = "")
+  cat("Neg-Traps GVS  |  Part 1: Single-run\n")
+  cat(sprintf("n=%d,  p=%d,  s=100  (active group + 2 inactive traps)\n",
+              CFG$n, CFG$p))
+  cat(sprintf("SNR=%.2f,  sd_x=%.4f,  tFDR=%.2f\n",
+              CFG$snr, CFG$sd_x, CFG$tFDR))
+  cat(strrep("=", 70), "\n\n")
 
-    # Header
-    # ----------------------------------------------------
-    cat("\n", strrep("=", 70), "\n", sep = "")
-    cat("Neg-Traps GVS Demo  |  Part 1: Single-run\n")
-    cat(sprintf("n=%d,  p=%d,  s=100  (active group + 2 inactive traps)\n",
-                PARAMS$n, PARAMS$p))
-    cat(sprintf("SNR=%.2f,  sd_x=%.4f,  tFDR=%.2f\n",
-                PARAMS$snr, PARAMS$sd_x, PARAMS$tFDR))
-    cat(strrep("=", 70), "\n\n")
-    # ----------------------------------------------------
+  cat("[Part 1] Generating neg-traps data ...\n")
+  dat_p1 <- dgp_neg_traps_snr(n = CFG$n, p = CFG$p, snr = CFG$snr,
+                              sd_x = CFG$sd_x, seed = CFG$seed)
+  cat(sprintf("[Part 1] Active: %d  |  Null (incl. traps): %d  |  sigma_y = %.4f\n\n",
+              dat_p1$s, dat_p1$p - dat_p1$s, dat_p1$sigma_y))
 
-    cat("[Part 1] Generating neg-traps data ...\n")
-    dat_p1 <- dgp_neg_traps_snr(
-      n    = PARAMS$n,
-      p    = PARAMS$p,
-      snr  = PARAMS$snr,
-      sd_x = PARAMS$sd_x,
-      seed = PARAMS$seed
-    )
-    cat(sprintf("[Part 1] Active: %d  |  Null (incl. traps): %d  |  sigma_y = %.4f\n\n",
-                dat_p1$s, dat_p1$p - dat_p1$s, dat_p1$sigma_y))
+  # Structural checks: sign-flipped halves induce negative within-group correlation.
+  cat(sprintf("[Part 1] Cor(X[,1],   X[,51])  [active, expect ~-%.2f]: %.4f\n",
+              1 / (1 + CFG$sd_x^2), cor(dat_p1$X[, 1],   dat_p1$X[, 51])))
+  cat(sprintf("[Part 1] Cor(X[,301], X[,331]) [trap 2, expect ~-%.2f]: %.4f\n\n",
+              1 / (1 + CFG$sd_x^2), cor(dat_p1$X[, 301], dat_p1$X[, 331])))
 
-    # Structural checks
-    cat(sprintf("[Part 1] Cor(X[,1],   X[,51])  [active,  expect ~-%.2f]: %.4f\n",
-                1 / (1 + PARAMS$sd_x^2), cor(dat_p1$X[, 1],   dat_p1$X[, 51])))
-    cat(sprintf("[Part 1] Cor(X[,301], X[,331]) [trap 2, expect ~-%.2f]: %.4f\n\n",
-                1 / (1 + PARAMS$sd_x^2), cor(dat_p1$X[, 301], dat_p1$X[, 331])))
-
-    cat("[Part 1] Plotting correlation matrix ...\n")
-    plot_cormat(cor(dat_p1$X))
-
-    cat("[Part 1] Running trex+GVS (EN) ...\n\n")
-    res_en <- TRexSelectorNeo::TRexGVSSelector$new(
-      dat_p1$X, dat_p1$y, tFDR = PARAMS$tFDR, seed = -1L, verbose = FALSE,
-      gvs_control = TRexSelectorNeo::trex_gvs_control(
-        gvs_type = "EN", corr_max = PARAMS$corr_max,
-        hc_linkage = cap_hc(PARAMS$hc_dist)),
-      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = PARAMS$K))
-    res_en$select()
-    .print_result("Part 1 \u2014 Neg-Traps GVS  [EN]", dat_p1, res_en, PARAMS$tFDR)
-    .fp_autopsy(res_en$selected_var, dat_p1$beta)
-
-    cat("[Part 1] Running trex+GVS (IEN) ...\n\n")
-    res_ien <- TRexSelectorNeo::TRexGVSSelector$new(
-      dat_p1$X, dat_p1$y, tFDR = PARAMS$tFDR, seed = -1L, verbose = FALSE,
-      gvs_control = TRexSelectorNeo::trex_gvs_control(
-        gvs_type = "IEN", corr_max = PARAMS$corr_max,
-        hc_linkage = cap_hc(PARAMS$hc_dist)),
-      control = TRexSelectorNeo::trex_control(solver = "TLARS", K = PARAMS$K))
-    res_ien$select()
-    .print_result("Part 1 \u2014 Neg-Traps GVS  [IEN]", dat_p1, res_ien, PARAMS$tFDR)
-    .fp_autopsy(res_ien$selected_var, dat_p1$beta)
+  cormat_p1 <- plot_cormat(cor(dat_p1$X))
+  if (interactive()) {
+    cat("[Part 1] Displaying correlation matrix ...\n")
+    print(cormat_p1)
   }
 
-  trx_gvs_07_01()
+  for (m in GVS_METHODS) {
+    cat(sprintf("[Part 1] Running trex+GVS (%s) ...\n\n", m$label))
+    res <- .gvs_select(dat_p1$X, dat_p1$y, CFG$tFDR, CFG$K,
+                       m$GVS_type, CFG$corr_max, CFG$hc_dist, m$en_solver)
+    .print_result(sprintf("Part 1 — Neg-Traps GVS  [%s]", m$label),
+                  dat_p1, res, CFG$tFDR)
+    .fp_autopsy(res$selected_var, dat_p1$beta)
+  }
+}
 
-}  # end Part 1
+
+# ==============================================================================
+# Part 2: MC simulation - SNR sweep
+# ==============================================================================
+# Fixed sd_x = sqrt(0.01) (rho ~ 0.99). Compares EN / EN+AUG / IEN.
+
+if (run_part_2) {
+  snr_grid <- c(0.1, 0.2, 0.5, 1.0, 2.0, 5.0)
+
+  cat(strrep("=", 70), "\n")
+  cat("Neg-Traps GVS MC — Part 2: SNR sweep\n")
+  cat(sprintf("tFDR=%.2f  sd_x=%.4f (rho~%.2f)  n=%d  p=%d  %d MC\n",
+              CFG$tFDR, CFG$sd_x, 1 / (1 + CFG$sd_x^2),
+              CFG$n, CFG$p, CFG$num_MC))
+  cat(strrep("=", 70), "\n\n")
+
+  for (m in GVS_METHODS) {
+    cat(sprintf("\n  [%s] SNR sweep, %d MC per point ...\n", m$label, CFG$num_MC))
+    res <- lapply(snr_grid, function(s) {
+      cat(sprintf("    SNR = %.2f ...\n", s))
+      c(list(SNR = s), .neg_traps_point(m, s, CFG$sd_x))
+    })
+    cat(sprintf("\n  Results — %s:\n", m$label))
+    .print_table(res, "SNR")
+  }
+}
+
+
+# ==============================================================================
+# Part 3: MC simulation - rho sweep
+# ==============================================================================
+# Fixed SNR = 2.0. sd_x derived as sqrt((1 - rho) / rho).
+
+if (run_part_3) {
+  rho_grid <- c(0.10, 0.20, 0.30, 0.50, 0.70, 0.80, 0.90, 0.95, 0.99)
+
+  cat(strrep("=", 70), "\n")
+  cat("Neg-Traps GVS MC — Part 3: rho sweep\n")
+  cat(sprintf("tFDR=%.2f  SNR=%.2f  n=%d  p=%d  %d MC\n",
+              CFG$tFDR, CFG$snr, CFG$n, CFG$p, CFG$num_MC))
+  cat(strrep("=", 70), "\n\n")
+
+  for (m in GVS_METHODS) {
+    cat(sprintf("\n  [%s] rho sweep, %d MC per point ...\n", m$label, CFG$num_MC))
+    res <- lapply(rho_grid, function(rho_val) {
+      sd_x_val <- sqrt((1 - rho_val) / rho_val)
+      cat(sprintf("    rho = %.2f  (sd_x = %.4f) ...\n", rho_val, sd_x_val))
+      c(list(rho = rho_val), .neg_traps_point(m, CFG$snr, sd_x_val))
+    })
+    cat(sprintf("\n  Results — %s:\n", m$label))
+    .print_table(res, "rho", "%-6.2f")
+  }
+}
+
+
+# ==============================================================================
+# Part 4: 2-D phase-transition sweep - SNR x rho
 # ==============================================================================
 
+if (run_part_4) {
+  snr_grid <- c(0.2, 0.5, 1.0, 2.0, 5.0)
+  rho_grid <- c(0.30, 0.50, 0.70, 0.90, 0.95, 0.99)
+  row_nms  <- paste0("snr=", sprintf("%.2f", snr_grid))
+  col_nms  <- paste0("rho=", sprintf("%.2f", rho_grid))
+
+  cat(strrep("=", 70), "\n")
+  cat("Neg-Traps GVS MC  |  Part 4: SNR x rho grid\n")
+  cat(sprintf("n=%d  p=%d  %d MC  tFDR=%.2f  corr_max=%.2f\n",
+              CFG$n, CFG$p, CFG$num_MC, CFG$tFDR, CFG$corr_max))
+  cat(strrep("=", 70), "\n\n")
+
+  for (m in GVS_METHODS) {
+    mat_TPP <- matrix(NA_real_, length(snr_grid), length(rho_grid),
+                      dimnames = list(row_nms, col_nms))
+    mat_FDP <- mat_TPP
+    for (i in seq_along(snr_grid)) {
+      for (j in seq_along(rho_grid)) {
+        sd_x_val <- sqrt((1 - rho_grid[j]) / rho_grid[j])
+        cat(sprintf("  [%s] SNR=%.2f rho=%.2f ...\n",
+                    m$label, snr_grid[i], rho_grid[j]))
+        r <- .neg_traps_point(m, snr_grid[i], sd_x_val)
+        mat_TPP[i, j] <- r$mean_TPP
+        mat_FDP[i, j] <- r$mean_FDP
+      }
+    }
+    .print_matrix(mat_TPP, sprintf("mean_TPP [%s] (rows: SNR, cols: rho)", m$label))
+    .print_matrix(mat_FDP, sprintf("mean_FDP [%s] (rows: SNR, cols: rho)", m$label))
+  }
+}
 
 
 cat("\nNeg-traps GVS demo complete.\n")

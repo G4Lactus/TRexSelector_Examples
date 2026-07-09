@@ -320,15 +320,17 @@ BIOBANK_METHODS <- c("Screen-TRex (ordinary)",
 
 #' Print a single-phenotype biobank result (mirrors print_biobank_single_result()).
 #'
-#' @param res          Return value of a single-phenotype selector$select().
+#' @param rec          A single biobank record: the return value of
+#'                     selector$select() for a vector y (one BiobankScreenTRex
+#'                     record, with fields method_used, estimated_FDR,
+#'                     selected_indices, ...).
 #' @param true_support 1-based ground-truth active indices.
-.print_biobank_single <- function(res, true_support) {
-  st  <- res$statistics[1L, ]
-  sel <- res$selected_indices[[1L]]
-  cat(sprintf("\n  Method used:       %s\n", st$method_used))
-  cat(sprintf("  Estimated FDR:     %.4f\n", st$estimated_FDR))
-  cat(sprintf("  alpha_hat (ord):   %.4f\n", st$estimated_FDR_screen_ordinary))
-  cat(sprintf("  alpha_hat_C (boot):%.4f\n", st$estimated_FDR_screen_bootstrap))
+.print_biobank_single <- function(rec, true_support) {
+  sel <- rec$selected_indices
+  cat(sprintf("\n  Method used:       %s\n", rec$method_used))
+  cat(sprintf("  Estimated FDR:     %.4f\n", rec$estimated_FDR))
+  cat(sprintf("  alpha_hat (ord):   %.4f\n", rec$estimated_FDR_screen_ordinary))
+  cat(sprintf("  alpha_hat_C (boot):%.4f\n", rec$estimated_FDR_screen_bootstrap))
   cat(sprintf("  Selected (%d):  %s\n", length(sel), paste(sort(sel), collapse = " ")))
   cat(sprintf("  FDP: %.4f  |  TPP: %.4f\n",
               compute_fdp(sel, true_support), compute_tpp(sel, true_support)))
@@ -336,6 +338,10 @@ BIOBANK_METHODS <- c("Screen-TRex (ordinary)",
 }
 
 #' Print a per-phenotype biobank table (mirrors print_biobank_phenotype_table()).
+#'
+#' @param res           A list of biobank records (selector$select() for a
+#'                      matrix Y), one record per phenotype.
+#' @param true_supports Ground-truth supports (one entry per phenotype).
 .print_biobank_table <- function(res, true_supports) {
   cat("\n", strrep("=", 80L), "\n", sep = "")
   cat("=== Results by Phenotype ===\n")
@@ -344,10 +350,10 @@ BIOBANK_METHODS <- c("Screen-TRex (ordinary)",
               "Pheno", "Method", "Est.FDR", "Selected", "FDP", "TPP"))
   cat(strrep("-", 80L), "\n", sep = "")
   for (i in seq_along(true_supports)) {
-    st  <- res$statistics[i, ]
-    sel <- res$selected_indices[[i]]
+    rec <- res[[i]]
+    sel <- rec$selected_indices
     cat(sprintf("%6d  %-26s%10.4f%10d%10.4f%10.4f\n",
-                i, st$method_used, st$estimated_FDR, length(sel),
+                i, rec$method_used, rec$estimated_FDR, length(sel),
                 compute_fdp(sel, true_supports[[i]]),
                 compute_tpp(sel, true_supports[[i]])))
   }
@@ -355,20 +361,23 @@ BIOBANK_METHODS <- c("Screen-TRex (ordinary)",
 }
 
 #' Print a multi-phenotype biobank summary (mirrors print_biobank_summary()).
+#'
+#' @param res A list of biobank records (selector$select() for a matrix Y).
 .print_biobank_summary <- function(res) {
-  st <- res$statistics
-  n_sel <- vapply(res$selected_indices, length, integer(1))
+  method_used <- vapply(res, function(r) r$method_used, character(1))
+  est_fdr     <- vapply(res, function(r) r$estimated_FDR, numeric(1))
+  n_sel       <- vapply(res, function(r) length(r$selected_indices), integer(1))
   cat(strrep("=", 70L), "\n", sep = "")
   cat("=== Summary ===\n")
   cat(strrep("=", 70L), "\n", sep = "")
-  cat(sprintf("  Total phenotypes:        %d\n", nrow(st)))
+  cat(sprintf("  Total phenotypes:        %d\n", length(res)))
   cat(sprintf("  Screen-TRex (ordinary):  %d\n",
-              sum(st$method_used == "Screen-TRex (ordinary)")))
+              sum(method_used == "Screen-TRex (ordinary)")))
   cat(sprintf("  Screen-TRex (bootstrap): %d\n",
-              sum(st$method_used == "Screen-TRex (bootstrap-CI)")))
+              sum(method_used == "Screen-TRex (bootstrap-CI)")))
   cat(sprintf("  T-Rex (fallback):        %d\n",
-              sum(st$method_used == "T-Rex (fallback)")))
-  cat(sprintf("  Avg estimated FDR:       %.4f\n", mean(st$estimated_FDR)))
+              sum(method_used == "T-Rex (fallback)")))
+  cat(sprintf("  Avg estimated FDR:       %.4f\n", mean(est_fdr)))
   cat(sprintf("  Avg selected count:      %.2f\n\n", mean(n_sel)))
 }
 

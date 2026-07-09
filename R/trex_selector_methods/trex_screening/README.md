@@ -34,9 +34,10 @@ bio <- TRexBiobankScreeningSelector$new(
   screen_control  = trex_screen_control(),
   control         = trex_control()
 )
-res <- bio$select()
-res$statistics          # per-phenotype method_used, estimated_FDR, ...
-res$selected_indices    # per-phenotype 1-based selected indices (list)
+res <- bio$select()     # vector Y -> one record; matrix Y -> list of records
+res[[1]]$method_used         # routing decision for phenotype 1
+res[[1]]$selected_indices    # phenotype 1's 1-based selected indices
+res[[1]]$estimated_FDR
 ```
 
 The suite mirrors the C++ demos in
@@ -50,18 +51,39 @@ The `trex_method` strings accepted by `trex_screen_control()` are:
 and `"TREX_DA_BLOCK_EQUI"` (dependency-aware variants). An unknown string
 raises `Unknown ScreenTRexMethod: ...` at `select()` time.
 
+The folder layout mirrors the C++ suite one-to-one: one subfolder per demo,
+plus the shared `trex_scr_sim_utils.R` helper at the suite level.
+
+```txt
+trex_screening/
+  ├── README.md
+  ├── trex_scr_sim_utils.R            <- shared DGPs, MC runner, table output
+  ├── demo_trex_scr_01_screen/
+  │   ├── demo_trex_scr_01_screen.R
+  │   ├── README.md
+  │   └── simulation_results/
+  ├── demo_trex_scr_02_screen_mmap/
+  │   └── ...
+  ├── demo_trex_scr_03_screen_correlated/
+  ├── demo_trex_scr_04_biobank_inmem/
+  ├── demo_trex_scr_05_biobank_mmap/
+  └── demo_trex_scr_06_screen_solvers/
+```
+
 ---
 
 ## Demos
 
-| # | File | Description | cpp counterpart | Key APIs |
+Each demo folder has its own `README.md`.
+
+| # | Folder | Description | cpp counterpart | Key APIs |
 |---|---|---|---|---|
-| 01 | [demo_trex_scr_01_screen.R](demo_trex_scr_01_screen.R) | In-memory Ordinary vs. Bootstrap-CI screening: two single runs (fixed support, SNR 5) plus an 8-point SNR-sweep Monte Carlo reporting FDR / TPR / Estimated FDR | [demo_trex_scr_01_screen_trex/](../../../cpp/trex_selector_methods/trex_screening/demo_trex_scr_01_screen_trex/) | `TRexScreeningSelector`, `trex_screen_control(use_bootstrap_CI=)` |
-| 02 | [demo_trex_scr_02_screen_mmap.R](demo_trex_scr_02_screen_mmap.R) | Same screening scenario with the memory-mapped pipeline: Part A in-memory X + `use_memory_mapping=TRUE` (D-mmap); Part B fully memory-mapped X via `convert_to_memory_mapped()`; Part C mmap MC SNR sweep | [demo_trex_scr_02_screen_trex_mmap/](../../../cpp/trex_selector_methods/trex_screening/demo_trex_scr_02_screen_trex_mmap/) | `convert_to_memory_mapped`, `trex_control(use_memory_mapping=)` |
-| 03 | [demo_trex_scr_03_screen_correlated.R](demo_trex_scr_03_screen_correlated.R) | Ordinary vs. DA screening on correlated designs: 4 single runs (Ordinary/DA-AR1/DA-EQUI/DA-BLOCK-EQUI) + 5 Monte Carlo sweeps (AR(1)/equi SNR sweeps and AR(1)/equi/block-equi rho sweeps) | [demo_trex_scr_03_screen_trex_correlated/](../../../cpp/trex_selector_methods/trex_screening/demo_trex_scr_03_screen_trex_correlated/) | `trex_method = "TREX_DA_*"`, `estimated_correlation` |
-| 04 | [demo_trex_scr_04_biobank_inmem.R](demo_trex_scr_04_biobank_inmem.R) | Biobank "Algorithm 1" (in-memory): single phenotype, 5-phenotype routing table + summary, and MC SNR sweeps (single and multi-phenotype) reporting per-method Usage % / FDR / TPR / Est. FDR | [demo_trex_scr_04_biobank_screen_trex_inmem/](../../../cpp/trex_selector_methods/trex_screening/demo_trex_scr_04_biobank_screen_trex_inmem/) | `TRexBiobankScreeningSelector`, `trex_biobank_control` |
-| 05 | [demo_trex_scr_05_biobank_mmap.R](demo_trex_scr_05_biobank_mmap.R) | Same biobank workflow with the memory-mapped pipeline: Part A in-memory X + D-mmap; Part B single + multi phenotype on a fully memory-mapped X; Part C mmap MC SNR sweep | [demo_trex_scr_05_biobank_screen_trex_mmap/](../../../cpp/trex_selector_methods/trex_screening/demo_trex_scr_05_biobank_screen_trex_mmap/) | `TRexBiobankScreeningSelector` + mmap X |
-| 06 | [demo_trex_scr_06_screen_solvers.R](demo_trex_scr_06_screen_solvers.R) | Solver-backend comparison under screening: 8-point SNR sweep for TLARS / TAFS(rho_afs=0.3) / TOMP, Part 1 Ordinary only (3 series), Part 2 x {Ordinary, Bootstrap-CI} (6 series) | [demo_trex_scr_06_screen_trex_solvers/](../../../cpp/trex_selector_methods/trex_screening/demo_trex_scr_06_screen_trex_solvers/) | `trex_control(solver=, rho_afs=)` |
+| 01 | [demo_trex_scr_01_screen/](demo_trex_scr_01_screen/) | In-memory Ordinary vs. Bootstrap-CI screening: two single runs (fixed support, SNR 5) plus an 8-point SNR-sweep Monte Carlo reporting FDR / TPR / Estimated FDR | [demo_trex_scr_01_screen_trex/](../../../cpp/trex_selector_methods/trex_screening/demo_trex_scr_01_screen_trex/) | `TRexScreeningSelector`, `trex_screen_control(use_bootstrap_CI=)` |
+| 02 | [demo_trex_scr_02_screen_mmap/](demo_trex_scr_02_screen_mmap/) | Same screening scenario with the memory-mapped pipeline: Part A in-memory X + `use_memory_mapping=TRUE` (D-mmap); Part B fully memory-mapped X via `convert_to_memory_mapped()`; Part C mmap MC SNR sweep | [demo_trex_scr_02_screen_trex_mmap/](../../../cpp/trex_selector_methods/trex_screening/demo_trex_scr_02_screen_trex_mmap/) | `convert_to_memory_mapped`, `trex_control(use_memory_mapping=)` |
+| 03 | [demo_trex_scr_03_screen_correlated/](demo_trex_scr_03_screen_correlated/) | Ordinary vs. DA screening on correlated designs: 4 single runs (Ordinary/DA-AR1/DA-EQUI/DA-BLOCK-EQUI) + 5 Monte Carlo sweeps (AR(1)/equi SNR sweeps and AR(1)/equi/block-equi rho sweeps) | [demo_trex_scr_03_screen_trex_correlated/](../../../cpp/trex_selector_methods/trex_screening/demo_trex_scr_03_screen_trex_correlated/) | `trex_method = "TREX_DA_*"`, `estimated_correlation` |
+| 04 | [demo_trex_scr_04_biobank_inmem/](demo_trex_scr_04_biobank_inmem/) | Biobank "Algorithm 1" (in-memory): single phenotype, 5-phenotype routing table + summary, and MC SNR sweeps (single and multi-phenotype) reporting per-method Usage % / FDR / TPR / Est. FDR | [demo_trex_scr_04_biobank_screen_trex_inmem/](../../../cpp/trex_selector_methods/trex_screening/demo_trex_scr_04_biobank_screen_trex_inmem/) | `TRexBiobankScreeningSelector`, `trex_biobank_control` |
+| 05 | [demo_trex_scr_05_biobank_mmap/](demo_trex_scr_05_biobank_mmap/) | Same biobank workflow with the memory-mapped pipeline: Part A in-memory X + D-mmap; Part B single + multi phenotype on a fully memory-mapped X; Part C mmap MC SNR sweep | [demo_trex_scr_05_biobank_screen_trex_mmap/](../../../cpp/trex_selector_methods/trex_screening/demo_trex_scr_05_biobank_screen_trex_mmap/) | `TRexBiobankScreeningSelector` + mmap X |
+| 06 | [demo_trex_scr_06_screen_solvers/](demo_trex_scr_06_screen_solvers/) | Solver-backend comparison under screening: 8-point SNR sweep for TLARS / TAFS(rho_afs=0.3) / TOMP, Part 1 Ordinary only (3 series), Part 2 x {Ordinary, Bootstrap-CI} (6 series) | [demo_trex_scr_06_screen_trex_solvers/](../../../cpp/trex_selector_methods/trex_screening/demo_trex_scr_06_screen_trex_solvers/) | `trex_control(solver=, rho_afs=)` |
 
 ---
 
@@ -100,13 +122,18 @@ sourced by every demo:
   window for Algorithm 1's Ordinary -> Bootstrap-CI -> T-Rex-fallback routing.
   The T-Rex fallback target is the selector's `tFDR` argument.
 
-The biobank `select()` returns a list; its `$statistics` data frame has one row
-per phenotype with columns `phenotype_index`, `estimated_FDR`, `method_used`
+The biobank `select()` returns **one record for a vector `Y`** (single
+phenotype) or **a plain list of records for a matrix `Y`** (one per phenotype,
+`res[[i]]` having the same shape as the single-phenotype return). Each record is
+a named list with fields `phenotype_index`, `estimated_FDR`, `method_used`
 (`"Screen-TRex (ordinary)"`, `"Screen-TRex (bootstrap-CI)"`,
-`"T-Rex (fallback)"`), `estimated_FDR_screen_ordinary`,
-`estimated_FDR_screen_bootstrap`, and `used_fallback_trex`, alongside
-`$selected_indices` (and `$selected_indices_screen_ordinary` /
-`$selected_indices_screen_bootstrap`).
+`"T-Rex (fallback)"`), `used_fallback_trex`, `estimated_FDR_screen_ordinary`,
+`estimated_FDR_screen_bootstrap`, `selected_indices` (1-based), and
+`selected_indices_screen_ordinary` / `selected_indices_screen_bootstrap`. This
+matches the Python binding (one `BiobankScreenTRexResult` for a 1-D `y`, or a
+list of them for a 2-D `Y`). A `$statistics`-style summary table is a one-line
+projection:
+`do.call(rbind, lapply(res, function(r) as.data.frame(r[c("phenotype_index", "estimated_FDR", "method_used", "used_fallback_trex")])))`.
 
 ---
 
@@ -124,16 +151,17 @@ RNG streams, so seeds are mirrored as labels only.
 ## Running and outputs
 
 ```bash
-Rscript R/trex_selector_methods/trex_screening/demo_trex_scr_01_screen.R
-Rscript R/trex_selector_methods/trex_screening/demo_trex_scr_02_screen_mmap.R
-Rscript R/trex_selector_methods/trex_screening/demo_trex_scr_03_screen_correlated.R
-Rscript R/trex_selector_methods/trex_screening/demo_trex_scr_04_biobank_inmem.R
-Rscript R/trex_selector_methods/trex_screening/demo_trex_scr_05_biobank_mmap.R
-Rscript R/trex_selector_methods/trex_screening/demo_trex_scr_06_screen_solvers.R
+Rscript R/trex_selector_methods/trex_screening/demo_trex_scr_01_screen/demo_trex_scr_01_screen.R
+Rscript R/trex_selector_methods/trex_screening/demo_trex_scr_02_screen_mmap/demo_trex_scr_02_screen_mmap.R
+Rscript R/trex_selector_methods/trex_screening/demo_trex_scr_03_screen_correlated/demo_trex_scr_03_screen_correlated.R
+Rscript R/trex_selector_methods/trex_screening/demo_trex_scr_04_biobank_inmem/demo_trex_scr_04_biobank_inmem.R
+Rscript R/trex_selector_methods/trex_screening/demo_trex_scr_05_biobank_mmap/demo_trex_scr_05_biobank_mmap.R
+Rscript R/trex_selector_methods/trex_screening/demo_trex_scr_06_screen_solvers/demo_trex_scr_06_screen_solvers.R
 ```
 
-Demos run from any working directory. The Monte Carlo parts write into
-[simulation_results/](simulation_results/) next to the demos:
+Demos run from any working directory (each resolves the shared
+`../trex_scr_sim_utils.R` relative to its own location). The Monte Carlo parts
+write into each demo's own `simulation_results/` subfolder:
 
 - `.txt` — human-readable summary tables,
 - `.csv` — tidy long-format tables (`method, metric, SNR|rho, value`) for

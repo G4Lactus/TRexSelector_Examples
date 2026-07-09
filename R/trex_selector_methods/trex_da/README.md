@@ -12,10 +12,28 @@ R demos and Monte Carlo simulations for the **Dependency-Aware T-Rex
 equicorrelation, nearest-neighbor (banded MA), block-diagonal AR(1) (with and
 without white-noise augmentation), and heavy-tailed Student-t blocks.
 
+The folder layout mirrors the C++ suite: one subfolder per demo, plus a single
+consolidated DGP file.
+
+```txt
+trex_da/
+  ├── README.md
+  ├── trex_da_dgps.R                   <- all scenario DGPs (one file)
+  ├── demo_trex_da_01_ar1/
+  │   ├── demo_trex_da_01_ar1.R
+  │   ├── README.md
+  │   └── simulation_results/
+  ├── demo_trex_da_02_equi/
+  │   └── ...
+  └── demo_trex_da_08_groups/
+```
+
 Dependencies: `TRexSelectorNeo`, `plotly` (correlation heatmaps),
-`parallel` (MC loops). The demos source the shared
-[../support_generators.R](../support_generators.R) and
-[../simulation_utils.R](../simulation_utils.R) plus the local `dgp_*.R` files.
+`parallel` (MC loops). Each demo sources the consolidated
+[trex_da_dgps.R](trex_da_dgps.R) (all scenario generators in one file, mirroring
+the C++ `dgp_generators.hpp`) and the shared
+[../support_generators.R](../support_generators.R) /
+[../simulation_utils.R](../simulation_utils.R).
 
 ---
 
@@ -23,75 +41,68 @@ Dependencies: `TRexSelectorNeo`, `plotly` (correlation heatmaps),
 
 | File | Description | cpp counterpart |
 |---|---|---|
-| [demo_trex_da_01_ar1.R](demo_trex_da_01_ar1.R) | AR(1) Toeplitz DGP: single run; SNR sweep (Random vs CappedSpread support); rho sweep; 2D gap x rho sweep exploring the kappa boundary | `demo_trex_da_01_mc_sim_ar1` |
-| [demo_trex_da_02_equi.R](demo_trex_da_02_equi.R) | Full-matrix equicorrelated DGP (BT factor-model DGP with `rho_within == rho_between`) | `demo_trex_da_02_mc_sim_equi_and_bt` |
-| [demo_trex_da_03_bt_equi_blocks.R](demo_trex_da_03_bt_equi_blocks.R) | Binary-Tree (BT) hierarchical-block model with equicorrelated blocks: single run; SNR sweep; linkage sweep over single/complete/average | `demo_trex_da_02_mc_sim_equi_and_bt` |
-| [demo_trex_da_04_nn_01_ma.R](demo_trex_da_04_nn_01_ma.R) | Nearest-Neighbours / MA(kappa) banded DGP: single run; SNR, rho, and kappa sweeps; 2D kappa x rho sweep | `demo_trex_da_03_mc_sim_nn` |
-| [demo_trex_da_04_nn_02_ar.R](demo_trex_da_04_nn_02_ar.R) | TREX+DA+NN applied to AR(1) data (method-mismatch test): single run; SNR, rho, and SNR x rho sweeps | `demo_trex_da_03b_mc_sim_nn_ar` |
-| [demo_trex_da_05_bt_ar1_block_sweeps.R](demo_trex_da_05_bt_ar1_block_sweeps.R) | Pure AR(1)-block DGP (p = M*Q): SNR, rho, Q, and M sweeps, each with an outer linkage loop | `demo_trex_da_04_mc_sim_bt_ar1_block` |
-| [demo_trex_da_06_bt_ar1_plus_white_block_sweeps.R](demo_trex_da_06_bt_ar1_plus_white_block_sweeps.R) | AR(1)-block + white-noise DGP (fixed p_total, p_white = p_total − M*Q): SNR, rho, Q, and M sweeps with linkage loop | `demo_trex_da_05_mc_sim_bt_ar1_block_sweeps` |
-| [demo_trex_da_07_bt_heavy_tailed_sweeps.R](demo_trex_da_07_bt_heavy_tailed_sweeps.R) | Heavy-tailed Student-t(3) AR(1)-block data, Gaussian vs Student-t noise scenarios: SNR, rho, Q, M sweeps | `demo_trex_da_06_mc_sim_bt_ht_block_sweeps` |
-| [demo_trex_da_08_bt_heavy_tailed_plus_white_block_sweeps.R](demo_trex_da_08_bt_heavy_tailed_plus_white_block_sweeps.R) | Heavy-tailed blocks + identity-covariance Student-t augmentation, Gaussian vs heavy-tailed noise: SNR, rho, Q, M, and tFDR sweeps | `demo_trex_da_07_mc_sim_bt_ht_block_white` |
+| [demo_trex_da_01_ar1](demo_trex_da_01_ar1/) | AR(1) Toeplitz DGP: single run; SNR sweep (Random vs CappedSpread support); rho sweep; 2D gap x rho sweep exploring the kappa boundary | `demo_trex_da_01_mc_sim_ar1` |
+| [demo_trex_da_02_equi](demo_trex_da_02_equi/) | Full-matrix equicorrelated DGP (BT factor-model DGP with `rho_within == rho_between`) | `demo_trex_da_02_mc_sim_equi_and_bt` |
+| [demo_trex_da_03_nn](demo_trex_da_03_nn/) | Nearest-Neighbours / MA(kappa) banded DGP: single run; SNR, rho, and kappa sweeps; 2D kappa x rho sweep | `demo_trex_da_03_mc_sim_nn` |
+| [demo_trex_da_03b_nn_ar](demo_trex_da_03b_nn_ar/) | TREX+DA+NN applied to AR(1) data (method-mismatch test): single run; SNR, rho, and SNR x rho sweeps | `demo_trex_da_03b_mc_sim_nn_ar` |
+| [demo_trex_da_04_bt_ar1_block](demo_trex_da_04_bt_ar1_block/) | Pure AR(1)-block DGP (p = M*Q): SNR, rho, Q, and M sweeps, each with an outer linkage loop | `demo_trex_da_04_mc_sim_bt_ar1_block` |
+| [demo_trex_da_05_bt_ar1_block_white](demo_trex_da_05_bt_ar1_block_white/) | AR(1)-block + white-noise DGP (fixed p_total, p_white = p_total − M*Q): SNR, rho, Q, and M sweeps with linkage loop | `demo_trex_da_05_mc_sim_bt_ar1_block_sweeps` |
+| [demo_trex_da_06_bt_ht_block](demo_trex_da_06_bt_ht_block/) | Heavy-tailed Student-t(3) AR(1)-block data, Gaussian vs Student-t noise scenarios: SNR, rho, Q, M, tFDR, and linkage sweeps | `demo_trex_da_06_mc_sim_bt_ht_block_sweeps` |
+| [demo_trex_da_07_bt_ht_block_white](demo_trex_da_07_bt_ht_block_white/) | Heavy-tailed blocks + heavy-tailed white augmentation, Gaussian vs heavy-tailed noise: SNR, rho, Q, M, and tFDR sweeps | `demo_trex_da_07_mc_sim_bt_ht_block_white` |
+| [demo_trex_da_08_groups](demo_trex_da_08_groups/) | Prior-groups method: 3-level hierarchy (groups of 10 / 50 / 250) over a multi-level latent-factor DGP with Toeplitz leaf blocks, SNR sweep. The method is selected by supplying a non-empty `prior_groups` to `trex_da_control()` | `demo_trex_da_08_mc_sim_groups` |
 
 Notes:
 
-- Demos 07 and 08 redirect their console output to a log file via `sink()`
+- Demos 06 and 07 redirect their console output to a log file via `sink()`
   (comment out the `sink()` lines to print to the console instead).
-- The C++ suite additionally contains `demo_trex_da_08_mc_sim_groups`
-  (multi-level nested group structures), which has no R counterpart here.
-
-### Known limitation
-
-`trex_da_control(da_method = ...)` in the installed **TRexSelectorNeo** R
-binding accepts only `"AR1"`, `"EQUI"`, and `"BT"`. The C++ core supports
-`DAMethod::NN`, but the R binding does not expose `"NN"` yet. The two
-nearest-neighbour demos (`demo_trex_da_04_nn_01_ma.R`,
-`demo_trex_da_04_nn_02_ar.R`) therefore carry a guard that prints a `[SKIP]`
-notice and exits cleanly under `Rscript` until the binding adds `"NN"`.
+- The prior-groups method (demo 08) is driven by passing `prior_groups` and
+  `rho_grid_labels` to `trex_da_control()`; the C++ core routes on
+  `prior_groups` being non-empty, so `da_method` is then irrelevant. (The R
+  binding gained these arguments in the 2026-07 upstream fix, alongside
+  `cv_seed` / `cv_n_folds` / `cv_n_lambda` for GVS.)
 
 ---
 
-## DGP helper files
+## DGPs
 
-| File | Description |
-|---|---|
-| [dgp_ar1_snr.R](dgp_ar1_snr.R) | `dgp_ar1_snr()` — AR(1) Toeplitz design generated column-by-column, SNR-calibrated noise |
-| [dgp_arp_snr.R](dgp_arp_snr.R) | AR(p) generalization with Yule-Walker-calibrated unit-variance columns; coefficient families `make_ar_phi_geometric()` / `make_ar_phi_pacf()`; AR(1) case reproduces `dgp_ar1_snr()` exactly (not sourced by any current demo) |
-| [dgp_bt_snr.R](dgp_bt_snr.R) | Binary-tree / hierarchical-block DGPs: `dgp_bt_snr()` (factor-model block covariance), `dgp_ar1_block_snr()`, `dgp_ar1_block_white_snr()` |
-| [dgp_ht_snr.R](dgp_ht_snr.R) | Heavy-tailed Student-t AR(1)-block DGPs via Gaussian scale mixture: `dgp_ht_block_snr()`, `dgp_ht_block_white_snr()`; Gaussian or Student-t noise |
-| [dgp_nn_snr.R](dgp_nn_snr.R) | `dgp_nn_snr()` — banded MA(kappa) covariance via causal convolution of a shared innovation sheet |
-| [dgp_hapgen_snr.R](dgp_hapgen_snr.R) | Analytic LD-block correlation structure mirroring `hapgen_like.py` (6 blocks, p = 150 SNPs; not sourced by any current demo) |
+All scenario generators live in the single [trex_da_dgps.R](trex_da_dgps.R)
+(mirroring the C++ `dgp_generators.hpp`):
 
-All DGPs calibrate the noise variance to a target
-SNR = Var(signal) / Var(noise) and take the true support as 1-based R indices.
+- `dgp_ar1_snr` — AR(1) Toeplitz design, SNR-calibrated noise.
+- `dgp_bt_snr` / `dgp_ar1_block_snr` / `dgp_ar1_block_white_snr` — binary-tree /
+  hierarchical-block and AR(1)-block covariance (with/without white augmentation).
+- `dgp_nn_snr` / `dgp_nn_block_snr` — banded MA(kappa) covariance via causal
+  convolution of a shared innovation sheet.
+- `dgp_ht_block_snr` / `dgp_ht_block_white_snr` — heavy-tailed Student-t AR(1)
+  blocks via Gaussian scale mixture.
+- `dgp_groups_toeplitz_leaf` — multi-level latent-factor design with Toeplitz
+  leaf blocks (prior-groups demo).
+
+All DGPs calibrate the noise variance to a target SNR = Var(signal)/Var(noise)
+and take the true support as 1-based R indices. Earlier demo-less generators
+(the `dgp_arp_snr` AR(p) family and the `dgp_hapgen_snr` LD-block DGP) were
+removed in the consolidation.
 
 ---
 
 ## Recorded results
 
-Completed simulation runs are documented as markdown reports in
-[simulation_results/](simulation_results/):
-
-- [Results_trex_da_01_ar1.md](simulation_results/Results_trex_da_01_ar1.md)
-- [Results_trex_da_02_equi.md](simulation_results/Results_trex_da_02_equi.md)
-- [Results_trex_da_03_bt_equi_blocks.md](simulation_results/Results_trex_da_03_bt_equi_blocks.md)
-- [Results_trex_da_04_nn.md](simulation_results/Results_trex_da_04_nn.md)
-- [Results_trex_da_05_bt_ar1_block_sweeps.md](simulation_results/Results_trex_da_05_bt_ar1_block_sweeps.md)
-- [Results_trex_da_06_bt_ar1_pwhiteblock_sweeps.md](simulation_results/Results_trex_da_06_bt_ar1_pwhiteblock_sweeps.md)
-- [Results_trex_da_07_bt_ht_sweeps.md](simulation_results/Results_trex_da_07_bt_ht_sweeps.md)
-- [Results_trex_da_08_bt_ht_pwhiteblock_sweeps.md](simulation_results/Results_trex_da_08_bt_ht_pwhiteblock_sweeps.md)
+Manually-recorded result summaries live in each demo's `simulation_results/`
+folder, e.g.
+[demo_trex_da_01_ar1/simulation_results/Results_trex_da_01_ar1.md](demo_trex_da_01_ar1/simulation_results/Results_trex_da_01_ar1.md).
 
 ---
 
 ## Running
 
 ```bash
-Rscript R/trex_selector_methods/trex_da/demo_trex_da_01_ar1.R
+Rscript R/trex_selector_methods/trex_da/demo_trex_da_01_ar1/demo_trex_da_01_ar1.R      # full run
+Rscript R/trex_selector_methods/trex_da/demo_trex_da_01_ar1/demo_trex_da_01_ar1.R 8    # 8 worker cores
 ```
 
 Scripts resolve their own directory, so they run from any working directory.
 Several demos gate individual parts behind `if (FALSE)` / run flags — open the
-file and enable the parts you want.
+file and enable the parts you want. Each demo folder has its own `README.md`.
 
 ---
 

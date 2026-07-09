@@ -13,14 +13,17 @@
 # The fraction of phenotypes routed to each method is the "Usage %".
 #
 # Result accessors (from selector$select(), discovered at runtime):
-#   $statistics                 data.frame, one row per phenotype:
-#       phenotype_index, estimated_FDR, method_used,
+#   A vector y returns ONE record; a matrix Y returns a plain list of records,
+#   one per phenotype (res[[i]] has the same shape as the single-phenotype
+#   return). Each record is a named list with fields:
+#       phenotype_index, estimated_FDR, method_used, used_fallback_trex,
 #       estimated_FDR_screen_ordinary, estimated_FDR_screen_bootstrap,
-#       used_fallback_trex
-#   $selected_indices           list, 1-based selected indices per phenotype
-#   $selected_indices_screen_ordinary / $..._screen_bootstrap
+#       selected_indices (1-based), selected_indices_screen_ordinary,
+#       selected_indices_screen_bootstrap.
 #   method_used values: "Screen-TRex (ordinary)", "Screen-TRex (bootstrap-CI)",
 #                       "T-Rex (fallback)".
+#   (This matches the Python binding, which returns one BiobankScreenTRexResult
+#   for a 1-D y or a list of them for a 2-D Y.)
 #
 # The file mirrors:
 # cpp/trex_selector_methods/trex_screening/demo_trex_scr_04_biobank_screen_trex_inmem/
@@ -50,7 +53,7 @@ this_dir_ <- tryCatch(
     if (length(file_arg) > 0) dirname(normalizePath(sub("--file=", "", file_arg[1]))) else "."
   }
 )
-source(file.path(this_dir_, "trex_scr_sim_utils.R"))
+source(file.path(this_dir_, "..", "trex_scr_sim_utils.R"))
 
 OUT_DIR <- file.path(this_dir_, "simulation_results")
 
@@ -92,7 +95,7 @@ part_1 <- function() {
   cat(sprintf("DGP: n = %d, p = %d, p1 = %d, SNR = %.1f\n",
               N, P, length(true_support), snr))
   dat <- dgp_iid_snr(N, P, true_support, rep(1, length(true_support)), snr, seed = 123L)
-  res <- run_biobank(dat$X, matrix(dat$y, N, 1L))
+  res <- run_biobank(dat$X, dat$y)   # vector y -> single record
   .print_biobank_single(res, dat$true_support)
 }
 
@@ -135,15 +138,17 @@ part_2 <- function() {
 
 # Accumulate one phenotype's contribution into the running maps (by reference
 # via <<- in the caller's environment is avoided; we return updated maps).
-.accumulate <- function(maps, st_row, sel, true_support, si, tFDR) {
-  m <- st_row$method_used
+# `rec` is a single biobank record (one phenotype's select() result).
+.accumulate <- function(maps, rec, true_support, si, tFDR) {
+  m   <- rec$method_used
+  sel <- rec$selected_indices
   maps$fdp[[m]][si]   <- maps$fdp[[m]][si]   + compute_fdp(sel, true_support)
   maps$tpp[[m]][si]   <- maps$tpp[[m]][si]   + compute_tpp(sel, true_support)
   maps$usage[[m]][si] <- maps$usage[[m]][si] + 1
   maps$est[["Screen-TRex (ordinary)"]][si]     <-
-    maps$est[["Screen-TRex (ordinary)"]][si]     + st_row$estimated_FDR_screen_ordinary
+    maps$est[["Screen-TRex (ordinary)"]][si]     + rec$estimated_FDR_screen_ordinary
   maps$est[["Screen-TRex (bootstrap-CI)"]][si]  <-
-    maps$est[["Screen-TRex (bootstrap-CI)"]][si]  + st_row$estimated_FDR_screen_bootstrap
+    maps$est[["Screen-TRex (bootstrap-CI)"]][si]  + rec$estimated_FDR_screen_bootstrap
   maps$est[["T-Rex (fallback)"]][si]           <-
     maps$est[["T-Rex (fallback)"]][si]           + tFDR
   maps
@@ -176,9 +181,8 @@ part_3 <- function() {
       set.seed(seed + 500000L)
       sup <- sample.int(P, support_size)
       dat <- dgp_iid_snr(N, P, sup, rep(1, support_size), snr, seed = seed)
-      res <- run_biobank(dat$X, matrix(dat$y, N, 1L), seed = -1L, R_boot = 500L)
-      maps <- .accumulate(maps, res$statistics[1L, ], res$selected_indices[[1L]],
-                          dat$true_support, si, tFDR)
+      res <- run_biobank(dat$X, dat$y, seed = -1L, R_boot = 500L)  # single record
+      maps <- .accumulate(maps, res, dat$true_support, si, tFDR)
     }
     cat(sprintf("  SNR %.2f -- completed %d runs.\n", snr, NUM_MC_SINGLE))
   }
@@ -214,10 +218,9 @@ part_4 <- function() {
         beta <- numeric(P); beta[sup] <- 1
         Y[, k] <- .make_response(X, beta, snr)
       }
-      res <- run_biobank(X, Y, seed = -1L, R_boot = 500L)
+      res <- run_biobank(X, Y, seed = -1L, R_boot = 500L)   # list of records
       for (k in seq_len(q)) {
-        maps <- .accumulate(maps, res$statistics[k, ], res$selected_indices[[k]],
-                            true_supports[[k]], si, tFDR)
+        maps <- .accumulate(maps, res[[k]], true_supports[[k]], si, tFDR)
       }
     }
     cat(sprintf("  SNR %.2f -- completed %d runs (%d phenotypes each).\n",

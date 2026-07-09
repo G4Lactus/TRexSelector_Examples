@@ -24,11 +24,11 @@ this_dir_ <- tryCatch(dirname(normalizePath(sys.frame(1)$ofile)),
                       })
 
 # for make_support_random
-source(file.path(this_dir_, "..", "support_generators.R"))
+source(file.path(this_dir_, "..", "..", "support_generators.R"))
 
 # for dgp_bt_snr
-source(file.path(this_dir_, "dgp_bt_snr.R"))
-source(file.path(this_dir_, "..", "simulation_utils.R"))
+source(file.path(this_dir_, "..", "trex_da_dgps.R"))
+source(file.path(this_dir_, "..", "..", "simulation_utils.R"))
 
 # ==============================================================================
 # Part 1: Single-run demo
