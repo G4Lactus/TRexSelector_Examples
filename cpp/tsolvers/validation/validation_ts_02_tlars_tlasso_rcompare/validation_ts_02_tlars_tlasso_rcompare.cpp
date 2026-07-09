@@ -8,7 +8,8 @@
  *        tsolvers solvers on the SPCA sparse factor-model data.
  *
  * @details
- *  Companion to  R/tsolvers/demo_ts_compare_tlars_tlasso.R, which generates data
+ *  Companion to  R/tsolvers/validation/validation_ts_02_tlars_tlasso_rcompare/
+ *  demo_ts_compare_tlars_tlasso.R, which generates data
  *  from the SPCA sparse factor model (with SNR control) and dumps, per dataset i:
  *      Xn_<i>.csv (n x p), Dn_<i>.csv (n x L), y_<i>.csv (n x 1)
  *          -- already centred + unit-L2 standardised; fed verbatim (no further
@@ -215,7 +216,8 @@ int main(int argc, char** argv)
 
     std::filesystem::path dir =
         "/Users/fabianscheidt/Documents/C++/TRexSelector_Examples/"
-        "R/tsolvers/rdump_tlars";
+        "R/tsolvers/validation/validation_ts_02_tlars_tlasso_rcompare/"
+        "rdump_tlars";
     for (int a = 1; a < argc; ++a) {
         std::string arg = argv[a];
         if (arg == "--dir" && a + 1 < argc) dir = argv[++a];
