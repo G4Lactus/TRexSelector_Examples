@@ -10,10 +10,11 @@ The main goals of this folder are:
 
 1. to show how memory-mapped matrices are created and accessed in C++,
 2. to demonstrate out-of-core workflows for large matrices,
-3. to illustrate safe file lifetime management via RAII,
-4. to provide a C++ companion to the corresponding R example.
+3. to illustrate safe file lifetime management via RAII.
 
-The demo in this folder mirrors `R/memory_mapping/demo_memory_mapping.R` and also showcases C++-specific features such as RAII, zero-copy access through `Eigen::Map`, and OpenMP-based parallel generation.
+The demo showcases C++-specific features such as RAII, zero-copy access through `Eigen::Map`, and OpenMP-based parallel generation.
+
+Equivalent memory-mapping functionality is also available in the Python and R packages; see `Python/memory_mapping/` and `R/memory_mapping/` for the corresponding walkthroughs.
 
 ---
 
@@ -25,7 +26,7 @@ $$
 \boldsymbol{X}_{\mathrm{mmap}} \in \mathbb{R}^{n \times p}.
 $$
 
-Conceptually, the matrix behaves like a regular numeric matrix, but its storage is file-backed rather than purely in-memory.
+Conceptually, the matrix behaves like a regular numeric matrix, but its storage is file-backed rather than purely in-memory. The underlying `MemoryMappedMatrix<Scalar>` template supports any fixed-size scalar type — including real (`float`, `double`) and complex (`std::complex<float>`, `std::complex<double>`) entries — although the demos here use `double`.
 
 This is useful for:
 
@@ -97,4 +98,4 @@ memory_mapping/
 
 ---
 
-**Last updated**: 2026-07-01
+**Last updated**: 2026-07-09
