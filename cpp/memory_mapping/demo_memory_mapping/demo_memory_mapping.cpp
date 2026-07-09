@@ -6,17 +6,14 @@
  *
  * @brief Demonstration of MemoryMappedMatrix usage.
  *
- * @details Four demos that mirror R/memory_mapping/demo_memory_mapping.R while
- * exploiting C++ RAII, zero-copy Eigen::Map access, and OpenMP parallelism.
+ * @details Four demos which illustrate the capabilities of MemoryMappedMatrix,
+ * including exploiting C++ RAII, zero-copy Eigen::Map access, and OpenMP parallelism.
  *
  *   Demo 1 | Basics       : Create, write, inspect, extract a block, full
- *                           roundtrip, and re-open in read-only mode. Mirrors
- *                           R sections 1–7.
+ *                           roundtrip, and re-open in read-only mode.
  *
- *   Demo 2 | Streaming    : Out-of-core serial column generation. Equivalent to
- *                           R section 8 (writeBin column-by-column). Working
- *                           memory cost is O(n_rows) per column, not O(n_rows *
- *                           n_cols).
+ *   Demo 2 | Streaming    : Out-of-core serial column generation. Working
+ *                           memory cost is O(n_rows) per column.
  *
  *   Demo 3 | Parallel     : Out-of-core parallel column generation with OpenMP.
  *                           C++-exclusive: per-column isolated RNG seeds keep
@@ -52,10 +49,10 @@
 // Namespace aliases
 // ============================================================================
 
-namespace memmap     = trex::utils::memmap;
-namespace omp_utils  = trex::utils::openmp;
+namespace memmap       = trex::utils::memmap;
+namespace omp_utils    = trex::utils::openmp;
 namespace cdiagnostics = trex::utils::eval::cdiagnostics;
-namespace fs         = std::filesystem;
+namespace fs           = std::filesystem;
 
 // Type aliases for the memory-mapped matrix and its Eigen views
 using MmapMatrix    = memmap::MemoryMappedMatrix<double>;
@@ -119,9 +116,9 @@ static std::string mmap_temp_path(std::string_view tag) {
 // Demo 1: Basics — create, write, inspect, extract, roundtrip, read-only
 // ============================================================================
 /**
- * @brief Mirrors R/memory_mapping/demo_memory_mapping.R sections 1–7.
+ * @brief Demonstrates basic usage of MemoryMappedMatrix.
  *
- * Demonstrates:
+ * Content:
  *   - Creating a MemoryMappedMatrix and writing an Eigen matrix into it.
  *   - Inspecting metadata (rows, cols, size, data pointer).
  *   - Extracting a sub-block via zero-copy Eigen::Map::block().
@@ -135,7 +132,7 @@ void demo_mmap_basics() {
     cdiagnostics::print_section_header("Demo 1: Basics");
 
     // -----------------------------------------------------------------------
-    // 1. Create a sample in-memory matrix (mirrors R set.seed(42); rnorm(...))
+    // 1. Create a sample in-memory matrix
     // -----------------------------------------------------------------------
     const std::size_t n_rows = 100;
     const std::size_t n_cols = 50;
@@ -143,6 +140,7 @@ void demo_mmap_basics() {
     std::mt19937_64 rng(42);
     std::normal_distribution<double> dist(0.0, 1.0);
 
+    // create and populate
     Eigen::MatrixXd original(static_cast<Eigen::Index>(n_rows),
                               static_cast<Eigen::Index>(n_cols));
     for (Eigen::Index j = 0; j < original.cols(); ++j)
@@ -195,6 +193,7 @@ void demo_mmap_basics() {
         auto block_orig  = original.block(0, 0, 3, 3);
         double max_diff  = (block_mmap - block_orig).cwiseAbs().maxCoeff();
 
+        std::cout << std::fixed << std::setprecision(4);
         std::cout << "5. 3x3 block (rows 0-2, cols 0-2):\n"
                   << block_mmap << "\n\n"
                   << "   Matches original block? "
@@ -242,12 +241,10 @@ void demo_mmap_basics() {
 /**
  * @brief Serial column-by-column generation into a memory-mapped file.
  *
- * Mirrors R/memory_mapping/demo_memory_mapping.R section 8 (writeBin loop).
- *
+ * Content:
  * C++ advantage: direct pointer arithmetic over the mmap region requires only
- * O(n_rows) working RAM per column, independent of n_cols.  In R the same
- * pattern needs a binary connection; here the OS page cache handles I/O
- * transparently through the mmap pointer.
+ * O(n_rows) working RAM per column, independent of n_cols.
+ * The OS page cache handles I/O transparently through the mmap pointer.
  */
 void demo_out_of_core_streaming() {
 
@@ -260,7 +257,7 @@ void demo_out_of_core_streaming() {
     std::cout << "Temporary file: " << guard.path << "\n\n";
 
     // -----------------------------------------------------------------------
-    // Create the backing file by constructing MmapMatrix (allocates n*p*8 bytes)
+    // Create the backing file by constructing MmapMatrix (allocates n * p * 8 bytes)
     // then immediately destroying it to release the mapping before the write pass.
     // -----------------------------------------------------------------------
     {
@@ -305,7 +302,7 @@ void demo_out_of_core_streaming() {
         // Reconstruct column 0 from seed 1000
         Eigen::VectorXd col0_ref(static_cast<Eigen::Index>(n_rows));
         {
-            std::mt19937_64          ref_rng(1000);
+            std::mt19937_64 ref_rng(1000);
             std::normal_distribution<double> ref_dist(0.0, 1.0);
             for (Eigen::Index r = 0; r < static_cast<Eigen::Index>(n_rows); ++r)
                 col0_ref(r) = ref_dist(ref_rng);
@@ -331,7 +328,7 @@ void demo_out_of_core_streaming() {
  * @brief Parallel column-by-column generation using OpenMP.
  *
  * Each thread writes to a non-overlapping column slice of the mmap region,
- * so there are no data races.  Per-column RNG seeds (base 3000 + column_index)
+ * so there are no data races. Per-column RNG seeds (base 3000 + column_index)
  * make the output bitwise-identical regardless of thread scheduling order —
  * something impossible to guarantee with a global or per-thread shared PRNG.
  *
@@ -378,8 +375,9 @@ void demo_parallel_out_of_core() {
 
         #pragma omp parallel for schedule(static)
         for (int c = 0; c < static_cast<int>(n_cols); ++c) {
-            // Both objects are stack-local — no shared mutable state.
-            std::mt19937_64          col_rng(3000 + static_cast<unsigned long>(c));
+
+            // Both objects are stack-local — no shared mutable state
+            std::mt19937_64 col_rng(3000 + static_cast<unsigned long>(c));
             std::normal_distribution<double> col_dist(0.0, 1.0);
 
             double* col_ptr = p + static_cast<std::ptrdiff_t>(c) *
@@ -406,7 +404,7 @@ void demo_parallel_out_of_core() {
         auto verify_col = [&](std::size_t c) {
             Eigen::VectorXd col_ref(static_cast<Eigen::Index>(n_rows));
             {
-                std::mt19937_64          ref_rng(3000 + c);
+                std::mt19937_64 ref_rng(3000 + c);
                 std::normal_distribution<double> ref_dist(0.0, 1.0);
                 for (Eigen::Index r = 0; r < static_cast<Eigen::Index>(n_rows); ++r)
                     col_ref(r) = ref_dist(ref_rng);
@@ -555,7 +553,7 @@ void demo_element_wise_access() {
         }
     }
 
-    std::cout << "Temporary file removed by RAII guard.\n\n";
+    std::cout << "✓ Temporary file removed by RAII guard.\n\n";
 }
 
 
