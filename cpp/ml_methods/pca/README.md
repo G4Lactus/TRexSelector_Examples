@@ -2,9 +2,12 @@
 
 ## Overview
 
-This folder contains C++ examples for the **Principal Component Analysis (PCA)** implementation in the `ml_methods` module.
+This folder contains C++ examples for the **Principal Component Analysis (PCA)** implementation in the `ml_methods`
+module.
 
-The demos illustrate how a data matrix can be projected onto a lower-dimensional orthogonal basis while retaining as much variance as possible. In the TRexSelector project, PCA can be useful as a dimensionality-reduction and preprocessing step when working with high-dimensional data.
+The demos illustrate how a data matrix can be projected onto a lower-dimensional orthogonal basis while retaining as
+much variance as possible. In the TRexSelector project, PCA can be useful as a dimensionality-reduction and
+preprocessing step when working with high-dimensional data.
 
 The main goals of this folder are:
 
@@ -12,6 +15,10 @@ The main goals of this folder are:
 2. to show how training data and new data are transformed into principal-component scores,
 3. to illustrate how explained variance is inspected after fitting,
 4. to verify that temporary in-place preprocessing can be safely reversed.
+
+Equivalent PCA demos are also available in the Python and R packages; see
+[Python/ml_methods/pca/](../../../Python/ml_methods/pca/README.md) and
+[R/ml_methods/pca/](../../../R/ml_methods/pca/README.md) for the corresponding walkthroughs.
 
 ---
 
@@ -44,9 +51,9 @@ If you are new to this folder, begin with:
 
 ## Demo overview
 
-| Folder              | Purpose |
-|---------------------|---------|
-| `demo_mlm_pca_01/`  | Demonstrates PCA fitting, explained variance, restore round-trip checks, and transformation of new data |
+| Folder | Purpose |
+| --------------------- | --------- |
+| `demo_mlm_pca_01/` | Demonstrates PCA fitting, explained variance, restore round-trip checks, and transformation of new data |
 
 ---
 
@@ -78,4 +85,4 @@ pca/
 
 ---
 
-**Last updated**: 2026-07-01
+**Last updated**: 2026-07-09

@@ -4,7 +4,9 @@
 
 This folder contains C++ examples for **model selection** routines in the `ml_methods` module.
 
-The demos focus on regularized Gaussian regression models and show how hyperparameters are selected from synthetic data using K-fold cross-validation. In the TRexSelector project, these workflows are relevant for tuning penalization strength in ridge- and elastic-net-type estimators.
+The demos focus on regularized Gaussian regression models and show how hyperparameters are selected from synthetic data
+using K-fold cross-validation. In the TRexSelector project, these workflows are relevant for tuning penalization
+strength in ridge- and elastic-net-type estimators.
 
 The main goals of this folder are:
 
@@ -12,6 +14,10 @@ The main goals of this folder are:
 2. to illustrate how K-fold cross-validation is used to choose penalty parameters,
 3. to compare numerically stable SVD-based ridge fitting with coordinate-descent elastic-net fitting,
 4. to connect fitted penalty choices to downstream TRexSelector workflows.
+
+Equivalent model selection demos are also available in the Python and R packages; see
+[Python/ml_methods/model_selection/](../../../Python/ml_methods/model_selection/README.md) and
+[R/ml_methods/model_selection/](../../../R/ml_methods/model_selection/README.md) for the corresponding walkthroughs.
 
 ---
 
@@ -47,10 +53,10 @@ If you are new to this folder, begin with:
 
 ## Demo overview
 
-| Folder                         | Purpose |
-|--------------------------------|---------|
+| Folder | Purpose |
+| -------------------------------- | --------- |
 | `demo_mlm_ms_01_ridge_cv_svd/` | Ridge regression K-fold CV via `Eigen::JacobiSVD`, including a memory-mapped design-matrix example |
-| `demo_mlm_ms_02_enet_cv_ccd/`  | Elastic-net path fitting and K-fold CV via coordinate descent, including ridge/lasso/elastic-net comparisons |
+| `demo_mlm_ms_02_enet_cv_ccd/` | Elastic-net path fitting and K-fold CV via coordinate descent, including ridge/lasso/elastic-net comparisons |
 
 ---
 

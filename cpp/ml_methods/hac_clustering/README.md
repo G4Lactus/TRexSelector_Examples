@@ -4,7 +4,9 @@
 
 This folder contains C++ examples for **hierarchical agglomerative clustering (HAC)** in the `ml_methods` module.
 
-Within the TRexSelector project, HAC is used by the **GVS (Grouped Variable Selection)** workflow to construct variable groups from a dendrogram cut. The examples in this folder show how clustering behaves in smaller in-memory settings and how the same ideas can be scaled to much larger problems through memory-mapped I/O.
+Within the TRexSelector project, HAC is used by the **GVS (Grouped Variable Selection)** workflow to construct variable
+groups from a dendrogram cut. The examples in this folder show how clustering behaves in smaller in-memory settings and
+how the same ideas can be scaled to much larger problems through memory-mapped I/O.
 
 The main goals of this folder are:
 
@@ -13,11 +15,16 @@ The main goals of this folder are:
 3. to illustrate how large clustering problems can be handled with memory-mapped storage,
 4. to provide a bridge between exploratory clustering demos and downstream grouped-variable workflows.
 
+Equivalent HAC clustering demos are also available in the Python and R packages; see
+[Python/ml_methods/hac_clustering/](../../../Python/ml_methods/hac_clustering/README.md) and
+[R/ml_methods/hac_clustering/](../../../R/ml_methods/hac_clustering/README.md) for the corresponding walkthroughs.
+
 ---
 
 ## What this folder covers
 
-Hierarchical agglomerative clustering builds a tree of successive merges and then recovers cluster assignments by cutting that tree at a chosen level.
+Hierarchical agglomerative clustering builds a tree of successive merges and then recovers cluster assignments by
+cutting that tree at a chosen level.
 
 In this folder, the demos focus on:
 
@@ -41,10 +48,10 @@ If you are new to this folder, begin with:
 
 ## Demo overview
 
-| Folder                   | Purpose |
-|--------------------------|---------|
-| `demo_mlm_hac_01/`       | In-memory HAC demo suite for sample clustering, variable clustering, and linkage-method comparisons |
-| `demo_mlm_hac_02_mmap/`  | Memory-mapped large-scale HAC demo for LSH-based linkage comparison without full in-RAM allocation |
+| Folder | Purpose |
+| -------------------------- | --------- |
+| `demo_mlm_hac_01/` | In-memory HAC demo suite for sample clustering, variable clustering, and linkage-method comparisons |
+| `demo_mlm_hac_02_mmap/` | Memory-mapped large-scale HAC demo for LSH-based linkage comparison without full in-RAM allocation |
 
 ---
 
@@ -75,10 +82,12 @@ hac_clustering/
 ## Notes for new users
 
 - `demo_mlm_hac_01` is best for understanding the clustering logic in standard in-memory workflows.
-- `demo_mlm_hac_02_mmap` is intended for very large synthetic settings where the matrix should not be allocated fully in RAM.
+- `demo_mlm_hac_02_mmap` is intended for very large synthetic settings where the matrix should not be allocated fully in
+  RAM.
 - Both demos print their main results to the console.
-- Validation-oriented cross-checks are linked from the demo-specific README files where relevant.
+- Cross-language correctness checks against R references live in the TRexSelector library test suite
+  (`cpp/tests/validation/`), run on demand rather than shipped with these examples.
 
 ---
 
-**Last updated**: 2026-07-01
+**Last updated**: 2026-07-09

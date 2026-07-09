@@ -8,7 +8,8 @@ This demo illustrates how to use the PCA implementation in three basic workflows
 2. restoring the original matrix after in-place preprocessing,
 3. transforming new data into the learned principal-component space.
 
-The demo is designed as a practical introduction to the PCA interface and to the main matrix objects returned by a fit: principal-component scores, loading vectors, and explained variances.
+The demo is designed as a practical introduction to the PCA interface and to the main matrix objects returned by a fit:
+principal-component scores, loading vectors, and explained variances.
 
 ---
 
@@ -21,7 +22,8 @@ Let
 - $\boldsymbol{Z} \in \mathbb{R}^{n \times M}$ the score matrix,
 - $\boldsymbol{V} \in \mathbb{R}^{p \times M}$ the loading matrix.
 
-PCA constructs an orthogonal low-dimensional representation of the data by projecting the original variables onto $M$ principal directions.
+PCA constructs an orthogonal low-dimensional representation of the data by projecting the original variables onto $M$
+principal directions.
 In matrix form, the fitted scores are obtained by projecting the centered data onto the retained loading vectors.
 
 ---
@@ -34,9 +36,11 @@ $$
 \boldsymbol{X} \approx \boldsymbol{Z}\boldsymbol{V}^\top,
 $$
 
-where the columns of $\boldsymbol{V}$ are the retained principal directions and the columns of $\boldsymbol{Z}$ are the corresponding principal-component scores.
+where the columns of $\boldsymbol{V}$ are the retained principal directions and the columns of $\boldsymbol{Z}$ are the
+corresponding principal-component scores.
 
-The explained variances quantify how much of the retained variation is captured by each component. The demo reports the explained variance percentages for the retained $M$ components after fitting.
+The explained variances quantify how much of the retained variation is captured by each component. The demo reports the
+explained variance percentages for the retained $M$ components after fitting.
 
 ---
 
@@ -48,23 +52,28 @@ $$
 n = 500, \qquad p = 200, \qquad M = 10,
 $$
 
-fits PCA, and prints the dimensions of the returned score matrix $\boldsymbol{Z}$, loading matrix $\boldsymbol{V}$, and explained-variance vector $\boldsymbol{\lambda}$.
+fits PCA, and prints the dimensions of the returned score matrix $\boldsymbol{Z}$, loading matrix $\boldsymbol{V}$, and
+explained-variance vector $\boldsymbol{\lambda}$.
 
-This part is mainly about interface understanding: after fitting, the user can inspect the shape of the PCA outputs and the relative contribution of each retained component to the retained variance budget.
+This part is mainly about interface understanding: after fitting, the user can inspect the shape of the PCA outputs and
+the relative contribution of each retained component to the retained variance budget.
 
 ---
 
 ## Subproblem 2: Restore round-trip
 
-The second part studies whether the PCA object can safely undo its in-place preprocessing operations. The code generates a random matrix with
+The second part studies whether the PCA object can safely undo its in-place preprocessing operations. The code generates
+a random matrix with
 
 $$
 n = 300, \qquad p = 100, \qquad M = 5,
 $$
 
-fits PCA on a working copy, restores the matrix, and then compares the restored matrix against the original one using maximum and mean absolute reconstruction errors.
+fits PCA on a working copy, restores the matrix, and then compares the restored matrix against the original one using
+maximum and mean absolute reconstruction errors.
 
-The point here is not low-rank approximation error, but interface correctness: `restore()` is checked as a round-trip operation on the preprocessed training matrix representation.
+The point here is not low-rank approximation error, but interface correctness: `restore()` is checked as a round-trip
+operation on the preprocessed training matrix representation.
 
 ---
 
@@ -84,7 +93,8 @@ $$
 
 to produce principal-component scores for unseen observations.
 
-The demo also verifies that applying `transform()` to an untouched copy of the original training data reproduces the same score matrix returned during fitting, up to numerical tolerance.
+The demo also verifies that applying `transform()` to an untouched copy of the original training data reproduces the
+same score matrix returned during fitting, up to numerical tolerance.
 
 ---
 
@@ -94,7 +104,8 @@ The demo also verifies that applying `transform()` to an untouched copy of the o
 ./build/debug/bin/ml_methods/pca/demo_mlm_pca_01/demo_mlm_pca_01
 ```
 
-The demo prints matrix dimensions, explained-variance summaries, round-trip reconstruction errors, and transform consistency checks to the console.
+The demo prints matrix dimensions, explained-variance summaries, round-trip reconstruction errors, and transform
+consistency checks to the console.
 
 ---
 
@@ -102,20 +113,26 @@ The demo prints matrix dimensions, explained-variance summaries, round-trip reco
 
 When reading the console output, focus on the following points:
 
-- whether the score matrix \( \boldsymbol{Z} \) and loading matrix \( \boldsymbol{V} \) have the expected dimensions,
+- whether the score matrix $\boldsymbol{Z}$ and loading matrix $\boldsymbol{V}$ have the expected dimensions,
 - whether the explained-variance entries are reported consistently for the retained components,
 - whether `restore()` returns the working matrix to its original state up to very small numerical error,
 - whether `transform()` produces the expected output shape for new data,
 - whether transforming the original training data reproduces the fitted scores.
 
+The same PCA workflow is also implemented in
+[Python](../../../../Python/ml_methods/pca/demo_pca_01_in_memory.py) and
+[R](../../../../R/ml_methods/pca/demo_pca_01_in_memory.R).
+
 ---
 
 ## Technical notes
 
-- The PCA object is constructed from an `Eigen::Map`, so the training matrix is passed through an Eigen-compatible interface.
+- The PCA object is constructed from an `Eigen::Map`, so the training matrix is passed through an Eigen-compatible
+  interface.
 - The demo uses synthetic Gaussian data generated from standard normal draws in each subproblem.
-- The explained-variance entries reported by the demo describe the retained $M$ components, not the full original $p$-dimensional variance decomposition.
+- The explained-variance entries reported by the demo describe the retained $M$ components, not the full original
+  $p$-dimensional variance decomposition.
 
 ---
 
-**Last updated**: 2026-07-08
+**Last updated**: 2026-07-09
