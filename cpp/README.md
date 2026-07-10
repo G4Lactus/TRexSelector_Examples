@@ -101,8 +101,9 @@ selector layers.
 | `demo_mlm_hac_01` | Hierarchical agglomerative clustering (HAC) |
 | `demo_mlm_hac_02_mmap` | HAC on a memory-mapped design matrix |
 
-Validation programs in `ml_methods/validation/` cross-check HAC output
-against R reference runs.
+Cross-language validation of HAC output against R now lives in the TRexSelector
+library test suite (`TRexSelector/cpp/tests/validation/hac_clustering/`), run
+on demand via its `run_validations` target.
 
 ---
 
@@ -127,8 +128,9 @@ the full regularization path.
 | `demo_ts_11_tools` | T-OLS (orthogonal least squares) |
 | `demo_ts_12_tafs` | T-AFS (adaptive forward stepwise) |
 
-Validation programs in `tsolvers/validation/` check solver equivalences and
-cross-compare output against R.
+Cross-language solver-equivalence checks (TLARS/TLASSO/TENET vs R, plus the
+TENET/TENET_AUG probe) moved to the TRexSelector library test suite
+(`TRexSelector/cpp/tests/validation/tsolvers/`).
 
 ---
 
@@ -164,8 +166,10 @@ memory-mapped screening, correlated designs, and biobank-scale pipelines
 
 Sparse PCA with T-Rex. Monte Carlo simulation demo (1 demo).
 
-Validation programs in `trex_selector_methods/validation/` cover scaling
-comparisons, solver equivalence checks, and R cross-validation pipelines.
+The scaling-comparison, solver-equivalence, and R cross-validation diagnostics
+for these selectors moved to the TRexSelector library test suite
+(`TRexSelector/cpp/tests/validation/trex_selector_methods/`), built on demand
+via its `build_diagnostics` target.
 
 ---
 
