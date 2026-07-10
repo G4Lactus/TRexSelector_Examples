@@ -70,8 +70,8 @@ Console output only.
 
 - C++: [cpp/ml_methods/hac_clustering/](../../../cpp/ml_methods/hac_clustering/)
   — `demo_mlm_hac_01` and `demo_mlm_hac_02_mmap`.
-- Cross-validation programs against R reference runs live in
-  [cpp/ml_methods/validation/hac_clustering/](../../../cpp/ml_methods/validation/).
+- Cross-validation programs against R reference runs moved to the TRexSelector
+  library test suite (`TRexSelector/cpp/tests/validation/hac_clustering/`).
 
 ---
 

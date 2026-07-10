@@ -96,7 +96,7 @@ When reading the console output, focus on the following points:
 - The demo uses both in-memory and memory-mapped workflows.
 - The serialization example writes a temporary checkpoint file named `tlasso_checkpoint.bin` and removes it afterward.
 - The memory-mapped example writes a temporary file for $X$ only, runs T-LASSO on the mapped view, and removes the file at the end.
-- For a dedicated cross-check against related LARS/LASSO reference behavior, see the validation folder described in `validation_ts_02_tlars_tlasso_rcompare`.
+- For a dedicated cross-check against related LARS/LASSO reference behavior, see `validation_ts_02_tlars_tlasso_rcompare` in the TRexSelector library test suite (`TRexSelector/cpp/tests/validation/tsolvers/`).
 
 ---
 

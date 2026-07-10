@@ -17,9 +17,10 @@ through the `trex_selector_neo.ml_methods` module.
 ## Not Yet Ported
 
 Every `ml_methods` demo area from the [cpp/](../../cpp/ml_methods/) tree now
-has a Python counterpart. The C++ scaler/HAC validation programs under
-`cpp/ml_methods/validation/` are cross-language reference checks by design and
-stay C++-side.
+has a Python counterpart. The C++ scaler/HAC validation programs that used to
+live under `cpp/ml_methods/validation/` moved to the TRexSelector library test
+suite (`TRexSelector/cpp/tests/validation/hac_clustering/`); they are
+cross-language reference checks by design, not demos.
 
 ---
 

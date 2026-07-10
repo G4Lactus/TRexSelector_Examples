@@ -89,7 +89,7 @@ When reading the console output, focus on the following points:
 - whether the reported cycling ratio stays well behaved,
 - whether the memory-mapped workflow completes successfully and cleans up its temporary files.
 
-For the dedicated equivalence check between the Gram-based T-ENET formulation and the augmented-LASSO formulation, see the corresponding validation folder under `Python/tsolvers/validation`.
+For the dedicated equivalence check between the Gram-based T-ENET formulation and the augmented-LASSO formulation, see `validation_ts_01_tenet_aug_comparison` in the TRexSelector library test suite (`TRexSelector/cpp/tests/validation/tsolvers/`).
 
 ---
 
