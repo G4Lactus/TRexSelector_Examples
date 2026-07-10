@@ -103,7 +103,7 @@ void demo_TRexSelector(bool high_dim, bool rnd_coef) {
     trex_ctrl.max_dummy_multiplier = 10;
     trex_ctrl.use_max_T_stop = true;
     trex_ctrl.dummy_distribution = dummygen::Distribution::Normal();
-    trex_ctrl.lloop_strategy = LLoopStrategy::HCONCAT;
+    trex_ctrl.lloop_strategy = LLoopStrategy::STANDARD;
     trex_ctrl.tloop_stagnation_stop = false;
     trex_ctrl.tloop_max_stagnant_steps = 5;
     trex_ctrl.parallel_rnd_experiments = false;
