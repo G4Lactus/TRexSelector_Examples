@@ -100,7 +100,7 @@ When reading the console output, focus on the following points:
 - The thread count is set to 6 via `trex_selector_neo.utils.set_num_threads`, mirroring the cpp OpenMP setup.
 - The serialization example writes a temporary checkpoint file `tlasso_checkpoint.bin` into the demo folder and removes it afterward.
 - The memory-mapped example writes `demo_tlasso_{X,D,y}.bin` into the demo folder, runs T-LASSO on those mapped views, and removes those files at the end.
-- For a dedicated cross-check against related LARS/LASSO reference behavior, see the validation folder under `Python/tsolvers/validation`.
+- For a dedicated cross-check against related LARS/LASSO reference behavior, see `validation_ts_02_tlars_tlasso_rcompare` in the TRexSelector library test suite (`TRexSelector/cpp/tests/validation/tsolvers/`).
 
 ---
 

@@ -1,8 +1,8 @@
-# T-Solvers: Demos and Validation (R)
+# T-Solvers: Demos (R)
 
 ## Overview
 
-This folder contains the R demos and validation programs for the
+This folder contains the R demos for the
 **terminating solvers** exposed by the TRexSelectorNeo R6 API. It mirrors
 [cpp/tsolvers/](../../cpp/tsolvers/README.md) 1:1 (folder-per-demo, same
 numbering and content).
@@ -56,10 +56,16 @@ Every demo has the same four parts (mirroring the cpp files):
 
 ## Validation
 
-| Folder | Purpose |
-|--------|---------|
-| [validation/validation_ts_01_tenet_aug_comparison/](validation/validation_ts_01_tenet_aug_comparison/README.md) | Equivalence check between Gram-based `TENET_Solver`, augmented-LASSO `TENETAug_Solver`, and a manual lasso_star augmentation solved with `TLASSO_Solver` |
-| [validation/validation_ts_02_tlars_tlasso_rcompare/](validation/validation_ts_02_tlars_tlasso_rcompare/README.md) | CRAN `tlars` reference **generator** (+ `rdump_tlars/` CSVs) for the cross-language path-equivalence test; consumed by the cpp and Python comparators of the same name |
+The R validation programs for the terminating solvers moved to the TRexSelector
+library test suite (`TRexSelector/cpp/tests/validation/tsolvers/`):
+
+- `validation_ts_01_tenet_aug_comparison` — equivalence check between Gram-based
+  `TENET_Solver`, augmented-LASSO `TENETAug_Solver`, and a manual lasso_star
+  augmentation solved with `TLASSO_Solver`.
+- `validation_ts_02_tlars_tlasso_rcompare` — CRAN `tlars` reference **generator**
+  for the cross-language path-equivalence test, consumed by the cpp and Python
+  comparators of the same name. The frozen reference dumps now live at
+  `TRexSelector/cpp/tests/validation/data/rdump_tlars/`.
 
 ---
 
@@ -93,7 +99,7 @@ existing instance with `solver$load(path)` (cpp uses a static
 
 ## Running
 
-Run any demo or validation program from the repository root, e.g.:
+Run any demo from the repository root, e.g.:
 
 ```bash
 Rscript R/tsolvers/demo_ts_01_tlars/demo_ts_01_tlars.R
@@ -121,8 +127,7 @@ tsolvers/
   ├── demo_ts_09_tmp/
   ├── demo_ts_10_tncgmp/
   ├── demo_ts_11_tools/
-  ├── demo_ts_12_tafs/
-  └── validation/
+  └── demo_ts_12_tafs/
 ```
 
 ---

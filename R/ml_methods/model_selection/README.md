@@ -76,8 +76,9 @@ Console output only.
 ---
 
 > The glmnet cross-check that used to sit here (`demo_en_glmnet_compare.R` +
-> `rdump_en/`) is local-testing material, not a demo. It now lives under
-> [../validation/model_selection/](../validation/model_selection/).
+> `rdump_en/`) is local-testing material, not a demo. It moved to the
+> TRexSelector library test suite
+> (`TRexSelector/cpp/tests/validation/ml_methods/model_selection/`).
 
 ---
 

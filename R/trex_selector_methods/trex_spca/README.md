@@ -119,7 +119,7 @@ The demo has **real committed output** — a single SNR point ($-10$ dB), `num_M
 
 - **OrdPCA**'s FDR $\approx 0.95$ is the expected trivial artifact of selecting all $p=100$ loadings (true support is only $p_1=5$) — not a meaningful comparison point.
 - **OraclePCA** achieves near-perfect recovery (it is told the true support size); its PEV ($0.123$) is the reference for how much variance the true sparse signal explains, independent of any selection procedure.
-- All four **T-Rex SPCA** variants recover PC1's support almost perfectly (TPR $\approx 1.0$) with FDR close to the $\mathrm{tFDR}=0.10$ target. The realized FDR ($\approx 0.13$–$0.14$) sits $\approx 0.03$ above the target and the legacy CRAN R reference ($0.100$ at this point) — the long-known residual gap between the C++ core and the CRAN R implementation, investigated by the cross-check programs in [../validation/trex_spca/](../validation/trex_spca/); the C++ `validation_trex_spca_06_handrolled_comparison` confirms it is not a `TRexSPCASelector` artifact.
+- All four **T-Rex SPCA** variants recover PC1's support almost perfectly (TPR $\approx 1.0$) with FDR close to the $\mathrm{tFDR}=0.10$ target. The realized FDR ($\approx 0.13$–$0.14$) sits $\approx 0.03$ above the target and the legacy CRAN R reference ($0.100$ at this point) — the long-known residual gap between the C++ core and the CRAN R implementation, investigated by the cross-check programs in the TRexSelector library test suite (`TRexSelector/cpp/tests/validation/trex_selector_methods/trex_spca/`); the C++ `validation_trex_spca_06_handrolled_comparison` confirms it is not a `TRexSPCASelector` artifact.
 - The four T-Rex variants are statistically indistinguishable from each other at this one data point; no solver/mode conclusion should be drawn from a single SNR level. The Thresholded variants' slightly higher PEV is the one systematic difference.
 - The C++ counterpart's committed table (same configuration, C++ RNG streams) agrees within Monte Carlo noise: OrdPCA 0.9500/1.0000/0.2021, OraclePCA 0.0060/0.9940/0.1241, T-Rex FDR $\approx 0.123$–$0.131$, TPR $\approx 0.996$–$0.997$; likewise Python (T-Rex FDR $\approx 0.132$–$0.136$). Exact numbers cannot match across languages because the data RNG streams differ.
 
@@ -140,7 +140,7 @@ Dependencies: `TRexSelectorNeo` and base-R `parallel` only (the old `elasticnet`
 
 ## Cross-check probes (relocated)
 
-The R↔C++ cross-check material that used to live in this folder — `demo_trex_spca_02.R` (R reference-dump generator), `lambda2_probe.R`, `lambda2_foldmatch.R`, `probe_R_dummy_variance.R`, `r_dummy_variance_probe.R`, and the `rdump/` / `rdump10/` / `rdump_snr7_backup/` data folders — now lives in [../validation/trex_spca/](../validation/trex_spca/). See that folder for the stage-by-stage pipeline comparisons; this README no longer reproduces the old probe tables.
+The R↔C++ cross-check material that used to live in this folder — `demo_trex_spca_02.R` (R reference-dump generator), `lambda2_probe.R`, `lambda2_foldmatch.R`, `probe_R_dummy_variance.R`, `r_dummy_variance_probe.R`, and the baked `rdump/` / `rdump10/` data folders — moved to the TRexSelector library test suite (`TRexSelector/cpp/tests/validation/trex_selector_methods/trex_spca/`). The `rdump_snr7_backup/` folder was intentionally dropped, not carried over. See that suite for the stage-by-stage pipeline comparisons; this README no longer reproduces the old probe tables.
 
 ---
 
@@ -149,7 +149,7 @@ The R↔C++ cross-check material that used to live in this folder — `demo_trex
 - Start with `demo_trex_spca_01_mc_sim/` — it is currently the only demo in this folder.
 - Read the PC1-only FDR/TPR rationale above before interpreting results — this is a deliberate evaluation-scope choice, not a bug.
 - Support sets and `$active_sets` indices are **1-based** in R (the C++ sources are 0-based).
-- Counterparts: the C++ suite at [../../../cpp/trex_selector_methods/trex_spca/](../../../cpp/trex_selector_methods/trex_spca/); the C++ validation programs at [../../../cpp/trex_selector_methods/validation/trex_spca/](../../../cpp/trex_selector_methods/validation/trex_spca/); the Python suite at [../../../Python/trex_selector_methods/trex_spca/](../../../Python/trex_selector_methods/trex_spca/); and the R validation probes at [../validation/trex_spca/](../validation/trex_spca/).
+- Counterparts: the C++ suite at [../../../cpp/trex_selector_methods/trex_spca/](../../../cpp/trex_selector_methods/trex_spca/); the Python suite at [../../../Python/trex_selector_methods/trex_spca/](../../../Python/trex_selector_methods/trex_spca/); and the C++/R validation probes, now in the TRexSelector library test suite (`TRexSelector/cpp/tests/validation/trex_selector_methods/trex_spca/`).
 
 ---
 

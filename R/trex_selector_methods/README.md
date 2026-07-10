@@ -15,8 +15,11 @@ source-side `simulation_results/` folder next to the demo file.
 | [trex_da/](trex_da/README.md) | NEW — TRexSelectorNeo R6 API | Dependency-Aware T-Rex (`TRexDASelector`) over AR(1), equicorrelated, nearest-neighbor, block-diagonal, and heavy-tailed designs (demos 01–08, folder-per-demo) |
 | [trex_gvs/](trex_gvs/README.md) | NEW — TRexSelectorNeo R6 API | Grouped Variable Selection T-Rex (`TRexGVSSelector`, EN / EN+AUG / IEN) over Hastie, scattered, mixed, negative-trap, equi-block, t-distributed, AR(1), and ARMA designs (demos 01–08, folder-per-demo) |
 | [trex_spca/](trex_spca/README.md) | NEW — TRexSelectorNeo R6 API | T-Rex Sparse PCA (`TRexSPCASelector`, 2 solvers × 2 modes) vs. ordinary/oracle PCA on a sparse 3-factor model (demo 01, folder-per-demo) |
-| [validation/](validation/trex_spca/README.md) | Cross-check | R-side validation programs: the trex_spca rdump generator + four C++/R cross-check probes (`validation/trex_spca/`) |
 | [trex_screening/](trex_screening/README.md) | NEW — TRexSelectorNeo R6 API | Screen-TRex (`TRexScreeningSelector` / `TRexBiobankScreeningSelector`): in-memory and memory-mapped screening, correlated designs, biobank-scale, and solver comparison (6 demos) |
+
+The R-side cross-check probes for trex_spca (the rdump generator and its C++/R
+comparison probes) moved to the TRexSelector library test suite
+(`TRexSelector/cpp/tests/validation/trex_selector_methods/trex_spca/`).
 
 ---
 
@@ -43,8 +46,9 @@ Rscript R/trex_selector_methods/trex_da/demo_trex_da_01_ar1/demo_trex_da_01_ar1.
 ```
 
 The da / gvs MC suites additionally require `plotly` (correlation heatmaps)
-and use `parallel` for the MC loops; the `validation/trex_spca/` cross-check
-programs additionally require `glmnet`.
+and use `parallel` for the MC loops. The trex_spca cross-check programs (which
+additionally require `glmnet`) moved to the TRexSelector library test suite
+(`TRexSelector/cpp/tests/validation/trex_selector_methods/trex_spca/`).
 
 ---
 

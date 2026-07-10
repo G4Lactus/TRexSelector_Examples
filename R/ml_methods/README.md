@@ -28,8 +28,11 @@ area. Remaining difference:
   elastic-net *path* class, so the R elastic-net demo covers the CV scenarios
   only; the full path fit (cpp `ElasticNet.fit`/`fit_grid`) is shown in the
   [Python model_selection port](../../Python/ml_methods/model_selection/).
-- The C++ validation programs (`cpp/ml_methods/validation/`) are
-  cross-language checks by design and stay C++-side.
+- The C++ validation programs that used to live under
+  `cpp/ml_methods/validation/` moved to the TRexSelector library test suite
+  (`TRexSelector/cpp/tests/validation/hac_clustering/` and
+  `.../ml_methods/model_selection/`); they are cross-language checks by design,
+  not demos.
 
 Naming note: the R `standardization/` folder corresponds to the C++
 `scaler_methods/` folder.

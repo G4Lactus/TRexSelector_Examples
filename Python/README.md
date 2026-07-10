@@ -78,7 +78,7 @@ Notes:
 | Grouped Variable Selection T-Rex | [trex_selector_methods/trex_gvs/](trex_selector_methods/trex_gvs/) | T-Rex+GVS: Hastie, scattered, mixed/negative-trap, heavy-tailed, AR(1), ARMA, block benchmark; EN / EN+AUG / IEN (Demos 01–08) | [cpp/trex_selector_methods/trex_gvs/](../cpp/trex_selector_methods/trex_gvs/) |
 | Screen-TRex | [trex_selector_methods/trex_screening/](trex_selector_methods/trex_screening/) | Ultra-high-dimensional screening: Ordinary/Bootstrap-CI, mmap, correlated designs, biobank routing, solver backends (Demos 01–06) | [cpp/trex_selector_methods/trex_screening/](../cpp/trex_selector_methods/trex_screening/) |
 | T-Rex Sparse PCA | [trex_selector_methods/trex_spca/](trex_selector_methods/trex_spca/) | T-Rex SPCA MC comparison (2 solvers × 2 modes) vs. ordinary/oracle PCA on a sparse 3-factor model (Demo 01) | [cpp/trex_selector_methods/trex_spca/](../cpp/trex_selector_methods/trex_spca/) |
-| T-Solvers | [tsolvers/](tsolvers/README.md) | 12 standalone terminating-solver demos (`demo_ts_01` … `demo_ts_12`: early stopping, external normalization, serialization, mmap) + validation tree | [cpp/tsolvers/](../cpp/tsolvers/) |
+| T-Solvers | [tsolvers/](tsolvers/README.md) | 12 standalone terminating-solver demos (`demo_ts_01` … `demo_ts_12`: early stopping, external normalization, serialization, mmap); the validation programs moved to the TRexSelector library test suite (`TRexSelector/cpp/tests/validation/tsolvers/`) | [cpp/tsolvers/](../cpp/tsolvers/) |
 
 ---
 
@@ -86,14 +86,15 @@ Notes:
 
 The Python examples currently cover the classical T-Rex selector, the
 Dependency-Aware T-Rex, the Grouped-Variable-Selection T-Rex, Screen-TRex,
-T-Rex Sparse PCA, the standalone terminating solvers (`tsolvers/`, 12 demos +
-validation), memory mapping, and the full `ml_methods` demo set (HAC
-clustering, standardization, PCA, SVD, ridge regression, model selection) —
-every cpp demo suite is ported.
-The only area that exists in the [cpp/](../cpp/) tree and is **not yet
-available in Python** — see cpp/ or R/ for it:
+T-Rex Sparse PCA, the standalone terminating solvers (`tsolvers/`, 12 demos),
+memory mapping, and the full `ml_methods` demo set (HAC clustering,
+standardization, PCA, SVD, ridge regression, model selection) — every cpp demo
+suite is ported.
 
-- the `ml_methods/validation/` scaler/HAC cross-language reference programs
+The scaler/HAC cross-language reference programs that used to live under
+`cpp/ml_methods/validation/` moved to the TRexSelector library test suite
+(`TRexSelector/cpp/tests/validation/hac_clustering/`); as validation
+infrastructure rather than demos, they have no Python port by design.
 
 ---
 

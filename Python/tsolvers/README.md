@@ -1,8 +1,8 @@
-# T-Solvers: Demos and Validation (Python)
+# T-Solvers: Demos (Python)
 
 ## Overview
 
-This folder contains the Python demos and validation programs for the
+This folder contains the Python demos for the
 **terminating solvers** exposed by `trex_selector_neo.tsolvers`. It mirrors
 [cpp/tsolvers/](../../cpp/tsolvers/README.md) 1:1 (folder-per-demo, same
 numbering and content).
@@ -54,10 +54,17 @@ Every demo has the same four parts (mirroring the cpp files):
 
 ## Validation
 
-| Folder | Purpose |
-|--------|---------|
-| [validation/validation_ts_01_tenet_aug_comparison/](validation/validation_ts_01_tenet_aug_comparison/README.md) | Equivalence check between Gram-based `TENET_Solver`, augmented-LASSO `TENETAug_Solver`, and a manual lasso_star augmentation solved with `TLASSO_Solver` |
-| [validation/validation_ts_02_tlars_tlasso_rcompare/](validation/validation_ts_02_tlars_tlasso_rcompare/README.md) | Path-equivalence gate of the Python-binding solvers against CRAN `tlars` reference dumps on sparse-factor-model data |
+The Python validation programs for the terminating solvers moved to the
+TRexSelector library test suite (`TRexSelector/cpp/tests/validation/tsolvers/`),
+co-located with their R and C++ counterparts:
+
+- `validation_ts_01_tenet_aug_comparison` — equivalence check between Gram-based
+  `TENET_Solver`, augmented-LASSO `TENETAug_Solver`, and a manual lasso_star
+  augmentation solved with `TLASSO_Solver`.
+- `validation_ts_02_tlars_tlasso_rcompare` — path-equivalence gate of the
+  Python-binding solvers against CRAN `tlars` reference dumps on
+  sparse-factor-model data. The frozen reference dumps now live at
+  `TRexSelector/cpp/tests/validation/data/rdump_tlars/`.
 
 ---
 
@@ -89,7 +96,7 @@ existing instance with `solver.load(path)` (cpp uses a static
 
 ## Running
 
-Run any demo or validation program from the repository root, e.g.:
+Run any demo from the repository root, e.g.:
 
 ```bash
 .venv/bin/python Python/tsolvers/demo_ts_01_tlars/demo_ts_01_tlars.py
@@ -117,8 +124,7 @@ tsolvers/
   ├── demo_ts_09_tmp/
   ├── demo_ts_10_tncgmp/
   ├── demo_ts_11_tools/
-  ├── demo_ts_12_tafs/
-  └── validation/
+  └── demo_ts_12_tafs/
 ```
 
 ---
