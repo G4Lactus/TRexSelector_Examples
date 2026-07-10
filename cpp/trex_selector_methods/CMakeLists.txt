@@ -8,4 +8,6 @@ add_subdirectory(trex_screening)
 add_subdirectory(trex_da)
 add_subdirectory(trex_gvs)
 add_subdirectory(trex_spca)
-add_subdirectory(validation)
+
+# Cross-language validation programs moved to the TRexSelector library test suite
+# (TRexSelector/cpp/tests/validation/); see that folder's CMakeLists.txt.
