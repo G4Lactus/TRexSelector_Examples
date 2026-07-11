@@ -30,7 +30,7 @@ Shared solver controls via `make_scr_trex_ctrl()`: `solver = "TLARS"`, `K = 20`,
 python Python/trex_selector_methods/trex_screening/demo_trex_scr_01_screen/demo_trex_scr_01_screen.py
 ```
 
-A small `sys.path` bootstrap at the top of the script inserts the demo directory and its parent (suite) directory, so the shared `trex_scr_common.py` module resolves regardless of the working directory. The `RUN_PART_*` flags at the top toggle individual parts. Parts 1–2 print to the console only; Part 3 additionally writes `simulation_results/d01_screen_trex_mc_n300_p1000.txt` (summary table) and `.csv` (tidy long format). Until the demo is run, `simulation_results/` holds only a `.gitkeep`. Results are statistically comparable to the C++ reference, not bit-identical (different RNG streams).
+A small `sys.path` bootstrap at the top of the script inserts the demo directory and its parent (suite) directory, so the shared `trex_scr_common.py` module resolves regardless of the working directory. The `RUN_PART_*` flags at the top toggle individual parts. Parts 1–2 print to the console only; Part 3 additionally writes `simulation_results/data/d01_screen_trex_mc_n300_p1000.txt` (summary table) and `.csv` (tidy long format). Until the demo is run, `simulation_results/` holds only a `.gitkeep`. Results are statistically comparable to the C++ reference, not bit-identical (different RNG streams).
 
 ## Interpretation
 

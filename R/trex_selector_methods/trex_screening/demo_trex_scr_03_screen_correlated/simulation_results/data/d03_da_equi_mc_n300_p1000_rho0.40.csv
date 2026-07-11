@@ -1,0 +1,97 @@
+method,metric,SNR,value
+Screen-TRex Ordinary,FDR,0.01,0.5
+Screen-TRex Ordinary,TPR,0.01,0
+Screen-TRex Ordinary,Est. FDR,0.01,0.283333333333333
+Screen-TRex Ordinary,FDR,0.1,0.957936507936508
+Screen-TRex Ordinary,TPR,0.1,0.03
+Screen-TRex Ordinary,Est. FDR,0.1,0.12765873015873
+Screen-TRex Ordinary,FDR,0.2,0.95406346749226
+Screen-TRex Ordinary,TPR,0.2,0.07
+Screen-TRex Ordinary,Est. FDR,0.2,0.0635383882767447
+Screen-TRex Ordinary,FDR,0.5,0.887623516268678
+Screen-TRex Ordinary,TPR,0.5,0.3
+Screen-TRex Ordinary,Est. FDR,0.5,0.0400691370340739
+Screen-TRex Ordinary,FDR,0.6,0.893277234038104
+Screen-TRex Ordinary,TPR,0.6,0.29
+Screen-TRex Ordinary,Est. FDR,0.6,0.0364349760545413
+Screen-TRex Ordinary,FDR,1,0.855062837562838
+Screen-TRex Ordinary,TPR,1,0.51
+Screen-TRex Ordinary,Est. FDR,1,0.0279473429473429
+Screen-TRex Ordinary,FDR,2,0.839920913829753
+Screen-TRex Ordinary,TPR,2,0.71
+Screen-TRex Ordinary,Est. FDR,2,0.0224739707988604
+Screen-TRex Ordinary,FDR,5,0.793000316533615
+Screen-TRex Ordinary,TPR,5,0.98
+Screen-TRex Ordinary,Est. FDR,5,0.0210684605711145
+Screen-TRex Bootstrap,FDR,0.01,0.5
+Screen-TRex Bootstrap,TPR,0.01,0
+Screen-TRex Bootstrap,Est. FDR,0.01,0.286666666666667
+Screen-TRex Bootstrap,FDR,0.1,0.875714285714286
+Screen-TRex Bootstrap,TPR,0.1,0.02
+Screen-TRex Bootstrap,Est. FDR,0.1,0.12023199023199
+Screen-TRex Bootstrap,FDR,0.2,0.86859243697479
+Screen-TRex Bootstrap,TPR,0.2,0.04
+Screen-TRex Bootstrap,Est. FDR,0.2,0.0614044214523754
+Screen-TRex Bootstrap,FDR,0.5,0.881532607177768
+Screen-TRex Bootstrap,TPR,0.5,0.3
+Screen-TRex Bootstrap,Est. FDR,0.5,0.0425872783130848
+Screen-TRex Bootstrap,FDR,0.6,0.890267831472765
+Screen-TRex Bootstrap,TPR,0.6,0.29
+Screen-TRex Bootstrap,Est. FDR,0.6,0.0373141690693873
+Screen-TRex Bootstrap,FDR,1,0.84764897801082
+Screen-TRex Bootstrap,TPR,1,0.51
+Screen-TRex Bootstrap,Est. FDR,1,0.0294436101343996
+Screen-TRex Bootstrap,FDR,2,0.8295539448179
+Screen-TRex Bootstrap,TPR,2,0.71
+Screen-TRex Bootstrap,Est. FDR,2,0.0241914405653687
+Screen-TRex Bootstrap,FDR,5,0.789442655224578
+Screen-TRex Bootstrap,TPR,5,0.98
+Screen-TRex Bootstrap,Est. FDR,5,0.021433631090733
+Screen-TRex Ord+DA-EQUI,FDR,0.01,0.5
+Screen-TRex Ord+DA-EQUI,TPR,0.01,0
+Screen-TRex Ord+DA-EQUI,Est. FDR,0.01,0.4
+Screen-TRex Ord+DA-EQUI,FDR,0.1,0.965714285714286
+Screen-TRex Ord+DA-EQUI,TPR,0.1,0.02
+Screen-TRex Ord+DA-EQUI,Est. FDR,0.1,0.398730158730159
+Screen-TRex Ord+DA-EQUI,FDR,0.2,0.947380952380952
+Screen-TRex Ord+DA-EQUI,TPR,0.2,0.05
+Screen-TRex Ord+DA-EQUI,Est. FDR,0.2,0.0850981297049072
+Screen-TRex Ord+DA-EQUI,FDR,0.5,0.884059791146946
+Screen-TRex Ord+DA-EQUI,TPR,0.5,0.26
+Screen-TRex Ord+DA-EQUI,Est. FDR,0.5,0.0471848974151867
+Screen-TRex Ord+DA-EQUI,FDR,0.6,0.892224949768428
+Screen-TRex Ord+DA-EQUI,TPR,0.6,0.27
+Screen-TRex Ord+DA-EQUI,Est. FDR,0.6,0.0394489240630545
+Screen-TRex Ord+DA-EQUI,FDR,1,0.852979740003067
+Screen-TRex Ord+DA-EQUI,TPR,1,0.47
+Screen-TRex Ord+DA-EQUI,Est. FDR,1,0.0311574825050991
+Screen-TRex Ord+DA-EQUI,FDR,2,0.827936109480498
+Screen-TRex Ord+DA-EQUI,TPR,2,0.71
+Screen-TRex Ord+DA-EQUI,Est. FDR,2,0.0242865094440706
+Screen-TRex Ord+DA-EQUI,FDR,5,0.775555308447696
+Screen-TRex Ord+DA-EQUI,TPR,5,0.98
+Screen-TRex Ord+DA-EQUI,Est. FDR,5,0.0228296543404156
+Screen-TRex Boot+DA-EQUI,FDR,0.01,0.1
+Screen-TRex Boot+DA-EQUI,TPR,0.01,0
+Screen-TRex Boot+DA-EQUI,Est. FDR,0.01,0.1
+Screen-TRex Boot+DA-EQUI,FDR,0.1,0.2875
+Screen-TRex Boot+DA-EQUI,TPR,0.1,0.01
+Screen-TRex Boot+DA-EQUI,Est. FDR,0.1,0.0319444444444444
+Screen-TRex Boot+DA-EQUI,FDR,0.2,0.492307692307692
+Screen-TRex Boot+DA-EQUI,TPR,0.2,0.01
+Screen-TRex Boot+DA-EQUI,Est. FDR,0.2,0.0306201151789387
+Screen-TRex Boot+DA-EQUI,FDR,0.5,0.438685300207039
+Screen-TRex Boot+DA-EQUI,TPR,0.5,0.13
+Screen-TRex Boot+DA-EQUI,Est. FDR,0.5,0.0235859213250518
+Screen-TRex Boot+DA-EQUI,FDR,0.6,0.891400587815501
+Screen-TRex Boot+DA-EQUI,TPR,0.6,0.26
+Screen-TRex Boot+DA-EQUI,Est. FDR,0.6,0.0400928174147463
+Screen-TRex Boot+DA-EQUI,FDR,1,0.668937036011225
+Screen-TRex Boot+DA-EQUI,TPR,1,0.4
+Screen-TRex Boot+DA-EQUI,Est. FDR,1,0.0257330629774116
+Screen-TRex Boot+DA-EQUI,FDR,2,0.818496892277762
+Screen-TRex Boot+DA-EQUI,TPR,2,0.71
+Screen-TRex Boot+DA-EQUI,Est. FDR,2,0.0256623654365376
+Screen-TRex Boot+DA-EQUI,FDR,5,0.69921776248464
+Screen-TRex Boot+DA-EQUI,TPR,5,0.88
+Screen-TRex Boot+DA-EQUI,Est. FDR,5,0.0204683752666875

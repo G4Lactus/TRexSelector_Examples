@@ -47,7 +47,7 @@ from trex_scr_common import (dgp_iid_snr, make_scr_trex_ctrl, make_screen_ctrl,
                              default_scr_methods, print_scr_result,
                              run_mc_screen, save_and_print_scr_mc)
 
-OUT_DIR = os.path.join(_THIS_DIR, "simulation_results")
+OUT_DIR = os.path.join(_THIS_DIR, "simulation_results", "data")
 
 RUN_PART_A = True
 RUN_PART_B = True

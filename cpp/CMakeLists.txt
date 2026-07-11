@@ -205,14 +205,16 @@ macro(add_demo_target target_name demo_file library_set)
         ${ARGN}
     )
 
-    # Route each demo's output into a simulation_results/ folder next to its
-    # own source file. Demos that live directly in the group directory (no
-    # subfolder) keep the original <group>/simulation_results/ location.
+    # Route each demo's output into a simulation_results/data/ folder next to
+    # its own source file (generated figures live in the sibling
+    # simulation_results/plots/, written by the plotting scripts). Demos that
+    # live directly in the group directory (no subfolder) keep the original
+    # <group>/simulation_results/data/ location.
     get_filename_component(_demo_subdir "${demo_file}" DIRECTORY)
     if(_demo_subdir)
-        set(_demo_output_dir "${CMAKE_CURRENT_SOURCE_DIR}/${_demo_subdir}/simulation_results/")
+        set(_demo_output_dir "${CMAKE_CURRENT_SOURCE_DIR}/${_demo_subdir}/simulation_results/data/")
     else()
-        set(_demo_output_dir "${CMAKE_CURRENT_SOURCE_DIR}/simulation_results/")
+        set(_demo_output_dir "${CMAKE_CURRENT_SOURCE_DIR}/simulation_results/data/")
     endif()
 
     target_compile_definitions(${target_name} PRIVATE

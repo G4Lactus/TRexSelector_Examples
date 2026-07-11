@@ -39,7 +39,7 @@ import numpy as np
 from trex_scr_common import (dgp_iid_snr, make_scr_trex_ctrl, run_mc_screen,
                              save_and_print_scr_mc)
 
-OUT_DIR = os.path.join(_THIS_DIR, "simulation_results")
+OUT_DIR = os.path.join(_THIS_DIR, "simulation_results", "data")
 
 RUN_PART_1 = True
 RUN_PART_2 = True

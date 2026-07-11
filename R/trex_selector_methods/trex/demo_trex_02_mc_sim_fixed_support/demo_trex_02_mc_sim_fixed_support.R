@@ -42,7 +42,7 @@ source(file.path(this_dir_, "..", "trex_sim_utils.R"))
 # ==============================================================================
 # Global Simulation Parameters
 # ==============================================================================
-OUT_DIR <- file.path(this_dir_, "simulation_results")
+OUT_DIR <- file.path(this_dir_, "simulation_results", "data")
 dir.create(OUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
 num_cores <- 6L

@@ -36,7 +36,7 @@ from trex_sim_common import (
 # Global parameters
 # ==============================================================================
 
-_OUT_DIR     = os.path.join(_THIS_DIR, "simulation_results")
+_OUT_DIR     = os.path.join(_THIS_DIR, "simulation_results", "data")
 _NUM_WORKERS = 6
 _NUM_MC      = 100
 

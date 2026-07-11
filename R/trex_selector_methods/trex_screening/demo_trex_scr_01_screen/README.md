@@ -30,7 +30,7 @@ Shared solver controls via `make_scr_trex_ctrl()`: `solver = "TLARS"`, `K = 20`,
 Rscript R/trex_selector_methods/trex_screening/demo_trex_scr_01_screen/demo_trex_scr_01_screen.R
 ```
 
-Runs from any working directory; the `run_part_*` flags at the top toggle individual parts; the script sources the shared `../trex_scr_sim_utils.R`. Parts 1–2 print to the console only; Part 3 additionally writes `simulation_results/d01_screen_trex_mc_n300_p1000.txt` (summary table) and `.csv` (tidy long format). Results are statistically comparable to the C++ reference, not bit-identical (different RNG streams).
+Runs from any working directory; the `run_part_*` flags at the top toggle individual parts; the script sources the shared `../trex_scr_sim_utils.R`. Parts 1–2 print to the console only; Part 3 additionally writes `simulation_results/data/d01_screen_trex_mc_n300_p1000.txt` (summary table) and `.csv` (tidy long format). Results are statistically comparable to the C++ reference, not bit-identical (different RNG streams).
 
 ## Interpretation
 

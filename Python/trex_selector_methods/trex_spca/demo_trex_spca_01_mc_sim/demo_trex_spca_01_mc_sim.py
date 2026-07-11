@@ -126,7 +126,7 @@ def demo_trex_spca_mc_snr_sweep(cfg, snr_values, stem):
             N_WORKERS))
 
     save_and_print_spca_mc_results(
-        out_dir=os.path.join(_THIS_DIR, "simulation_results"),
+        out_dir=os.path.join(_THIS_DIR, "simulation_results", "data"),
         file_stem=stem, num_MC=cfg["num_MC"],
         snr_values=snr_values, method_names=method_names,
         fdr_map=fdr_map, tpr_map=tpr_map, pev_map=pev_map)

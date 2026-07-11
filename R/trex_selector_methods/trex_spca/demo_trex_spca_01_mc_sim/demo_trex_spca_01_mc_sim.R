@@ -131,7 +131,7 @@ demo_trex_spca_mc_snr_sweep <- function(cfg, snr_values, stem) {
   }
 
   save_and_print_spca_mc_results(
-    out_dir = file.path(this_dir_, "simulation_results"),
+    out_dir = file.path(this_dir_, "simulation_results", "data"),
     file_stem = stem, num_MC = cfg$num_MC,
     snr_values = snr_values, method_names = method_names,
     fdr_map = fdr_map, tpr_map = tpr_map, pev_map = pev_map)

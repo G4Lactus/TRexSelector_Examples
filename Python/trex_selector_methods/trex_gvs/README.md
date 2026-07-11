@@ -114,7 +114,7 @@ Indices are **0-based** (Python convention); the R counterparts are 1-based.
 
 Manually-recorded result summaries live in each demo's `simulation_results/`
 folder, e.g.
-[demo_trex_gvs_01/simulation_results/demo_trex_gvs_01_hastie_models.md](demo_trex_gvs_01/simulation_results/demo_trex_gvs_01_hastie_models.md).
+[demo_trex_gvs_01/simulation_results/data/demo_trex_gvs_01_hastie_models.md](demo_trex_gvs_01/simulation_results/data/demo_trex_gvs_01_hastie_models.md).
 
 ---
 

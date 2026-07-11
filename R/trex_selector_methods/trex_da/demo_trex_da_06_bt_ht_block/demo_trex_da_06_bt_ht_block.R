@@ -31,7 +31,7 @@ this_dir_ <- tryCatch(
   }
 )
 
-log_file <- file.path(this_dir_, "simulation_results",
+log_file <- file.path(this_dir_, "simulation_results", "data",
                       "demo_trex_da_07_bt_heavy_tailed_sweeps_log.txt")
 sink(log_file)
 on.exit(sink(), add = TRUE)

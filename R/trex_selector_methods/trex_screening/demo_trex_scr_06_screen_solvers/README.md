@@ -27,8 +27,8 @@ Selection is performed by `TRexScreeningSelector`.
 
 ## Parts
 
-- **Part 1** — MC SNR sweep, three solvers under Ordinary screening only (3 series): `TLARS (Ordinary)`, `TAFS-0.3 (Ordinary)`, `TOMP (Ordinary)`. Writes `simulation_results/d06_screen_trex_solvers_mc_snr_n300_p1000_s10.txt` (summary table) and `.csv` (tidy long format).
-- **Part 2** — MC SNR sweep, three solvers x {Ordinary, Bootstrap-CI} (6 series). Writes `simulation_results/d06_screen_trex_solver_method_mc_snr_n300_p1000_s10.txt` and `.csv`.
+- **Part 1** — MC SNR sweep, three solvers under Ordinary screening only (3 series): `TLARS (Ordinary)`, `TAFS-0.3 (Ordinary)`, `TOMP (Ordinary)`. Writes `simulation_results/data/d06_screen_trex_solvers_mc_snr_n300_p1000_s10.txt` (summary table) and `.csv` (tidy long format).
+- **Part 2** — MC SNR sweep, three solvers x {Ordinary, Bootstrap-CI} (6 series). Writes `simulation_results/data/d06_screen_trex_solver_method_mc_snr_n300_p1000_s10.txt` and `.csv`.
 
 Each series averages FDR / TPR / Estimated FDR over 20 runs per (variant, SNR) point.
 

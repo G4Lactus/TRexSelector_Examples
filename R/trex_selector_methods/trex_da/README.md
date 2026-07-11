@@ -89,7 +89,7 @@ removed in the consolidation.
 
 Manually-recorded result summaries live in each demo's `simulation_results/`
 folder, e.g.
-[demo_trex_da_01_ar1/simulation_results/Results_trex_da_01_ar1.md](demo_trex_da_01_ar1/simulation_results/Results_trex_da_01_ar1.md).
+[demo_trex_da_01_ar1/simulation_results/data/Results_trex_da_01_ar1.md](demo_trex_da_01_ar1/simulation_results/data/Results_trex_da_01_ar1.md).
 
 ---
 

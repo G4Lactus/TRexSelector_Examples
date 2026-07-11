@@ -45,7 +45,7 @@ this_dir_ <- tryCatch(
 )
 source(file.path(this_dir_, "..", "trex_scr_sim_utils.R"))
 
-OUT_DIR <- file.path(this_dir_, "simulation_results")
+OUT_DIR <- file.path(this_dir_, "simulation_results", "data")
 
 run_part_a <- TRUE
 run_part_b <- TRUE

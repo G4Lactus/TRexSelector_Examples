@@ -44,7 +44,7 @@ from trex_scr_bb_common import (BIOBANK_METHODS, make_biobank_ctrl,
                                 print_biobank_single, print_biobank_table,
                                 print_biobank_summary, save_and_print_biobank_mc)
 
-OUT_DIR = os.path.join(_THIS_DIR, "simulation_results")
+OUT_DIR = os.path.join(_THIS_DIR, "simulation_results", "data")
 
 RUN_PART_A = True
 RUN_PART_B = True
