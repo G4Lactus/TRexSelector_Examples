@@ -42,7 +42,7 @@ trex/
   │   └── simulation_results/
   ├── demo_trex_02_mc_sim_fixed_support/
   │   └── ...
-  └── demo_trex_07_scalability/
+  └── demo_trex_08_mc_sim_scalability/
 ```
 
 ---
@@ -54,10 +54,11 @@ trex/
 | 01 | [demo_trex_01_single_run](demo_trex_01_single_run/) | Single run of `ts.TRexSelector(...).select()` with the TLARS solver in one low-dimensional (n=5000, p=1000) and one high-dimensional (n=150, p=300) setting; fixed 6-element support; prints `phi_prime`, `phi_mat`, `fdp_hat_mat`, `r_mat`, and `voting_grid` via `print_single_run_result()` (console output only). | [demo_trex_01_single_run](../../../cpp/trex_selector_methods/trex/demo_trex_01_single_run/) |
 | 02 | [demo_trex_02_mc_sim_fixed_support](demo_trex_02_mc_sim_fixed_support/) | Monte Carlo study (`run_mc_trex()`, num_MC=100) over all 14 solver descriptors in `SOLVERS_DEFAULT` and SNR in {0.1, 0.5, 1, 2, 5}; n=300, p=1000, s=10; fixed support drawn once with seed 24 and shared across all trials; reports averaged FDR/TPR per solver x SNR. | [demo_trex_02_mc_sim_fixed_support](../../../cpp/trex_selector_methods/trex/demo_trex_02_mc_sim_fixed_support/) |
 | 03 | [demo_trex_03_mc_sim_variable_support](demo_trex_03_mc_sim_variable_support/) | Monte Carlo study (num_MC=100) over the same 14 solvers and a finer SNR sweep {0.1, 0.2, ..., 2.0, 5.0} (21 values); support (and optionally coefficients) redrawn each trial; additionally tracks average L and T per solver x SNR. | [demo_trex_03_mc_sim_variable_support](../../../cpp/trex_selector_methods/trex/demo_trex_03_mc_sim_variable_support/) |
-| 04 | [demo_trex_04_mc_sim_lloop_strategies](demo_trex_04_mc_sim_lloop_strategies/) | L-loop strategy comparison with TLARS as the fixed base solver (num_MC=25, 21 SNR values, random or block support). The script documents six strategies (STANDARD, HCONCAT, PERMUTATION, PERMUTATION_DIRECT, DIRECT, SKIPL); as currently shipped only the `SKIPL_20p` and `SKIPL_50p` entries are enabled in `L_STRATEGIES` — uncomment the others to compare the full set. | [demo_trex_04_mc_sim_lloop_strategies](../../../cpp/trex_selector_methods/trex/demo_trex_04_mc_sim_lloop_strategies/) |
-| 05 | [demo_trex_05_mmap](demo_trex_05_mmap/) | Single-run memory-mapped workflows (seed=58). Part A: in-memory X with `use_memory_mapping=True` (D-mmap + solver LARS-path serialization). Part B: fully memory-mapped pipeline — X written to a temp binary file via `numpy_to_memmap()` and passed to `TRexSelector` as the zero-copy `to_numpy()` view. Each part runs a low-dim (n=5000, p=1000) and a high-dim (n=1000, p=5000) case and saves a per-variable selection CSV. | [demo_trex_05_mmap](../../../cpp/trex_selector_methods/trex/demo_trex_05_mmap/) |
-| 06 | [demo_trex_06_mc_sim_mmap](demo_trex_06_mc_sim_mmap/) | Monte Carlo study under memory mapping (TLARS only, num_MC=500, fixed support seed 24, SNR in {0.1, 0.5, 1, 2, 5}). Part C: in-memory X + `use_memory_mapping=True` via `run_mc_trex()`. Part D: fully mmapped X per trial via `run_mc_trex_full_mmap()` (each worker writes X to a unique temp file and deletes it afterwards). Both parts should produce statistically equivalent FDR/TPR — that equivalence is the verification goal. | [demo_trex_06_mc_sim_mmap](../../../cpp/trex_selector_methods/trex/demo_trex_06_mc_sim_mmap/) |
-| 07 | [demo_trex_07_scalability](demo_trex_07_scalability/) | Scalability benchmark: in-memory vs chunked, memory-mapped out-of-core execution over an exponential (n, p) grid targeting 1 GB–256 GB raw-X footprints. Each run is isolated in a subprocess to record per-run time and peak RSS and to survive OOM on the large scenarios; results saved to `simulation_results/d04_scalability_benchmark.csv`. Mirrors the R port `demo_trex_07_scalability.R`. | [demo_trex_07_mc_sim_scalability](../../../cpp/trex_selector_methods/trex/demo_trex_07_mc_sim_scalability/) (WIP placeholder in C++) |
+| 04 | [demo_trex_04_mc_sim_lloop_strategies](demo_trex_04_mc_sim_lloop_strategies/) | L-loop strategy comparison with TLARS as the fixed base solver (num_MC=25, 21 SNR values, random or block support). The script documents six strategies (STANDARD, HCONCAT, PERMUTATION, PERMUTATION_ONDEMAND, ONDEMAND, SKIPL); as currently shipped only the `SKIPL_20p` and `SKIPL_50p` entries are enabled in `L_STRATEGIES` — uncomment the others to compare the full set. | [demo_trex_04_mc_sim_lloop_strategies](../../../cpp/trex_selector_methods/trex/demo_trex_04_mc_sim_lloop_strategies/) |
+| 05 | [demo_trex_05_mc_sim_dummy_distributions](demo_trex_05_mc_sim_dummy_distributions/) | Dummy distribution comparison across 3 base solvers (TLARS/TOMP/TAFS rho_afs=1.0) with the STANDARD L-loop strategy held fixed (num_MC=10, 21 SNR values, random or block support; one result file pair per solver). Sweeps 12 distribution rows (Normal, Uniform, Rademacher, StudentT df 3/5, Laplace, Gumbel, Triangle, Logistic, Mammen, sparse Rademacher s=0.1, UniformSphere dim=5) passed as picklable spec dicts and resolved to `ts.DummyDistribution` inside each worker. | [demo_trex_05_mc_sim_dummy_distributions](../../../cpp/trex_selector_methods/trex/demo_trex_05_mc_sim_dummy_distributions/) |
+| 06 | [demo_trex_06_mmap](demo_trex_06_mmap/) | Single-run memory-mapped workflows (seed=58). Part A: in-memory X with `use_memory_mapping=True` (D-mmap + solver LARS-path serialization). Part B: fully memory-mapped pipeline — X written to a temp binary file via `numpy_to_memmap()` and passed to `TRexSelector` as the zero-copy `to_numpy()` view. Each part runs a low-dim (n=5000, p=1000) and a high-dim (n=1000, p=5000) case and saves a per-variable selection CSV. | [demo_trex_06_mmap](../../../cpp/trex_selector_methods/trex/demo_trex_06_mmap/) |
+| 07 | [demo_trex_07_mc_sim_mmap](demo_trex_07_mc_sim_mmap/) | Monte Carlo study under memory mapping (TLARS only, num_MC=500, fixed support seed 24, SNR in {0.1, 0.5, 1, 2, 5}). Part C: in-memory X + `use_memory_mapping=True` via `run_mc_trex()`. Part D: fully mmapped X per trial via `run_mc_trex_full_mmap()` (each worker writes X to a unique temp file and deletes it afterwards). Both parts should produce statistically equivalent FDR/TPR — that equivalence is the verification goal. | [demo_trex_07_mc_sim_mmap](../../../cpp/trex_selector_methods/trex/demo_trex_07_mc_sim_mmap/) |
+| 08 | [demo_trex_08_mc_sim_scalability](demo_trex_08_mc_sim_scalability/) | Scalability benchmark: in-memory vs chunked, memory-mapped out-of-core execution over an exponential (n, p) grid targeting 1 GB–256 GB raw-X footprints. Each run is isolated in a subprocess to record per-run time and peak RSS and to survive OOM on the large scenarios; results saved to `simulation_results/data/d04_scalability_benchmark.csv`. Mirrors the R port `demo_trex_08_mc_sim_scalability.R`. | [demo_trex_08_mc_sim_scalability](../../../cpp/trex_selector_methods/trex/demo_trex_08_mc_sim_scalability/) (WIP placeholder in C++) |
 
 ---
 
@@ -68,7 +69,7 @@ trex/
 | [dgp_gauss_snr.py](dgp_gauss_snr.py) | `dgp_gauss_snr(n, p, support, amplitude, coefs, snr, seed)` — data-generating process for the i.i.d. Gaussian scenario. Draws X with i.i.d. N(0,1) entries and calibrates the noise standard deviation to a target SNR (`noise_sigma = sqrt(Var(X @ beta) / snr)`, ddof=1, matching the C++ and R implementations). Returns a dict with `X`, `y`, `beta`, `true_support`, and the scenario scalars. |
 | [support_generators.py](support_generators.py) | `make_support_capped_spread(s, p, max_gap)` — deterministic evenly-spaced support; `make_support_random(s, p, seed)` — uniformly random support without replacement (internally uses `seed + 500_000`, see seed conventions below). |
 | [trex_helpers.py](trex_helpers.py) | Single-run helpers: `print_single_run_result()` (formatted result block including TP/FP counts, FDP/TPP, `phi_prime`, `phi_mat`, `fdp_hat_mat`, `r_mat`, `voting_grid`) and `save_selection_csv()` (per-variable CSV with columns `variable_index`, `phi_prime`, `selected`, `true_positive`; written via pandas). |
-| [trex_sim_common.py](trex_sim_common.py) | Shared MC infrastructure: `SOLVERS_DEFAULT` (14 solver descriptors), `compute_fdp()` / `compute_tpp()`, `_make_trex_ctrl_from_dict()` (flat dict → `TRexControlParameter`), the `ProcessPoolExecutor` workers `_trial_worker()` / `_trial_worker_full_mmap()`, the parallel runners `run_mc_trex()` / `run_mc_trex_full_mmap()`, and the output helpers `print_solver_table()` / `save_mc_results()`. |
+| [trex_sim_common.py](trex_sim_common.py) | Shared MC infrastructure: `SOLVERS_DEFAULT` (14 solver descriptors), `compute_fdp()` / `compute_tpp()`, `_make_trex_ctrl_from_dict()` (flat dict → `TRexControlParameter`), `_make_dummy_distribution()` (spec dict → `ts.DummyDistribution`, see demo 05), the `ProcessPoolExecutor` workers `_trial_worker()` / `_trial_worker_full_mmap()`, the parallel runners `run_mc_trex()` / `run_mc_trex_full_mmap()`, and the output helpers `print_solver_table()` / `save_mc_results()`. |
 
 ---
 
@@ -89,7 +90,7 @@ Trial seeds are derived as `trial_seed = base_seed + mc - 1` for
 point (mirrors the R convention). Fixed-support demos draw the support once
 with `make_support_random(s, p, seed=24)`.
 
-The single-run demos (01 and 05) instead pass a fixed integer seed to both
+The single-run demos (01 and 06) instead pass a fixed integer seed to both
 the DGP and `TRexSelector` for reproducibility — this is intentional for
 single runs; the MC demos use `seed=-1`.
 
@@ -111,7 +112,10 @@ worker process by `_make_trex_ctrl_from_dict()` into a
   TGP, TACGP, TMP, TNCGMP, TOOLS, TAFS (14 descriptors in total — TAFS is
   tested with `rho_afs` 0.3 and 1.0, TNCGMP with variants 0 and 1).
 - **L-loop strategy**: `ctrl.lloop_strategy` is a `ts.LLoopStrategy` enum:
-  STANDARD, HCONCAT, PERMUTATION, PERMUTATION_DIRECT, DIRECT, SKIPL.
+  STANDARD, HCONCAT, PERMUTATION, PERMUTATION_ONDEMAND, ONDEMAND, SKIPL.
+- **Dummy distribution**: `ctrl.dummy_distribution` is a
+  `ts.DummyDistribution`, built from a picklable spec dict by
+  `_make_dummy_distribution()` (see demo 05).
 - **Solver hyperparameters**: `ctrl.solver_params`
   (`SolverHyperparameters`) carries `lambda2` (TENET/ridge penalty),
   `rho_afs` (TAFS), and `ncgmp_variant` (TNCGMP).
@@ -139,17 +143,19 @@ processes). The MC demos parallelize trials with `ProcessPoolExecutor`
 
 ### Output files
 
-Results are written to `simulation_results/` next to the demo script
-(created on first use):
+Results are written to `simulation_results/data/` next to the demo script
+(created on first use; the `simulation_results/` umbrella holds generated
+artifacts only — `data/` for tables, `plots/` for figures, matching the C++
+suite convention):
 
 - **Demo 01**: console output only (no files).
-- **Demos 02–04, 06** (via `save_mc_results()`): a plain-text results table
+- **Demos 02–05, 07** (via `save_mc_results()`): a plain-text results table
   (`<stem>.txt`) and a tidy long-format CSV (`<stem>.csv`, columns
   `solver`, `metric`, `snr`, `value` with metrics FDR/TPR and, where tracked,
   AvgL/AvgT). Stems encode the scenario, e.g.
   `demo_trex_02_mc_sim_fixed_support_results_n300_p1000_stagnation_window_7`,
   `d03_trex_mmap_demo_c_n300_p1000_sw7`.
-- **Demo 05** (via `save_selection_csv()`): per-variable selection CSVs,
+- **Demo 06** (via `save_selection_csv()`): per-variable selection CSVs,
   e.g. `d02_trex_mmap_demo_a_n5000_p1000.csv` and
   `d02_trex_mmap_demo_b_n1000_p5000.csv`.
 
@@ -167,4 +173,4 @@ All CSVs are written with pandas and can be plotted with any tool of choice
 
 ---
 
-**Last updated**: 2026-07-06
+**Last updated**: 2026-07-11

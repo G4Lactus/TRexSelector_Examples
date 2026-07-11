@@ -22,11 +22,16 @@ contiguous-block variant is available but its call is commented out). SNR grid
 
 - STANDARD — fresh i.i.d. dummy matrix each L-loop iteration.
 - HCONCAT — horizontally concatenated dummy columns.
-- PERMUTATION — re-use the base dummy matrix via permutations.
-- PERMUTATION_DIRECT — seed-based permutations, no base matrix in memory.
-- DIRECT — seed-based i.i.d. draws, no base matrix in memory.
+- PERMUTATION — re-use the stored base dummy matrix via deterministic row
+  permutations per experiment.
+- PERMUTATION_ONDEMAND — seed-derived base + row permutations, nothing stored
+  (bit-identical to PERMUTATION for the same seed).
+- ONDEMAND — seed-derived i.i.d. draws, nothing stored.
 - SKIPL_5p / SKIPL_10p / SKIPL_20p / SKIPL_50p — skip the L-loop, fixed
   `L = max_dummy_multiplier * p` at 5p / 10p / 20p / 50p.
+
+(The former `DIRECT` / `PERMUTATION_DIRECT` strategy names were renamed to
+`ONDEMAND` / `PERMUTATION_ONDEMAND`; the old names are no longer accepted.)
 
 Shared control per strategy: `solver = "TLARS"`, `K = 20`, `use_max_T_stop = TRUE`,
 `lloop_strategy` swept. Reports averaged FDR, TPR, Avg L, Avg T per strategy x SNR
@@ -38,9 +43,9 @@ Shared control per strategy: `solver = "TLARS"`, `K = 20`, `use_max_T_stop = TRU
 Rscript R/trex_selector_methods/trex/demo_trex_04_mc_sim_lloop_strategies/demo_trex_04_mc_sim_lloop_strategies.R
 ```
 
-Results are written to this demo's own `simulation_results/` folder as a `.txt` table
+Results are written to this demo's own `simulation_results/data/` folder as a `.txt` table
 and a tidy `.csv` (the "solver" column holds the strategy name), stem
 `demo_trex_04_lloop_strategies_results_n300_p1000_random_support`. The script sources
 `../../support_generators.R`, `../../simulation_utils.R`, and `../trex_sim_utils.R`.
 
-**Last updated**: 2026-07-08
+**Last updated**: 2026-07-11

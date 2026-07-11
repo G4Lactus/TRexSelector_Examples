@@ -1,12 +1,12 @@
 # ==============================================================================
-# demo_trex_07_scalability.py
+# demo_trex_08_mc_sim_scalability.py
 # ==============================================================================
 #
 # Part 7 of the classical T-Rex demos: a scalability benchmark comparing
 # in-memory execution against chunked, memory-mapped out-of-core execution
 # over an exponentially increasing (n, p) grid.
 #
-# Mirrors R/trex_selector_methods/trex/demo_trex_07_scalability.R.
+# Mirrors R/trex_selector_methods/trex/demo_trex_08_mc_sim_scalability.R.
 #
 # Demo content:
 #   - A grid of (n, p) scenarios targeting raw-X footprints from 1 GB to 256 GB.
@@ -64,7 +64,7 @@ SEED       = 42
 TFDR       = 0.1
 CHUNK_COLS = 1000
 
-_OUT_DIR = os.path.join(_THIS_DIR, "simulation_results")
+_OUT_DIR = os.path.join(_THIS_DIR, "simulation_results", "data")
 
 # In-memory: plain TLARS. Out-of-core: mmap control (mirrors make_mmap_trex_ctrl).
 _INMEM_CTRL = dict(
@@ -197,4 +197,4 @@ def run_scalability_benchmark():
 
 if __name__ == "__main__":
     run_scalability_benchmark()
-    print("\ndemo_trex_07_scalability.py complete.")
+    print("\ndemo_trex_08_mc_sim_scalability.py complete.")

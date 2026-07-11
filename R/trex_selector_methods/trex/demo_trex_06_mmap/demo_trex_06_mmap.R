@@ -1,12 +1,12 @@
 # ==============================================================================
-# demo_trex_05_mmap.R
+# demo_trex_06_mmap.R
 # ==============================================================================
 #
 # Classical T-Rex selector demo.
 # Part 5 demonstrates memory-mapped usage patterns in the R package TRexSelectorNeo.
 #
 # The file mirrors:
-# cpp/trex_selector_methods/trex/demo_trex_05_mmap.cpp
+# cpp/trex_selector_methods/trex/demo_trex_06_mmap.cpp
 #
 # Demo content:
 # ----------------------------------------------------------------
@@ -51,7 +51,7 @@ source(file.path(this_dir_, "..", "trex_sim_utils.R"))
 # Global Simulation Parameters
 # ==============================================================================
 
-OUT_DIR <- file.path(this_dir_, "simulation_results")
+OUT_DIR <- file.path(this_dir_, "simulation_results", "data")
 dir.create(OUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
 # Run flags
@@ -209,4 +209,4 @@ trex_05_part_b <- function() {
 
 if (run_part_a) trex_05_part_a()
 if (run_part_b) trex_05_part_b()
-cat("\ndemo_trex_05_mmap.R complete.\n")
+cat("\ndemo_trex_06_mmap.R complete.\n")

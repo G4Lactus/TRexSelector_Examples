@@ -1,4 +1,4 @@
-# Demo 07: Scalability Benchmark — In-Memory vs. Memory-Mapped
+# Demo 08: Scalability Benchmark — In-Memory vs. Memory-Mapped
 
 ## Purpose
 
@@ -7,7 +7,7 @@ against **chunked, memory-mapped out-of-core** execution over an exponentially g
 `(n, p)` grid, measuring wall-clock time and peak memory for each.
 
 > Note: unlike the other demos, the C++ counterpart
-> (`cpp/trex_selector_methods/trex/demo_trex_07_mc_sim_scalability/`) is an unimplemented
+> (`cpp/trex_selector_methods/trex/demo_trex_08_mc_sim_scalability/`) is an unimplemented
 > placeholder (empty source, excluded from the build). This R port is the fully
 > implemented version.
 
@@ -42,7 +42,7 @@ substantial disk/RAM and may be skipped as failures on modest hardware.
 ## Running
 
 ```bash
-Rscript R/trex_selector_methods/trex/demo_trex_07_scalability/demo_trex_07_scalability.R
+Rscript R/trex_selector_methods/trex/demo_trex_08_mc_sim_scalability/demo_trex_08_mc_sim_scalability.R
 ```
 
 Results are written to this demo's own `simulation_results/` folder as

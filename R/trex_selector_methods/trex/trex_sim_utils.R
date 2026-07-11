@@ -549,7 +549,9 @@ execute_with_temp_mmap <- function(X_matrix, expr_func) {
                                 avg_T_mat = NULL,
                                 num_MC    = NULL) {
 
-  sw <- 15L   # solver column width
+  # Solver column grows to fit the longest name; 15 keeps the classic layout
+  # for demos whose names all fit (mirrors trex_sim_utils.hpp).
+  sw <- max(15L, max(nchar(solver_names)) + 2L)
   mw <- 8L    # metric column width
   nw <- 5L    # SNR label column width
   cw <- 10L   # data column width

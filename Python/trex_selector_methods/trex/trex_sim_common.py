@@ -154,14 +154,54 @@ def _get_lloop_map():
     if _LLOOP_MAP is None:
         import trex_selector_neo as ts
         _LLOOP_MAP = {
-            "STANDARD":           ts.LLoopStrategy.STANDARD,
-            "HCONCAT":            ts.LLoopStrategy.HCONCAT,
-            "PERMUTATION":        ts.LLoopStrategy.PERMUTATION,
-            "PERMUTATION_DIRECT": ts.LLoopStrategy.PERMUTATION_DIRECT,
-            "DIRECT":             ts.LLoopStrategy.DIRECT,
-            "SKIPL":              ts.LLoopStrategy.SKIPL,
+            "STANDARD":             ts.LLoopStrategy.STANDARD,
+            "HCONCAT":              ts.LLoopStrategy.HCONCAT,
+            "PERMUTATION":          ts.LLoopStrategy.PERMUTATION,
+            "PERMUTATION_ONDEMAND": ts.LLoopStrategy.PERMUTATION_ONDEMAND,
+            "ONDEMAND":             ts.LLoopStrategy.ONDEMAND,
+            "SKIPL":                ts.LLoopStrategy.SKIPL,
         }
     return _LLOOP_MAP
+
+
+def _make_dummy_distribution(spec):
+    """
+    Build a ts.DummyDistribution from a plain (picklable) spec dict.
+
+    spec: {"type": <name>, <optional distribution-specific parameters>}
+    Types and parameters mirror R's trex_dummy_distribution():
+        Normal, Rademacher, Mammen                       — no parameters
+        Uniform(a), StudentT(df), UniformSphere(dim),
+        ConstrainedSparseRademacher(s), Triangle(a, b, c),
+        Laplace/Gumbel/Logistic(location, scale)
+    Omitted parameters use the binding's unit-variance defaults.
+    """
+    import trex_selector_neo as ts
+    D = ts.DummyDistribution
+    t = spec["type"]
+    if t == "Normal":
+        return D.normal()
+    if t == "Uniform":
+        return D.uniform(**{k: spec[k] for k in ("a",) if k in spec})
+    if t == "Rademacher":
+        return D.rademacher()
+    if t == "StudentT":
+        return D.student_t(**{k: spec[k] for k in ("df",) if k in spec})
+    if t == "Laplace":
+        return D.laplace(**{k: spec[k] for k in ("location", "scale") if k in spec})
+    if t == "Gumbel":
+        return D.gumbel(**{k: spec[k] for k in ("location", "scale") if k in spec})
+    if t == "Triangle":
+        return D.triangle(**{k: spec[k] for k in ("a", "b", "c") if k in spec})
+    if t == "UniformSphere":
+        return D.uniform_sphere(**{k: spec[k] for k in ("dim",) if k in spec})
+    if t == "Mammen":
+        return D.mammen()
+    if t == "ConstrainedSparseRademacher":
+        return D.constrained_sparse_rademacher(spec["s"])
+    if t == "Logistic":
+        return D.logistic(**{k: spec[k] for k in ("location", "scale") if k in spec})
+    raise ValueError(f"Unknown dummy distribution type: {t!r}")
 
 
 def _make_trex_ctrl_from_dict(d):
@@ -175,7 +215,8 @@ def _make_trex_ctrl_from_dict(d):
         solver_name, lambda2, rho_afs, ncgmp_variant,
         K, max_dummy_multiplier, use_max_T_stop, opt_threshold,
         lloop_strategy, tloop_stagnation_stop, tloop_max_stagnant_steps,
-        parallel_rnd_experiments, use_memory_mapping.
+        parallel_rnd_experiments, use_memory_mapping,
+        dummy_distribution (a spec dict for _make_dummy_distribution).
     """
     import trex_selector_neo as ts
     solver_map = _get_solver_map()
@@ -191,6 +232,8 @@ def _make_trex_ctrl_from_dict(d):
     ctrl.tloop_max_stagnant_steps = int(d.get("tloop_max_stagnant_steps", 10))
     ctrl.parallel_rnd_experiments = bool(d.get("parallel_rnd_experiments", True))
     ctrl.use_memory_mapping       = bool(d.get("use_memory_mapping", False))
+    if d.get("dummy_distribution") is not None:
+        ctrl.dummy_distribution   = _make_dummy_distribution(d["dummy_distribution"])
     ctrl.solver_type              = solver_map[d["solver_name"]]
     ctrl.solver_params.lambda2    = float(d.get("lambda2", 0.1))
     ctrl.solver_params.rho_afs   = float(d.get("rho_afs", 0.3))
@@ -414,7 +457,10 @@ def print_solver_table(
     num_MC     : int or None
     file       : file-like or None  If given, output is also written to this file.
     """
-    sw, mw, nw, cw = 15, 8, 5, 10
+    # Row-label column grows to fit the longest name; 15 keeps the classic
+    # layout for demos whose names all fit (mirrors trex_sim_utils.hpp).
+    sw = max(15, max(len(nm) for nm in row_names) + 2)
+    mw, nw, cw = 8, 5, 10
     n_snr = len(snr_values)
 
     def _out(line):
@@ -519,7 +565,7 @@ def _trial_worker_full_mmap(args):
     """
     Top-level (module-level) worker for ProcessPoolExecutor — fully mmap X variant.
 
-    Mirrors C++ Demo D (demo_trex_06_mc_sim_mmap.cpp):
+    Mirrors C++ Demo D (demo_trex_07_mc_sim_mmap.cpp):
       - Generates X in memory.
       - Writes X to a per-trial temporary binary file via numpy_to_memmap().
       - Passes X_mmap.to_numpy() (a zero-copy mmap view) to TRexSelector.
@@ -638,7 +684,7 @@ def run_mc_trex_full_mmap(
     so each worker writes X to a temporary mmap file and reads it back via
     X_mmap.to_numpy().
 
-    Intended for Demo D (demo_trex_06_mc_sim_mmap.py) and mirrors
+    Intended for Demo D (demo_trex_07_mc_sim_mmap.py) and mirrors
     trx_sim::run_mc_trials_trex_mmap() in C++.
 
     The caller should set use_memory_mapping=True in base_ctrl_dict to also

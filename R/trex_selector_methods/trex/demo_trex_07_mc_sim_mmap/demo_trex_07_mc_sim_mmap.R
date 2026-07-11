@@ -1,5 +1,5 @@
 # ==============================================================================
-# demo_trex_06_mc_sim_mmap.R
+# demo_trex_07_mc_sim_mmap.R
 # ==============================================================================
 #
 # Classical T-Rex selector demo.
@@ -7,7 +7,7 @@
 # use_memory_mapping = TRUE to verify the D-mmap + solver-serialization.
 #
 # The file mirrors:
-# cpp/trex_selector_methods/trex/demo_trex_06_mc_sim_mmap.cpp
+# cpp/trex_selector_methods/trex/demo_trex_07_mc_sim_mmap.cpp
 #
 # Demo content:
 # ----------------------------------------------------------------
@@ -53,7 +53,7 @@ source(file.path(this_dir_, "..", "trex_sim_utils.R"))
 # ==============================================================================
 # Global Simulation Parameters
 # ==============================================================================
-OUT_DIR <- file.path(this_dir_, "simulation_results")
+OUT_DIR <- file.path(this_dir_, "simulation_results", "data")
 dir.create(OUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
 num_cores <- 6L
@@ -230,4 +230,4 @@ trex_06_part_b <- function(num_MC = NUM_MC, high_dim = TRUE) {
 # ==============================================================================
 if (run_part_a) trex_06_part_a(NUM_MC, high_dim = TRUE)
 if (run_part_b) trex_06_part_b(NUM_MC, high_dim = TRUE)
-cat("\ndemo_trex_06_mc_sim_mmap.R complete.\n")
+cat("\ndemo_trex_07_mc_sim_mmap.R complete.\n")

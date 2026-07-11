@@ -12,15 +12,17 @@
 # Demo content:
 # ----------------------------------------------------------------
 #
-#    STANDARD          — Fresh i.i.d. dummy matrix at each L-loop iteration
-#                        (conservative gold standard; highest memory cost).
-#    HCONCAT           — Horizontally expand dummy columns from the same base
-#                        draw.
-#    PERMUTATION       — Re-use the base dummy matrix via permutations.
-#    PERMUTATION_DIRECT— Seed-based permutations; no base matrix in memory.
-#    DIRECT            — Seed-based i.i.d. draws; no base matrix in memory.
-#    SKIPL             — Skip the L-loop entirely; always uses
-#                        L = max_dummy_multiplier (no adaptive L calibration).
+#    STANDARD             — Fresh i.i.d. dummy matrix at each L-loop iteration
+#                           (conservative gold standard; highest memory cost).
+#    HCONCAT              — Horizontally expand dummy columns from the same
+#                           base draw.
+#    PERMUTATION          — Re-use the stored base dummy matrix via
+#                           deterministic row permutations per experiment.
+#    PERMUTATION_ONDEMAND — Seed-derived base + row permutations; nothing
+#                           stored. Bit-identical to PERMUTATION per seed.
+#    ONDEMAND             — Seed-derived i.i.d. draws; nothing stored.
+#    SKIPL                — Skip the L-loop entirely; always uses
+#                           L = max_dummy_multiplier (no adaptive L calibration).
 #
 #  Scenario:
 #  ----------
@@ -59,7 +61,7 @@ source(file.path(this_dir_, "..", "trex_sim_utils.R"))
 # Global Simulation Parameters
 # ==============================================================================
 
-OUT_DIR <- file.path(this_dir_, "simulation_results")
+OUT_DIR <- file.path(this_dir_, "simulation_results", "data")
 dir.create(OUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
 num_cores <- 6L
@@ -84,8 +86,8 @@ L_STRATEGIES <- list(
   .make_strat_entry("STANDARD",           "STANDARD"),
   .make_strat_entry("HCONCAT",            "HCONCAT"),
   .make_strat_entry("PERMUTATION",        "PERMUTATION"),
-  .make_strat_entry("PERMUTATION_DIRECT", "PERMUTATION_DIRECT"),
-  .make_strat_entry("DIRECT",             "DIRECT"),
+  .make_strat_entry("PERMUTATION_ONDEMAND", "PERMUTATION_ONDEMAND"),
+  .make_strat_entry("ONDEMAND",             "ONDEMAND"),
   .make_strat_entry("SKIPL_5p",  "SKIPL",  5L),
   .make_strat_entry("SKIPL_10p", "SKIPL", 10L),
   .make_strat_entry("SKIPL_20p", "SKIPL", 20L),

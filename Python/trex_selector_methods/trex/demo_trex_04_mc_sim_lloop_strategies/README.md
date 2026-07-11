@@ -21,10 +21,12 @@ stopping time `T`. Python port of
 ## L-Loop Strategies
 
 `L_STRATEGIES` defines the strategy rows. The full set (STANDARD, HCONCAT,
-PERMUTATION, PERMUTATION_DIRECT, DIRECT, and SKIPL at 5p/10p/20p/...) is present
-in the file, but as committed only the SKIPL variants **SKIPL_20p** (`L = 20p`)
-and **SKIPL_50p** (`L = 50p`) are active; the others are commented out. Uncomment
-entries to widen the sweep.
+PERMUTATION, PERMUTATION_ONDEMAND, ONDEMAND, and SKIPL at 5p/10p/20p/...) is
+present in the file, but as committed only the SKIPL variants **SKIPL_20p**
+(`L = 20p`) and **SKIPL_50p** (`L = 50p`) are active; the others are commented
+out. Uncomment entries to widen the sweep. (The former `DIRECT` /
+`PERMUTATION_DIRECT` names were renamed to `ONDEMAND` / `PERMUTATION_ONDEMAND`;
+the old names are no longer accepted by the binding.)
 
 ## What It Computes
 
@@ -41,7 +43,7 @@ import the shared `trex_sim_common` module. The package imports as
 
 ## Output
 
-Writes results to this demo's own `simulation_results/` folder via
+Writes results to this demo's own `simulation_results/data/` folder via
 `save_mc_results`, with stem
 `demo_trex_04_lloop_strategies_results_n300_p1000_random_support` (aligned `.txt`
 table plus tidy `.csv`; the "solver" column holds the strategy name).
@@ -55,4 +57,4 @@ table plus tidy `.csv`; the "solver" column holds the strategy name).
 The MC loop is parallelized with Python `multiprocessing` (spawn start method)
 using `_NUM_WORKERS = 6`.
 
-**Last updated**: 2026-07-08
+**Last updated**: 2026-07-11

@@ -1,10 +1,10 @@
 # ==============================================================================
-# demo_trex_05_mmap.py
+# demo_trex_06_mmap.py
 # ==============================================================================
 #
 # Classical T-Rex Selector demo — memory-mapped workflows.
-# Mirrors R/trex_selector_methods/trex/demo_trex_05_mmap.R and
-# cpp/trex_selector_methods/trex/demo_trex_05_mmap.cpp.
+# Mirrors R/trex_selector_methods/trex/demo_trex_06_mmap.R and
+# cpp/trex_selector_methods/trex/demo_trex_06_mmap.cpp.
 #
 # Demo content:
 #
@@ -62,7 +62,7 @@ _SNR          = 1.0
 _TFDR         = 0.1
 _SEED         = 58
 
-_OUT_DIR = os.path.join(_THIS_DIR, "simulation_results")
+_OUT_DIR = os.path.join(_THIS_DIR, "simulation_results", "data")
 
 # Shared control: mirrors make_mmap_trex_ctrl() in C++ and R
 _MMAP_CTRL_DICT = dict(
@@ -227,4 +227,4 @@ def part_b_full_mmap():
 if __name__ == "__main__":
     part_a_d_mmap_solver_serial()
     part_b_full_mmap()
-    print("\ndemo_trex_05_mmap.py complete.")
+    print("\ndemo_trex_06_mmap.py complete.")

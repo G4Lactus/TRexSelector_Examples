@@ -1,9 +1,9 @@
-# Demo 06: Monte Carlo Simulation with Memory-Mapped Data
+# Demo 07: Monte Carlo Simulation with Memory-Mapped Data
 
 ## Purpose
 
 Validate T-Rex performance under memory-mapped (mmap) I/O over many Monte Carlo trials,
-extending the single-run patterns of Demo 05. Confirms that the storage medium is
+extending the single-run patterns of Demo 06. Confirms that the storage medium is
 transparent to the algorithm (FDR/TPR unchanged) and that the per-trial mmap file
 lifecycle is exception-safe.
 
@@ -32,7 +32,7 @@ in parallel over a hardcoded `num_cores <- 6L` (set at the top of the file).
 ## Running
 
 ```bash
-Rscript R/trex_selector_methods/trex/demo_trex_06_mc_sim_mmap/demo_trex_06_mc_sim_mmap.R
+Rscript R/trex_selector_methods/trex/demo_trex_07_mc_sim_mmap/demo_trex_07_mc_sim_mmap.R
 ```
 
 Each part writes a `.txt` table and a tidy `.csv` (header `solver,metric,snr,value`) to

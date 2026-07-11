@@ -1,11 +1,11 @@
 # ==============================================================================
-# demo_trex_06_mc_sim_mmap.py
+# demo_trex_07_mc_sim_mmap.py
 # ==============================================================================
 #
 # Classical T-Rex selector demo — Monte Carlo simulations with memory-mapped
 # workflows.
-# Mirrors R/trex_selector_methods/trex/demo_trex_06_mc_sim_mmap.R and
-# cpp/trex_selector_methods/trex/demo_trex_06_mc_sim_mmap.cpp.
+# Mirrors R/trex_selector_methods/trex/demo_trex_07_mc_sim_mmap.R and
+# cpp/trex_selector_methods/trex/demo_trex_07_mc_sim_mmap.cpp.
 #
 # Demo content:
 #
@@ -62,7 +62,7 @@ from trex_sim_common import (
 # Global parameters
 # ==============================================================================
 
-_OUT_DIR     = os.path.join(_THIS_DIR, "simulation_results")
+_OUT_DIR     = os.path.join(_THIS_DIR, "simulation_results", "data")
 _NUM_WORKERS = 6
 _NUM_MC      = 500
 
@@ -239,4 +239,4 @@ def trx_03_part_d(num_MC=_NUM_MC, num_workers=_NUM_WORKERS, high_dim=True):
 if __name__ == "__main__":
     trx_03_part_c()
     trx_03_part_d()
-    print("\ndemo_trex_06_mc_sim_mmap.py complete.")
+    print("\ndemo_trex_07_mc_sim_mmap.py complete.")

@@ -1,4 +1,4 @@
-# Demo 05: Memory-Mapped Data — Single Run (Python)
+# Demo 06: Memory-Mapped Data — Single Run (Python)
 
 ## Purpose
 
@@ -7,7 +7,7 @@ single-run patterns. Setting `use_memory_mapping = True` activates both
 mmap storage of the internal dummy matrices `D` and solver LARS-path
 serialization to disk between T-loop iterations; Part B additionally
 memory-maps the design matrix `X` itself. Python port of
-`cpp/trex_selector_methods/trex/demo_trex_05_mmap`.
+`cpp/trex_selector_methods/trex/demo_trex_06_mmap`.
 
 ## DGP / Data
 
@@ -51,7 +51,7 @@ single-run demo (no `multiprocessing`).
 ## Running
 
 ```bash
-.venv/bin/python Python/trex_selector_methods/trex/demo_trex_05_mmap/demo_trex_05_mmap.py
+.venv/bin/python Python/trex_selector_methods/trex/demo_trex_06_mmap/demo_trex_06_mmap.py
 ```
 
 **Last updated**: 2026-07-08

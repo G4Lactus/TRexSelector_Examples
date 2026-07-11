@@ -1,10 +1,10 @@
-# Demo 06: Monte Carlo Simulation with Memory-Mapped Data (Python)
+# Demo 07: Monte Carlo Simulation with Memory-Mapped Data (Python)
 
 ## Purpose
 
 Validate T-Rex selector FDR/TPR under memory-mapped (mmap) I/O over many Monte
-Carlo trials, mirroring the single-run patterns of Demo 05. Python port of
-`cpp/trex_selector_methods/trex/demo_trex_06_mc_sim_mmap`.
+Carlo trials, mirroring the single-run patterns of Demo 06. Python port of
+`cpp/trex_selector_methods/trex/demo_trex_07_mc_sim_mmap`.
 
 ## DGP / Data
 
@@ -50,7 +50,7 @@ Writes results to this demo's own `simulation_results/` folder via
 ## Running
 
 ```bash
-.venv/bin/python Python/trex_selector_methods/trex/demo_trex_06_mc_sim_mmap/demo_trex_06_mc_sim_mmap.py
+.venv/bin/python Python/trex_selector_methods/trex/demo_trex_07_mc_sim_mmap/demo_trex_07_mc_sim_mmap.py
 ```
 
 The MC loop is parallelized with Python `multiprocessing` (spawn start method)

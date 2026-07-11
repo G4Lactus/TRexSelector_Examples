@@ -1,4 +1,4 @@
-# Demo 05: Memory-Mapped Data — Single Run
+# Demo 06: Memory-Mapped Data — Single Run
 
 ## Purpose
 
@@ -30,7 +30,7 @@ then high-dimensional `n = 1000, p = 5000`. Control via `make_mmap_trex_ctrl(sol
 ## Running
 
 ```bash
-Rscript R/trex_selector_methods/trex/demo_trex_05_mmap/demo_trex_05_mmap.R
+Rscript R/trex_selector_methods/trex/demo_trex_06_mmap/demo_trex_06_mmap.R
 ```
 
 Each run writes a per-variable selection **CSV** (no `.txt`) to this demo's own

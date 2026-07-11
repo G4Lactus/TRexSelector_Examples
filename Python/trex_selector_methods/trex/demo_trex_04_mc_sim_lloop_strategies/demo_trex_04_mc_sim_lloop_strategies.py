@@ -8,14 +8,16 @@
 #
 # Demo content:
 #
-#    STANDARD          — Fresh i.i.d. dummy matrix at each L-loop iteration
-#                        (conservative gold standard; highest memory cost).
-#    HCONCAT           — Horizontally expand dummy columns from the same base draw.
-#    PERMUTATION       — Re-use the base dummy matrix via permutations.
-#    PERMUTATION_DIRECT— Seed-based permutations; no base matrix in memory.
-#    DIRECT            — Seed-based i.i.d. draws; no base matrix in memory.
-#    SKIPL             — Skip the L-loop entirely; always uses
-#                        L = max_dummy_multiplier (no adaptive L calibration).
+#    STANDARD             — Fresh i.i.d. dummy matrix at each L-loop iteration
+#                           (conservative gold standard; highest memory cost).
+#    HCONCAT              — Horizontally expand dummy columns from the same base draw.
+#    PERMUTATION          — Re-use the stored base dummy matrix via deterministic
+#                           row permutations per experiment.
+#    PERMUTATION_ONDEMAND — Seed-derived base + row permutations; nothing stored.
+#                           Bit-identical to PERMUTATION per seed.
+#    ONDEMAND             — Seed-derived i.i.d. draws; nothing stored.
+#    SKIPL                — Skip the L-loop entirely; always uses
+#                           L = max_dummy_multiplier (no adaptive L calibration).
 #
 #  Scenario:
 #  High-dimensional (n = 300, p = 1000, s = 10).
@@ -44,7 +46,7 @@ from trex_sim_common import run_mc_trex, save_mc_results
 # Global parameters
 # ==============================================================================
 
-_OUT_DIR     = os.path.join(_THIS_DIR, "simulation_results")
+_OUT_DIR     = os.path.join(_THIS_DIR, "simulation_results", "data")
 _NUM_WORKERS = 6
 _NUM_MC      = 25
 
@@ -61,11 +63,11 @@ def _strat(name, strategy, max_dummy_mult=10):
     return dict(name=name, strategy=strategy, max_dummy_mult=max_dummy_mult)
 
 L_STRATEGIES = [
-    # _strat("STANDARD",           "STANDARD"),
-    # _strat("HCONCAT",            "HCONCAT"),
-    # _strat("PERMUTATION",        "PERMUTATION"),
-    # _strat("PERMUTATION_DIRECT", "PERMUTATION_DIRECT"),
-    # _strat("DIRECT",             "DIRECT"),
+    # _strat("STANDARD",             "STANDARD"),
+    # _strat("HCONCAT",              "HCONCAT"),
+    # _strat("PERMUTATION",          "PERMUTATION"),
+    # _strat("PERMUTATION_ONDEMAND", "PERMUTATION_ONDEMAND"),
+    # _strat("ONDEMAND",             "ONDEMAND"),
     # _strat("SKIPL_5p",  "SKIPL",  5),
     # _strat("SKIPL_10p", "SKIPL", 10),
     _strat("SKIPL_20p", "SKIPL", 20),

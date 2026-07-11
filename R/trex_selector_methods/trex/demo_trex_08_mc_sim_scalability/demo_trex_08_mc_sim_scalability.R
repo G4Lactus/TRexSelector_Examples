@@ -1,5 +1,5 @@
 # ==============================================================================
-# demo_trex_07_scalability.R
+# demo_trex_08_mc_sim_scalability.R
 # ==============================================================================
 #
 # Part 7 of the classical T-Rex selector demos. This part demonstrates
@@ -39,7 +39,7 @@ source(file.path(this_dir_, "..", "trex_sim_utils.R"))
 # =============================================================================
 # Global Simulation Parameters
 # =============================================================================
-OUT_DIR <- file.path(this_dir_, "simulation_results")
+OUT_DIR <- file.path(this_dir_, "simulation_results", "data")
 dir.create(OUT_DIR, recursive = TRUE, showWarnings = FALSE)
 run_part_7 <- TRUE
 
@@ -203,4 +203,4 @@ run_scalability_benchmark <- function() {
 # Run part 7: Scalability Benchmark
 # ==============================================================================
 if (run_part_7) run_scalability_benchmark()
-cat("\ndemo_trex_07_scalability.R complete.\n")
+cat("\ndemo_trex_08_mc_sim_scalability.R complete.\n")

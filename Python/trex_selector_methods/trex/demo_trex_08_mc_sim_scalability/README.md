@@ -1,4 +1,4 @@
-# Demo 07: Scalability Benchmark (Python)
+# Demo 08: Scalability Benchmark (Python)
 
 ## Purpose
 
@@ -6,7 +6,7 @@ Benchmark the classical T-Rex selector's runtime and peak resident memory,
 comparing **in-memory** execution against **chunked, memory-mapped
 out-of-core** execution over an exponentially increasing `(n, p)` grid. Unlike
 the C++ counterpart (`demo_trex_07_mc_sim_scalability`, an unbuilt placeholder),
-this Python port is a working benchmark and mirrors the R Demo 07.
+this Python port is a working benchmark and mirrors the R Demo 08.
 
 ## DGP / Data
 
@@ -47,7 +47,7 @@ Writes `d04_scalability_benchmark.csv` (columns:
 ## Running
 
 ```bash
-.venv/bin/python Python/trex_selector_methods/trex/demo_trex_07_scalability/demo_trex_07_scalability.py
+.venv/bin/python Python/trex_selector_methods/trex/demo_trex_08_mc_sim_scalability/demo_trex_08_mc_sim_scalability.py
 ```
 
 Each benchmarked run executes in its own subprocess via Python `multiprocessing`
