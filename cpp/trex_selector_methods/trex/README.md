@@ -135,7 +135,7 @@ For first use, the following order is recommended:
 2. **Demo 02 — Monte Carlo, Fixed Support**  
    Shows how performance changes across SNR values and provides aggregated FDR/TPR output.
 
-3. **Demo 05 — Memory-Mapped Single Run**  
+3. **Demo 06 — Memory-Mapped Single Run**  
    Useful if you are interested in large-data workflows or limited-RAM settings. To reveal its full power, we recommend using an SSD drive.
 
 ---
@@ -146,9 +146,15 @@ Each demo subfolder typically contains:
 
 - **`demo_*.cpp`**: the source file for the demo.
 - **`README.md`**: a description of the scenario and the main interpretation.
-- **`simulation_results/`**: generated output files such as text summaries and CSV tables.
+- **`generate_plots.sh`** (MC demos 02–05): thin wrapper that renders the demo's
+  figures via the suite-level [trex_plt_utils.py](trex_plt_utils.py).
+- **`simulation_results/`**: generated artifacts only, split into
+  - **`data/`** — text summaries and CSV tables written by the demo binary,
+  - **`plots/`** — figures (png/pdf/html) written by the plotting scripts.
 
-This makes each demo self-contained and easier to inspect independently.
+Everything under `simulation_results/` is machine-generated and can be
+regenerated; source files (demo code, plot scripts) never live there. This makes
+each demo self-contained and easier to inspect independently.
 
 ---
 
@@ -160,9 +166,10 @@ This makes each demo self-contained and easier to inspect independently.
 | **02** | MC: Fixed Support | Studies FDR/TPR over an SNR range for 14 base solvers | Moderate dimension, fixed random support | $n = 300$, $p = 1000$, $s = 10$ (fixed, random indices, seed 24), SNR $ \in \{0.1, 0.5, 1, 2, 5\} $, tFDR = 0.1, MC = 200 |
 | **03** | MC: Variable Support | Studies FDR/TPR/L/T when support indices are redrawn per trial | Moderate dimension, variable support indices | $n = 300$, $p = 1000$, $s = 10$ (cardinality fixed, indices vary per trial), 21-point SNR grid $\{0.1,\ldots,2.0, 5.0\}$, tFDR = 0.1, MC = 10 |
 | **04** | MC: L-loop Strategies | Compares the 6 L-loop strategy types (TLARS fixed) | Moderate dimension, random support | $n = 300$, $p = 1000$, $s = 10$, 21-point SNR grid, tFDR = 0.1, MC = 10, 8 strategy rows (incl. SKIPL 5p/10p/20p) |
-| **05** | Memory-Mapped Single Run | Demonstrates memory-mapped workflows | Larger data and reduced RAM usage | Two scenarios ($n=5000,p=1000$ and $n=1000,p=5000$): in-memory X + D mmap, and full X+D mmap pipeline |
-| **06** | MC: Memory-Mapped | Studies FDR/TPR under memory-mapped execution (TLARS) | Moderate dimension, mmap pipeline | $n = 300$, $p = 1000$, $s = 10$, SNR $\in \{0.1,0.5,1,2,5\}$, MC = 10 (Demo C) / 500 (Demo D), mmap storage on disk |
-| **07** | MC: Scalability | Reserved for future scalability experiments | Placeholder | To be completed |
+| **05** | MC: Dummy Distributions | Compares dummy distribution shapes across 3 base solvers (TLARS/TOMP/TAFS, STANDARD L-loop fixed) | Moderate dimension, random support | $n = 300$, $p = 1000$, $s = 10$, 21-point SNR grid, tFDR = 0.1, MC = 10, 12 distribution rows (Normal … UnifSphere_d5) × 3 solvers (one file pair each) |
+| **06** | Memory-Mapped Single Run | Demonstrates memory-mapped workflows | Larger data and reduced RAM usage | Two scenarios ($n=5000,p=1000$ and $n=1000,p=5000$): in-memory X + D mmap, and full X+D mmap pipeline |
+| **07** | MC: Memory-Mapped | Studies FDR/TPR under memory-mapped execution (TLARS) | Moderate dimension, mmap pipeline | $n = 300$, $p = 1000$, $s = 10$, SNR $\in \{0.1,0.5,1,2,5\}$, MC = 10 (Demo C) / 500 (Demo D), mmap storage on disk |
+| **08** | MC: Scalability | Reserved for future scalability experiments | Placeholder | To be completed |
 
 ---
 
@@ -172,44 +179,59 @@ This makes each demo self-contained and easier to inspect independently.
 trex/
   ├── README.md
   ├── CMakeLists.txt
-  ├── trex_sim_utils.hpp
+  ├── trex_sim_utils.hpp                <- shared MC / output helpers (C++)
+  ├── trex_plt_utils.py                 <- shared plotting module (all tidy-CSV demos)
   │
   ├── demo_trex_01_single_run/
   │   ├── demo_trex_01_single_run.cpp
   │   ├── README.md
   │   └── simulation_results/
-  │       ├── d01_trex_basic_n150_p300.txt
-  │       └── d01_trex_basic_n5000_p1000.txt
+  │       └── data/
+  │           ├── d01_trex_basic_n150_p300.txt
+  │           └── d01_trex_basic_n5000_p1000.txt
   │
   ├── demo_trex_02_mc_sim_fixed_support/
   │   ├── demo_trex_02_mc_sim_fixed_support.cpp
   │   ├── README.md
+  │   ├── generate_plots.sh
   │   └── simulation_results/
-  │       ├── demo_trex_02_mc_sim_fixed_support_trex_results_n300_p1000_stagnation_window_7.txt
-  │       └── demo_trex_02_mc_sim_fixed_support_trex_results_n300_p1000_stagnation_window_7.csv
+  │       ├── data/
+  │       │   ├── demo_trex_02_mc_sim_fixed_support_trex_results_n300_p1000_stagnation_window_7.txt
+  │       │   └── demo_trex_02_mc_sim_fixed_support_trex_results_n300_p1000_stagnation_window_7.csv
+  │       └── plots/
+  │           ├── ..._fdr_tpr_vs_snr.{png,pdf,html}
+  │           └── ..._fdr_tpr_vs_snr_grouped.{png,pdf}
   │
   ├── demo_trex_03_mc_sim_variable_support/
   │   ├── demo_trex_03_mc_sim_variable_support.cpp
   │   ├── README.md
-  │   └── simulation_results/
+  │   ├── generate_plots.sh
+  │   └── simulation_results/          <- data/ + plots/
   │
   ├── demo_trex_04_mc_sim_lloop_strategies/
   │   ├── demo_trex_04_mc_sim_lloop_strategies.cpp
   │   ├── README.md
-  │   └── simulation_results/
+  │   ├── generate_plots.sh
+  │   └── simulation_results/          <- data/ + plots/
   │
-  ├── demo_trex_05_mmap/
-  │   ├── demo_trex_05_mmap.cpp
+  ├── demo_trex_05_mc_sim_dummy_distributions/
+  │   ├── demo_trex_05_mc_sim_dummy_distributions.cpp
   │   ├── README.md
-  │   └── simulation_results/
+  │   ├── generate_plots.sh
+  │   └── simulation_results/          <- data/ + plots/
   │
-  ├── demo_trex_06_mc_sim_mmap/
-  │   ├── demo_trex_06_mc_sim_mmap.cpp
+  ├── demo_trex_06_mmap/
+  │   ├── demo_trex_06_mmap.cpp
   │   ├── README.md
-  │   └── simulation_results/
+  │   └── simulation_results/          <- data/
   │
-  └── demo_trex_07_mc_sim_scalability/
-      ├── demo_trex_07_mc_sim_scalability.cpp
+  ├── demo_trex_07_mc_sim_mmap/
+  │   ├── demo_trex_07_mc_sim_mmap.cpp
+  │   ├── README.md
+  │   └── simulation_results/          <- data/
+  │
+  └── demo_trex_08_mc_sim_scalability/
+      ├── demo_trex_08_mc_sim_scalability.cpp
       ├── README.md
       └── simulation_results/
 ```
@@ -275,17 +297,20 @@ Cpp's `matplot++` or any other plotting tool.
 Example output location:
 
 ```txt
-demo_trex_02_mc_sim_fixed_support/simulation_results/
+demo_trex_02_mc_sim_fixed_support/simulation_results/data/
   ├── demo_trex_02_mc_sim_fixed_support_trex_results_n300_p1000_stagnation_window_7.txt
   └── demo_trex_02_mc_sim_fixed_support_trex_results_n300_p1000_stagnation_window_7.csv
 ```
 
 ### Output files
 
-Depending on the demo, the `simulation_results/` folder may contain:
+Each demo's `simulation_results/` folder holds machine-generated artifacts only:
 
-- **`.txt` files** for human-readable summaries,
-- **`.csv` files** for plotting, post-processing, or comparison across methods.
+- **`data/`** — `.txt` files (human-readable summaries) and `.csv` files
+  (tidy tables for plotting and post-processing), written by the demo binary.
+- **`plots/`** — figures (`.png`/`.pdf`/`.html`) rendered from the `data/` CSVs
+  by each demo's `generate_plots.sh` via the shared
+  [trex_plt_utils.py](trex_plt_utils.py).
 
 ---
 
@@ -293,7 +318,7 @@ Depending on the demo, the `simulation_results/` folder may contain:
 
 - Start with **Demo 01** if you only want to verify that the pipeline works.
 - Use **Demo 02** and **Demo 03** to study statistical behavior across repeated simulations.
-- Use **Demo 05** and **Demo 06** if you are interested in larger problem sizes or disk-backed workflows.
+- Use **Demo 06** and **Demo 07** if you are interested in larger problem sizes or disk-backed workflows.
 - Check the local `README.md` inside each demo folder for scenario-specific details.
 
 ---
@@ -305,4 +330,4 @@ Depending on the demo, the `simulation_results/` folder may contain:
 
 ---
 
-**Last updated**: 2026-07-08
+**Last updated**: 2026-07-11
