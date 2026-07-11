@@ -111,7 +111,7 @@ void demo_TRexSelector(bool high_dim, bool rnd_coef) {
 
     // Create T-Rex Selector instance
     print_dual("Creating T-Rex Selector instance...\n");
-    TRexSelector trex(X_map, y_map, tFDR, trex_ctrl, -1, true);
+    TRexSelector trex(X_map, y_map, tFDR, trex_ctrl, 42, true);
 
     // Execute T-Rex Selector
     print_dual("Executing T-Rex Selector...\n");

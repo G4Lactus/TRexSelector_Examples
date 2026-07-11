@@ -45,7 +45,7 @@ The same **14** T-Rex base solvers as Demo 02, via the shared `make_default_solv
 
 ## Output Files
 
-Both files are written to `simulation_results/`. The stem uses `tloop_max_stagnant_steps = 5` (hence `stagnation_window_5`), prefixed with `demo_trex_03_mc_sim_variable_support_`.
+Both files are written to `simulation_results/data/`. The stem uses `tloop_max_stagnant_steps = 5` (hence `stagnation_window_5`), prefixed with `demo_trex_03_mc_sim_variable_support_`.
 
 ### Main Result File
 **`demo_trex_03_mc_sim_variable_support_trex_results_n300_p1000_stagnation_window_5.txt`**
@@ -72,6 +72,18 @@ TLARS,AvgT,0.100000,...
 ```bash
 ./build/debug/bin/trex_selector_methods/trex/demo_trex_03_mc_sim_variable_support/demo_trex_03_mc_sim_variable_support
 ```
+
+### Note on `TNCGMP_v0` memory messages (benign)
+
+With older library builds, the `TNCGMP_v0` (LineSearch / Matching Pursuit) block prints lines such as:
+
+```text
+[TNCGMP_LineSearch] [WARNING] LineSearch worst-case beta path is ~1.34 GiB (3000 x 60000 doubles); rely on T_stop early stopping.
+```
+
+This is **not** an error and does **not** indicate a failed run — the reported results are correct. It is a *worst-case* memory estimate: the LineSearch variant allows atom re-selection and therefore uses a uniquely large step ceiling (`20 · p_tot`, vs `8 · min(...)` for the OMP-family solvers). The beta-path buffer is allocated **incrementally** and bounded by `T_stop` / stagnation stopping, so the full worst case is virtually never reached. Only `v0` reports it; `TNCGMP_v1` (FullyCorrective) does not. The message also fires once per solver construction (i.e. per MC trial), which is why it can repeat.
+
+Upstream this has been reclassified from an unconditional `logWarning` to a verbose-only `logInfo`, so recent library builds are silent here unless verbosity is enabled.
 
 ---
 

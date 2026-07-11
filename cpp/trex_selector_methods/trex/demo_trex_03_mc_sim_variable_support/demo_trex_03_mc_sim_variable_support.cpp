@@ -208,7 +208,7 @@ int main() {
     // Monte Carlo simulation: variable active support
     // ============================================================
     if (true)
-        demo_TRexSelector_varMonteCarlo(/*num_MC=*/10, /*high_dim=*/true, /*rnd_coef=*/false);
+        demo_TRexSelector_varMonteCarlo(/*num_MC=*/200, /*high_dim=*/true, /*rnd_coef=*/false);
 
     return 0;
 }

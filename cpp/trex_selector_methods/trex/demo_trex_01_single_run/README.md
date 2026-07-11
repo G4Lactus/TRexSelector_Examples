@@ -29,7 +29,6 @@ and share the same true support and coefficients; only the dimensions differ.
 - True support: $\mathcal{S}^* = \{27, 149, 43, 128, 42, 4\}$ ($s = 6$ true actives)
 - True coefficients: fixed $\beta_j = 1$ for all active variables
 - SNR (linear): $1.0$
-- Data seed: `58`
 
 ### Scenario B: Low-Dimensional ($n > p$)
 
@@ -38,6 +37,8 @@ and share the same true support and coefficients; only the dimensions differ.
 - True support: Same as scenario A
 - True coefficients: Same as scenario A
 - SNR (linear): $1.0$
+
+Both scenarios share a deterministic data seed: `42`, used for a reproducible example.
 
 **Coefficient note**: the `rnd_coef` code path does **not** draw from a uniform distribution — instead it selects
 a fixed hardcoded vector $\{-0.4, -0.25, -0.8, 1.1, 2.5, -1.2\}$ which mimics randomly drawn coefficients.
@@ -139,4 +140,4 @@ Output appears on the console and is simultaneously written to the files above.
 
 ---
 
-**Last updated**: 2026-07-08
+**Last updated**: 2026-07-11

@@ -22,19 +22,21 @@ Compare the **L-loop strategies** of the T-Rex Selector — the different mechan
 
 ## L-Loop Strategies Tested
 
-`make_lloop_strategies()` sweeps the **six L-loop strategy types** defined by the library `LLoopStrategy` enum, with `SKIPL` evaluated at three fixed dummy levels (5p, 10p, 20p) — **eight rows** in total:
+`make_lloop_strategies()` sweeps the **six L-loop strategy types** defined by the library `LLoopStrategy` enum, with `SKIPL` evaluated at three fixed dummy levels (5p, 10p, 20p) — **eight rows** in total.
 
-1. **STANDARD** — fresh i.i.d. dummy matrix at each L-loop iteration.
-2. **HCONCAT** — horizontally expand (concatenate) dummy columns.
-3. **PERMUTATION** — re-use the base dummy matrix via column permutations.
-4. **PERMUTATION_DIRECT** — seed-based permutations; no base matrix kept in memory.
-5. **DIRECT** — seed-based i.i.d. draws; no base matrix kept in memory.
+The strategies span two orthogonal axes: **dummy source** (fresh independent draws per experiment vs one shared base matrix whose rows are permuted per experiment) and **storage** (*stored* strategies keep matrices in the `DummyGenerator` for the whole run; *on-demand* strategies re-derive everything from the seed at each step, with zero persistent state):
+
+1. **STANDARD** — stored; fresh i.i.d. dummy matrices at each L-loop iteration (conservative default, matches the CRAN R reference).
+2. **HCONCAT** — stored; horizontally expand (concatenate) dummy columns; prefix-stable.
+3. **PERMUTATION** — stored base dummy matrix, re-used via deterministic **row permutations** per experiment.
+4. **PERMUTATION_ONDEMAND** — seed-derived base + row permutations per experiment; nothing stored. Bit-identical to PERMUTATION for the same seed.
+5. **ONDEMAND** — seed-derived independent dummies per experiment; nothing stored.
 6. **SKIPL** — skip the L-loop entirely and use $L = \text{max\_dummy\_multiplier}$, evaluated at:
    - **SKIPL_5p** ($L = 5p$)
    - **SKIPL_10p** ($L = 10p$)
    - **SKIPL_20p** ($L = 20p$)
 
-The library enum has **no** "Doubling" or "Fixed" strategy.
+The library enum has **no** "Doubling" or "Fixed" strategy. (The former `DIRECT` / `PERMUTATION_DIRECT` names were renamed to `ONDEMAND` / `PERMUTATION_ONDEMAND`; the old names no longer exist.)
 
 ---
 
@@ -58,12 +60,12 @@ The MC loop is parallelized with OpenMP (`omp_set_num_threads(6)`).
 
 ## Output Files
 
-Both files are written to `simulation_results/`. The stem encodes the support scenario (`random_support` for the active run):
+Both files are written to `simulation_results/data/`. The stem encodes the support scenario (`random_support` for the active run):
 
 ### Main Result File
 **`demo_trex_04_lloop_strategies_results_n300_p1000_random_support.txt`**
 
-Aligned table (written by the shared `save_and_print_mc_results`) with four metric rows — FDR, TPR, Avg L, Avg T — per strategy across the 21 SNR columns. The row label is the strategy name (STANDARD, HCONCAT, …, SKIPL_20p):
+Aligned table (written by the shared `save_and_print_mc_results`) with four metric rows — FDR, TPR, Avg L, Avg T — per strategy across the 21 SNR columns. The row label is the strategy name (STANDARD, HCONCAT, PERMUTATION, PERMUTATION_ONDEMAND, ONDEMAND, SKIPL_5p, SKIPL_10p, SKIPL_20p):
 
 ```
 ======================================================================
@@ -117,11 +119,12 @@ Long/stacked format, header column order **`solver,metric,snr,value`** (here the
 - **Avg L / Avg T**: how each strategy calibrates the dummy structure and when the T-loop stops.
 
 **Practical significance:**
-- The seed-based DIRECT / PERMUTATION_DIRECT strategies avoid holding a base dummy matrix in memory.
+- The seed-based ONDEMAND / PERMUTATION_ONDEMAND strategies avoid holding any dummy matrix in memory — the preferred choice at scale.
+- PERMUTATION and PERMUTATION_ONDEMAND produce bit-identical selections for the same seed; they differ only in memory footprint.
 - SKIPL trades adaptivity for a fixed, larger dummy budget.
 
 This C++ demo mirrors `R/trex_selector_methods/trex/demo_trex_04_mc_sim_lloop_strategies.R`.
 
 ---
 
-**Last updated**: 2026-07-08
+**Last updated**: 2026-07-10

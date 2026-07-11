@@ -13,15 +13,26 @@
  *    block_support = true  — contiguous block support {0, 1, ..., s-1}.
  *    block_support = false — scattered support redrawn from uniform per trial.
  *
- *  Holds the solver fixed (TLARS) and sweeps over the six L-loop strategies:
+ *  Holds the solver fixed (TLARS) and sweeps over the six L-loop strategies.
+ *  The strategies span two orthogonal axes (see LLoopStrategy in trex.hpp):
+ *  dummy source (fresh independent draws vs a shared base matrix with row
+ *  permutations per experiment) and storage (STORED matrices kept for the
+ *  whole run vs ONDEMAND re-derivation from the seed at each step):
  *
  *  Demo content:
- *    STANDARD           — Fresh i.i.d. dummy matrix at each L-loop iteration.
- *    HCONCAT            — Horizontally expand dummy columns.
- *    PERMUTATION        — Re-use the base dummy matrix via column permutations.
- *    PERMUTATION_DIRECT — Seed-based permutations; no base matrix in memory.
- *    DIRECT             — Seed-based i.i.d. draws; no base matrix in memory.
- *    SKIPL              — Skip the L-loop entirely and uses L = max_dummy_multiplier.
+ *    STANDARD             — Stored; fresh i.i.d. dummy matrices at each
+ *                           L-loop iteration (conservative default).
+ *    HCONCAT              — Stored; horizontally expand dummy columns
+ *                           (faster, prefix-stable, same result).
+ *    PERMUTATION          — Stored base dummy matrix + deterministic row
+ *                           permutations per experiment.
+ *    PERMUTATION_ONDEMAND — Seed-derived base + row permutations per
+ *                           experiment; nothing stored. Bit-identical to
+ *                           PERMUTATION for the same seed.
+ *    ONDEMAND             — Seed-derived independent dummies per experiment;
+ *                           nothing stored.
+ *    SKIPL                — Skip the L-loop entirely and use
+ *                           L = max_dummy_multiplier.
  *
  *    High-dimensional  (n = 300, p = 1000, s = 10).
  *    SNR sweep: {0.1, 0.2, ..., 2.0, 5.0}  (21 values).
@@ -97,19 +108,19 @@ struct LLoopStrategyInfo {
 
 /** @brief Returns the canonical list of L-loop strategy variants to compare.
  *
- *  Adaptive strategies (STANDARD … DIRECT) all use max_dummy_multiplier = 10 (default).
+ *  Adaptive strategies (STANDARD … ONDEMAND) all use max_dummy_multiplier = 10 (default).
  *  SKIPL is compared at three explicit L levels: 5p, 10p, and 20p.
  */
 static std::vector<LLoopStrategyInfo> make_lloop_strategies() {
     return {
-        {"STANDARD",           LLoopStrategy::STANDARD},
-        {"HCONCAT",            LLoopStrategy::HCONCAT},
-        {"PERMUTATION",        LLoopStrategy::PERMUTATION},
-        {"PERMUTATION_DIRECT", LLoopStrategy::PERMUTATION_DIRECT},
-        {"DIRECT",             LLoopStrategy::DIRECT},
-        {"SKIPL_5p",           LLoopStrategy::SKIPL, 5},
-        {"SKIPL_10p",          LLoopStrategy::SKIPL, 10},
-        {"SKIPL_20p",          LLoopStrategy::SKIPL, 20}
+        {"STANDARD",             LLoopStrategy::STANDARD},
+        {"HCONCAT",              LLoopStrategy::HCONCAT},
+        {"PERMUTATION",          LLoopStrategy::PERMUTATION},
+        {"PERMUTATION_ONDEMAND", LLoopStrategy::PERMUTATION_ONDEMAND},
+        {"ONDEMAND",             LLoopStrategy::ONDEMAND},
+        {"SKIPL_5p",             LLoopStrategy::SKIPL, 5},
+        {"SKIPL_10p",            LLoopStrategy::SKIPL, 10},
+        {"SKIPL_20p",            LLoopStrategy::SKIPL, 20}
     };
 }
 

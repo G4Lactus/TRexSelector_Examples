@@ -505,8 +505,11 @@ inline void save_and_print_mc_results(
         print_dual(ss.str());
     }
 
-    // 3. Table dimensions
-    const std::size_t solver_width  = 15;
+    // 3. Table dimensions (label column grows to fit the longest solver name;
+    //    15 keeps the layout of demos whose names all fit the classic width)
+    std::size_t solver_width = 15;
+    for (const auto& name : solver_names)
+        solver_width = std::max(solver_width, name.size() + 2);
     const std::size_t metric_width  = 8;
     const std::size_t snr_col_width = 5;
     const std::size_t col_width     = 10;

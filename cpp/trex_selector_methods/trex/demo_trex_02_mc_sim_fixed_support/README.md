@@ -61,7 +61,7 @@ The shared list `make_default_solvers_to_test()` in `trex_sim_utils.hpp` provide
 
 ## Output Files
 
-Both files are written to `simulation_results/`. Stems are built from `n`, `p`, and the stagnation window (`tloop_max_stagnant_steps = 7`), prefixed with `demo_trex_02_mc_sim_fixed_support_`.
+Both files are written to `simulation_results/data/`. Stems are built from `n`, `p`, and the stagnation window (`tloop_max_stagnant_steps = 7`), prefixed with `demo_trex_02_mc_sim_fixed_support_`.
 
 ### Main Result File
 **`demo_trex_02_mc_sim_fixed_support_trex_results_n300_p1000_stagnation_window_7.txt`**
@@ -97,6 +97,70 @@ TLARS,TPR,0.100000,...
 TLARS,FDR,0.500000,...
 TLARS,TPR,0.500000,...
 ...
+```
+
+---
+
+## Results Visualization
+
+The suite-level plotting module [../trex_plt_utils.py](../trex_plt_utils.py)
+renders the tidy CSV three ways (all written to `simulation_results/plots/`).
+
+### Overview (all 14 solvers)
+
+FDR and TPR versus SNR (log-scaled x-axis), all solvers on one pair of panels:
+
+![FDR and TPR versus SNR for all 14 solvers](simulation_results/plots/demo_trex_02_mc_sim_fixed_support_trex_results_n300_p1000_stagnation_window_7_fdr_tpr_vs_snr.png)
+
+*Left:* FDR stays comfortably below the target `tFDR = 0.1` (black dotted line)
+across all SNR levels for every solver. *Right:* TPR rises from near-zero at SNR
+0.1 to near-perfect recovery by SNR 2.0.
+
+### Grouped 2×2 view (de-cluttered)
+
+The same data with the solvers split into two halves (columns) and FDR/TPR on the
+two rows, so each panel carries only ~7 curves — easier to read where they bunch
+up. Both FDR panels share a y-scale for comparison:
+
+![FDR and TPR versus SNR, solvers split across a 2x2 grid](simulation_results/plots/demo_trex_02_mc_sim_fixed_support_trex_results_n300_p1000_stagnation_window_7_fdr_tpr_vs_snr_grouped.png)
+
+### Interactive (Plotly HTML)
+
+`..._fdr_tpr_vs_snr.html` is a self-contained interactive figure — hover for exact
+values and **click a solver in the legend to isolate its curve** in both panels.
+Open it directly in a browser (it is not rendered inline on GitHub):
+
+```bash
+open simulation_results/plots/demo_trex_02_mc_sim_fixed_support_trex_results_n300_p1000_stagnation_window_7_fdr_tpr_vs_snr.html
+```
+
+Vector (PDF) copies of both static figures sit alongside the PNGs.
+
+### Regenerating the figures
+
+Quickest way — the wrapper picks up the repo's local `.venv` automatically, so no
+manual path or `activate` is needed. By default it produces all three views
+(overview + grouped static figures and the interactive HTML):
+
+```bash
+# From this demo folder:
+./generate_plots.sh                 # overview + grouped (png+pdf) + interactive html
+./generate_plots.sh --no-plotly     # skip the interactive html
+./generate_plots.sh --plotly-cdn    # tiny html that loads plotly.js from a CDN
+./generate_plots.sh --tfdr 0.05     # e.g. a different target-FDR line
+```
+
+One-time setup: the plotter needs `matplotlib` and `plotly` (the repo `.venv`
+already ships `pandas`) — `pip install matplotlib plotly`.
+
+The underlying `../trex_plt_utils.py` is shared by every demo in this suite whose
+results use the tidy `solver,metric,snr,value` schema (demos 02/03/04/05) — it
+infers the row colours from the data and writes the figures into the
+`simulation_results/plots/` sibling of a `data/` CSV. To call it directly against
+another results file:
+
+```bash
+python ../trex_plt_utils.py path/to/results.csv --title "..." --legend-title "..." --formats png pdf
 ```
 
 ---
@@ -142,4 +206,4 @@ The MC loop runs 200 trials × 5 SNR levels × 14 solvers, so wall-clock time de
 
 ---
 
-**Last updated**: 2026-07-08
+**Last updated**: 2026-07-10
