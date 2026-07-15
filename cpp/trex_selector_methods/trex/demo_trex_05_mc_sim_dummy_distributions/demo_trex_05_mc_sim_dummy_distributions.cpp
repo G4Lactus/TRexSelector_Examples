@@ -129,8 +129,8 @@ static std::vector<DummyDistributionInfo> make_dummy_distributions() {
         {"Triangle",            dummygen::Distribution::Triangle()},
         {"Logistic",            dummygen::Distribution::Logistic()},
         {"Mammen",              dummygen::Distribution::Mammen()},
-        {"SparseRad_s0.1",      dummygen::Distribution::ConstrainedSparseRademacher(0.1)},
-        {"UnifSphere_d5",       dummygen::Distribution::UniformSphere(5)}
+        {"SparseRad_s0.1",     dummygen::Distribution::ConstrainedSparseRademacher(0.1)},
+        {"UnifSphere_d5",      dummygen::Distribution::UniformSphere(5)}
     };
 }
 
@@ -161,10 +161,10 @@ void demo_TRexSelector_dummy_distributions(std::size_t num_MC, bool rnd_coef,
               << "  [" << (block_support ? "block" : "random") << " support]\n\n";
 
     // SNR values: 0.1, 0.2, ..., 2.0, 5.0  (21 values)
-    std::vector<double> snr_values(20);
-    std::iota(snr_values.begin(), snr_values.end(), 1);
-    for (auto& x : snr_values) x *= 0.1;
-    snr_values.push_back(5.0);
+    std::vector<double> snr_values = {0.1, 0.2, 0.5, 0.6, 1, 2, 5}; //(20);
+    //std::iota(snr_values.begin(), snr_values.end(), 1);
+    //for (auto& x : snr_values) x *= 0.1;
+    //snr_values.push_back(5.0);
 
     // -----------------------------------------------------------------------
     // Base solvers and dummy distributions to sweep

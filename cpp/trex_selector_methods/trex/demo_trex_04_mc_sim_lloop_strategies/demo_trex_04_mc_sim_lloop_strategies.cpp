@@ -5,21 +5,17 @@
  * @file demo_trex_04_mc_sim_lloop_strategies.cpp
  *
  * @brief Monte Carlo simulation comparing the six L-loop strategies of the
- *        T-Rex Selector, with TLARS held fixed as the base solver.
+ *        T-Rex Selector, repeated across three base solvers (TLARS / TOMP /
+ *        TAFS).
  *
- * @details Mirrors R/trex_selector_methods/trex/demo_trex_04_mc_sim_lloop_strategies.R
+ * @details
+ *  Demo content:
  *
  *  Runs in two modes controlled by the `block_support` parameter:
  *    block_support = true  — contiguous block support {0, 1, ..., s-1}.
  *    block_support = false — scattered support redrawn from uniform per trial.
  *
- *  Holds the solver fixed (TLARS) and sweeps over the six L-loop strategies.
- *  The strategies span two orthogonal axes (see LLoopStrategy in trex.hpp):
- *  dummy source (fresh independent draws vs a shared base matrix with row
- *  permutations per experiment) and storage (STORED matrices kept for the
- *  whole run vs ONDEMAND re-derivation from the seed at each step):
- *
- *  Demo content:
+ *  L-Loop strategies:
  *    STANDARD             — Stored; fresh i.i.d. dummy matrices at each
  *                           L-loop iteration (conservative default).
  *    HCONCAT              — Stored; horizontally expand dummy columns
@@ -45,6 +41,7 @@
 
 // std includes
 #include <algorithm>
+#include <cctype>
 #include <iomanip>
 #include <iostream>
 #include <map>
@@ -135,7 +132,7 @@ void demo_TRexSelector_lloop_strategies(std::size_t num_MC, bool rnd_coef,
     std::cout.setf(std::ios::unitbuf);
 
     cdianostics::print_section_header(
-        "Demo: T-Rex Selector MC \u2014 L-Strategy Comparison  |  TLARS");
+        "Demo: T-Rex Selector MC \u2014 L-Strategy Comparison  |  TLARS / TOMP / TAFS");
 
     // -----------------------------------------------------------------------
     // Scenario parameters (always high-dimensional, mirrors R file)
@@ -162,37 +159,56 @@ void demo_TRexSelector_lloop_strategies(std::size_t num_MC, bool rnd_coef,
     const std::vector<LLoopStrategyInfo> strategies = make_lloop_strategies();
 
     // -----------------------------------------------------------------------
-    // Result containers: strategy x SNR
+    // Base solvers to sweep
     // -----------------------------------------------------------------------
-    std::map<std::string, Eigen::VectorXd> fdr_results_map;
-    std::map<std::string, Eigen::VectorXd> tpr_results_map;
-    std::map<std::string, Eigen::VectorXd> average_L_results_map;
-    std::map<std::string, Eigen::VectorXd> average_T_results_map;
+    // Deviations between the solvers will be detectable in the results
+    const std::vector<DemoSolverInfo> solvers = {
+        {SolverTypeForTRex::TLARS, "TLARS"},
+        {SolverTypeForTRex::TOMP,  "TOMP"},
+        {SolverTypeForTRex::TAFS,  "TAFS", 0.0, 0.3}
+    };
 
+    // Row labels (shared across solvers).
     std::vector<std::string> strategy_names;
     strategy_names.reserve(strategies.size());
-    for (const auto& strat : strategies) {
+    for (const auto& strat : strategies)
         strategy_names.push_back(strat.name);
-        fdr_results_map[strat.name]       = Eigen::VectorXd(snr_values.size());
-        tpr_results_map[strat.name]       = Eigen::VectorXd(snr_values.size());
-        average_L_results_map[strat.name] = Eigen::VectorXd(snr_values.size());
-        average_T_results_map[strat.name] = Eigen::VectorXd(snr_values.size());
-    }
+
+    // -----------------------------------------------------------------------
+    // Solver loop — one result file pair (txt + csv) per base solver
+    // -----------------------------------------------------------------------
+    for (const auto& solver : solvers) {
+
+        cdianostics::print_section_header("Base solver: " + solver.solver_name);
+
+        // Result containers: strategy x SNR (reset per solver)
+        std::map<std::string, Eigen::VectorXd> fdr_results_map;
+        std::map<std::string, Eigen::VectorXd> tpr_results_map;
+        std::map<std::string, Eigen::VectorXd> average_L_results_map;
+        std::map<std::string, Eigen::VectorXd> average_T_results_map;
+        for (const auto& strat : strategies) {
+            fdr_results_map[strat.name]       = Eigen::VectorXd(snr_values.size());
+            tpr_results_map[strat.name]       = Eigen::VectorXd(snr_values.size());
+            average_L_results_map[strat.name] = Eigen::VectorXd(snr_values.size());
+            average_T_results_map[strat.name] = Eigen::VectorXd(snr_values.size());
+        }
 
     // -----------------------------------------------------------------------
     // Strategy loop
     // -----------------------------------------------------------------------
     for (const auto& strat : strategies) {
 
-        cdianostics::print_section_header("L-strategy: " + strat.name);
+        cdianostics::print_section_header(
+            "Solver: " + solver.solver_name + "  |  L-strategy: " + strat.name);
 
         TRexControlParameter ctrl;
-        ctrl.solver_type          = SolverTypeForTRex::TLARS;
-        ctrl.K                    = 20;
-        ctrl.max_dummy_multiplier = strat.max_dummy_multiplier;
-        ctrl.use_max_T_stop       = true;
-        ctrl.dummy_distribution   = dummygen::Distribution::Normal();
-        ctrl.lloop_strategy       = strat.strategy;
+        ctrl.solver_type           = solver.solver_type;
+        ctrl.solver_params.rho_afs = solver.rho_afs;
+        ctrl.K                     = 20;
+        ctrl.max_dummy_multiplier  = strat.max_dummy_multiplier;
+        ctrl.use_max_T_stop        = true;
+        ctrl.dummy_distribution    = dummygen::Distribution::Normal();
+        ctrl.lloop_strategy        = strat.strategy;
 
         // Simulation loop: sweep over SNR values
         for (std::size_t snr_idx = 0; snr_idx < snr_values.size(); ++snr_idx) {
@@ -253,27 +269,35 @@ void demo_TRexSelector_lloop_strategies(std::size_t num_MC, bool rnd_coef,
         }
 
         std::cout << "\n";
-    }
+    }   // end strategy loop
 
-    // -----------------------------------------------------------------------
-    // Print and save results
-    // -----------------------------------------------------------------------
-    const std::string stem = "demo_trex_04_lloop_strategies_results_n"
-        + std::to_string(static_cast<std::size_t>(n))
-        + "_p" + std::to_string(static_cast<std::size_t>(p))
-        + (block_support ? "_block_support" : "_random_support");
 
-    save_and_print_mc_results(
-        num_MC,
-        stem,
-        snr_values,
-        strategy_names,
-        fdr_results_map,
-        tpr_results_map,
-        average_L_results_map,
-        average_T_results_map);
+        // -------------------------------------------------------------------
+        // Print and save results for this solver
+        // -------------------------------------------------------------------
+        std::string solver_token = solver.solver_name;
+        std::transform(solver_token.begin(), solver_token.end(),
+                       solver_token.begin(),
+                       [](unsigned char c) { return std::tolower(c); });
 
-    std::cout << "\n\n";
+        const std::string stem = "demo_trex_04_lloop_strategies_results_n"
+            + std::to_string(static_cast<std::size_t>(n))
+            + "_p" + std::to_string(static_cast<std::size_t>(p))
+            + "_" + solver_token
+            + (block_support ? "_block_support" : "_random_support");
+
+        save_and_print_mc_results(
+            num_MC,
+            stem,
+            snr_values,
+            strategy_names,
+            fdr_results_map,
+            tpr_results_map,
+            average_L_results_map,
+            average_T_results_map);
+
+        std::cout << "\n\n";
+    }   // end solver loop
 }
 
 
@@ -288,11 +312,11 @@ int main() {
     std::cout << "Running with " << omp_get_max_threads() << " threads\n\n";
 
     if (true)
-        demo_TRexSelector_lloop_strategies(/*num_MC=*/10,
+        demo_TRexSelector_lloop_strategies(/*num_MC=*/200,
                                            /*rnd_coef=*/false,
                                            /*block_support=*/false);
     if (false)
-        demo_TRexSelector_lloop_strategies(/*num_MC=*/10,
+        demo_TRexSelector_lloop_strategies(/*num_MC=*/200,
                                            /*rnd_coef=*/false,
                                            /*block_support=*/true);
     return 0;

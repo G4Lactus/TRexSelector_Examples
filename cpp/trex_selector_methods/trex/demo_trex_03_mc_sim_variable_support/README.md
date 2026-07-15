@@ -67,6 +67,65 @@ TLARS,AvgT,0.100000,...
 
 ---
 
+## Results Visualization
+
+The suite-level plotting module [../trex_plt_utils.py](../trex_plt_utils.py)
+renders the tidy CSV three ways (all written to `simulation_results/plots/`).
+Only the `FDR` and `TPR` rows are plotted; the `AvgL` / `AvgT` rows are ignored
+by the plotter.
+
+### Overview (all 14 solvers)
+
+FDR and TPR versus SNR (log-scaled x-axis) over the fine 21-point grid, all
+solvers on one pair of panels, with the legend just right of the TPR panel:
+
+![FDR and TPR versus SNR for all 14 solvers](simulation_results/plots/demo_trex_03_mc_sim_variable_support_trex_results_n300_p1000_stagnation_window_5_fdr_tpr_vs_snr.png)
+
+*Left:* even with the support indices redrawn every trial, FDR stays well below
+the target `tFDR = 0.1` (black dotted line) for every solver across the whole SNR
+grid — FDR control is robust to the location of the active set. *Right:* the fine
+grid gives a smooth power curve, TPR climbing from near-zero at SNR 0.1 to
+near-perfect recovery by SNR ≈ 2. The curves are noisier than Demo 02's because
+`num_MC = 10` here (vs 200).
+
+### Grouped 2×2 view (de-cluttered)
+
+The same data with the solvers split into two halves (columns) and FDR/TPR on the
+two rows, so each panel carries only ~7 curves — easier to read where they bunch
+up. Both FDR panels share a y-scale for comparison:
+
+![FDR and TPR versus SNR, solvers split across a 2x2 grid](simulation_results/plots/demo_trex_03_mc_sim_variable_support_trex_results_n300_p1000_stagnation_window_5_fdr_tpr_vs_snr_grouped.png)
+
+### Interactive (Plotly HTML)
+
+`..._fdr_tpr_vs_snr.html` is a self-contained interactive figure — hover for exact
+values and **click a solver in the legend to isolate its curve** in both panels.
+Open it directly in a browser (it is not rendered inline on GitHub):
+
+```bash
+open simulation_results/plots/demo_trex_03_mc_sim_variable_support_trex_results_n300_p1000_stagnation_window_5_fdr_tpr_vs_snr.html
+```
+
+Vector (PDF) copies of both static figures sit alongside the PNGs.
+
+### Regenerating the figures
+
+The wrapper picks up the repo's local `.venv` automatically (no manual path or
+`activate` needed):
+
+```bash
+# From this demo folder:
+./generate_plots.sh                 # overview + grouped (png+pdf) + interactive html
+./generate_plots.sh --no-plotly     # skip the interactive html
+./generate_plots.sh --tfdr 0.05     # e.g. a different target-FDR line
+```
+
+The shared [../trex_plt_utils.py](../trex_plt_utils.py) infers row colours from
+the data and is used by every demo in this suite with the tidy
+`solver,metric,snr,value` schema (demos 02/03/04/05).
+
+---
+
 ## Running the Demo
 
 ```bash
@@ -113,4 +172,4 @@ Upstream this has been reclassified from an unconditional `logWarning` to a verb
 
 ---
 
-**Last updated**: 2026-07-08
+**Last updated**: 2026-07-14

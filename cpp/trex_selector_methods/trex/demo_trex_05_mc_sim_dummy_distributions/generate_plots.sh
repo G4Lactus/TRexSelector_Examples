@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
-# Regenerate this demo's FDR/TPR figures via the suite-level plotting module
-# ../trex_plt_utils.py, using the repo's local .venv. One figure set is
+# Regenerate this demo's FDR/TPR figures via the plotting module
+#   ../trex_plt_utils.py
+# using the repo's local .venv. One figure set is
 # rendered per base solver (TLARS / TOMP / TAFS); figures are written to
 # simulation_results/plots/.
 #
@@ -44,7 +45,24 @@ for solver in TLARS TOMP TAFS; do
   token="$(echo "$solver" | tr '[:upper:]' '[:lower:]')"
   csv="$here/simulation_results/data/demo_trex_05_dummy_distributions_results_n300_p1000_${token}_random_support.csv"
   "$venv_python" "$here/../trex_plt_utils.py" "$csv" \
-    --title 'T-Rex dummy distributions ($n=300$, $p=1000$, random support, 10 runs, '"$solver"' + STANDARD)' \
+    --title 'T-Rex dummy distributions ($n=300$, $p=1000$, random support, '"$solver"' + STANDARD)' \
     --legend-title 'Dummy distribution' \
     "$@"
 done
+
+# Cross-solver comparison grid (2x3: FDR/TPR rows x TLARS/TOMP/TAFS cols, all
+# twelve dummy distributions per panel on a shared scale) -- the suite plotter's
+# 'grid' mode. This is the figure for the demo's core question: whether the
+# dummy distribution's effect on FDR/TPR depends on the base solver family.
+data="$here/simulation_results/data"
+"$venv_python" "$here/../trex_plt_utils.py" grid \
+  --labels TLARS TOMP TAFS \
+  --csvs \
+    "$data/demo_trex_05_dummy_distributions_results_n300_p1000_tlars_random_support.csv" \
+    "$data/demo_trex_05_dummy_distributions_results_n300_p1000_tomp_random_support.csv" \
+    "$data/demo_trex_05_dummy_distributions_results_n300_p1000_tafs_random_support.csv" \
+  --title 'T-Rex dummy distributions across base solvers ($n=300$, $p=1000$, random support, STANDARD L-loop)' \
+  --legend-title 'Dummy distribution' \
+  --stem demo_trex_05_dummy_distributions_grid \
+  --outdir "$here/simulation_results/plots" \
+  "$@"

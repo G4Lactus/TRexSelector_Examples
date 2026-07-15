@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
-# Regenerate this demo's FDR/TPR figures via the suite-level plotting module
-# ../trex_plt_utils.py, using the repo's local .venv. Figures are written to
+# Regenerate this demo's FDR/TPR figures via the plotting module:
+#   ../trex_plt_utils.py
+# using the repo's local .venv. Figures are written to
 # simulation_results/plots/.
 #
 # Usage:
@@ -38,6 +39,6 @@ if [[ $# -gt 0 && "$1" != -* ]]; then
 fi
 
 exec "$venv_python" "$here/../trex_plt_utils.py" "$csv" \
-  --title 'T-Rex Monte Carlo simulation ($n=300$, $p=1000$, fixed support, 200 runs)' \
+  --title 'T-Rex Monte Carlo simulation ($n=300$, $p=1000$, fixed support)' \
   --legend-title 'Solver' \
   "$@"

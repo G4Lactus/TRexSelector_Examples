@@ -160,7 +160,7 @@ void demo_TRexSelector_d_mmap_solver_serial(bool high_dim, bool rnd_coef) {
                       y_map,
                       cfg.tFDR,
                       trex_ctrl,
-                      -1,
+                      42,
                       true);
 
     print_dual("Executing T-Rex Selector...\n");
@@ -252,7 +252,7 @@ void demo_TRexSelector_full_mmap(bool high_dim, bool rnd_coef) {
                       y_map,
                       cfg.tFDR,
                       trex_ctrl,
-                      -1,
+                      42,
                       true);
 
     print_dual("Executing T-Rex Selector...\n");

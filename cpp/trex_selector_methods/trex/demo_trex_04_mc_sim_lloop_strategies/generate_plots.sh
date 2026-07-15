@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
-# Regenerate this demo's FDR/TPR figures via the suite-level plotting module
-# ../trex_plt_utils.py, using the repo's local .venv. Figures are written to
+# Regenerate this demo's FDR/TPR figures via the plotting module
+#   ../trex_plt_utils.py
+# using the repo's local .venv. Figures are written to
 # simulation_results/plots/.
 #
 # Usage:
@@ -30,14 +31,40 @@ if [[ -z "$venv_python" ]]; then
   exit 1
 fi
 
-# First non-flag argument overrides this demo's default CSV.
-csv="$here/simulation_results/data/demo_trex_04_lloop_strategies_results_n300_p1000_random_support.csv"
+# First non-flag argument: plot just that CSV instead of the three defaults.
 if [[ $# -gt 0 && "$1" != -* ]]; then
   csv="$1"
   shift
+  exec "$venv_python" "$here/../trex_plt_utils.py" "$csv" \
+    --legend-title 'L-strategy' \
+    "$@"
 fi
 
-exec "$venv_python" "$here/../trex_plt_utils.py" "$csv" \
-  --title 'T-Rex L-loop strategies ($n=300$, $p=1000$, random support, 10 runs, TLARS)' \
+# One per-solver figure set (overview + grouped + interactive html) per base
+# solver, via the suite-level plotter.
+for solver in TLARS TOMP TAFS; do
+  token="$(echo "$solver" | tr '[:upper:]' '[:lower:]')"
+  csv="$here/simulation_results/data/demo_trex_04_lloop_strategies_results_n300_p1000_${token}_random_support.csv"
+  "$venv_python" "$here/../trex_plt_utils.py" "$csv" \
+    --title 'T-Rex L-loop strategies ($n=300$, $p=1000$, random support, '"$solver"')' \
+    --legend-title 'L-strategy' \
+    "$@"
+done
+
+# Cross-solver comparison grid (2x3: FDR/TPR rows x TLARS/TOMP/TAFS cols, all
+# eight L-loop strategies per panel on a shared scale) -- the suite plotter's
+# 'grid' mode. This is the figure for the demo's core question: whether the
+# SKIPL FDR overshoot is specific to the LARS path (TLARS) or persists under the
+# greedy solvers (TOMP / TAFS).
+data="$here/simulation_results/data"
+"$venv_python" "$here/../trex_plt_utils.py" grid \
+  --labels TLARS TOMP TAFS \
+  --csvs \
+    "$data/demo_trex_04_lloop_strategies_results_n300_p1000_tlars_random_support.csv" \
+    "$data/demo_trex_04_lloop_strategies_results_n300_p1000_tomp_random_support.csv" \
+    "$data/demo_trex_04_lloop_strategies_results_n300_p1000_tafs_random_support.csv" \
+  --title 'T-Rex L-loop strategies across base solvers ($n=300$, $p=1000$, random support)' \
   --legend-title 'L-strategy' \
+  --stem demo_trex_04_lloop_strategies_grid \
+  --outdir "$here/simulation_results/plots" \
   "$@"

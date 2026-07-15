@@ -16,18 +16,35 @@ Plot patterns hosted here:
     plot_fdr_tpr_vs_snr()          — side-by-side FDR | TPR panels (static).
     plot_fdr_tpr_vs_snr_grouped()  — de-cluttered 2x2 grid, rows split in half.
     write_fdr_tpr_vs_snr_html()    — interactive Plotly HTML (hover, toggles).
+    plot_comparison_grid()         — cross-solver 2xN grid: FDR/TPR rows x one
+                                     column per base solver, every sweep row as a
+                                     line (demo 04 L-strategies, demo 05 dummy
+                                     distributions -- one column per TLARS/TOMP/
+                                     TAFS on a shared scale).
+    plot_scalability_dashboard()   — demo 08 runtime / memory / FDR / TPR vs
+                                     problem size (its own wider CSV schema,
+                                     read via read_scalability()).
 
-Usage (typically via a demo's generate_plots.sh):
-    python trex_plt_utils.py <path/to/results.csv>
-    python trex_plt_utils.py <csv> --title "..." --legend-title "L-strategy" \
-        --stem my_plot --formats png pdf
+Three CLI modes (all typically driven from a demo's generate_plots.sh):
+    # default -- per-CSV overview + grouped + interactive html
+    python trex_plt_utils.py <csv> --title "..." --legend-title "L-strategy"
+    # cross-solver comparison grid from several per-solver CSVs
+    python trex_plt_utils.py grid --labels TLARS TOMP TAFS \
+        --csvs a_tlars.csv a_tomp.csv a_tafs.csv \
+        --legend-title "L-strategy" --stem my_grid --outdir <plots>
+    # demo-08 scalability dashboard from the wide CSV
+    python trex_plt_utils.py scalability <wide_csv> --stem my_dash --outdir <plots>
 
 Output location: figures default to the simulation_results/plots/ sibling when
 the CSV lives in simulation_results/data/ (the suite convention); otherwise
-they are written next to the CSV. Override with --outdir.
+they are written next to the CSV. Override with --outdir. (The grid and
+scalability modes require an explicit --outdir, since they are not tied to a
+single CSV's location.)
 """
 
 import argparse
+import re
+import sys
 from pathlib import Path
 
 import matplotlib
@@ -61,6 +78,17 @@ MARKERS = [
     "o", "s", "^", "D", "v", "P", "X",
     "<", ">", "h", "H", "*", "8", "p",
 ]
+
+
+def natural_sort_key(name: str) -> list:
+    """Sort key that splits digit runs from text so numbered labels order
+    numerically: ``SKIPL_5p`` < ``SKIPL_10p`` < ``SKIPL_20p`` (a plain string
+    sort would give 10p, 20p, 5p). Non-numeric parts compare case-insensitively.
+    """
+    return [
+        int(token) if token.isdigit() else token.lower()
+        for token in re.split(r"(\d+)", str(name))
+    ]
 
 
 def read_mc_results(path: Path) -> pd.DataFrame:
@@ -103,7 +131,22 @@ def read_mc_results(path: Path) -> pd.DataFrame:
         print(f"note: ignoring non-plotted metric(s): {sorted(extra)}")
     df = df.loc[df["metric"].isin(METRICS)]
 
-    return df.sort_values(["metric", "solver", "snr"])
+    # Order rows by a *natural* sort of the 'solver' column so numbered rows
+    # read numerically -- e.g. demo 04's SKIPL_5p < SKIPL_10p < SKIPL_20p, where
+    # a plain string sort would give 10p, 20p, 5p. This ordering flows straight
+    # into the legend and the colour assignment. For row sets without embedded
+    # numbers it matches the previous plain alphabetical order.
+    rank = {
+        name: index
+        for index, name in enumerate(
+            sorted(df["solver"].unique(), key=natural_sort_key)
+        )
+    }
+    df = df.assign(_row_rank=df["solver"].map(rank))
+    return (
+        df.sort_values(["metric", "_row_rank", "snr"])
+        .drop(columns="_row_rank")
+    )
 
 
 def default_plots_dir(csv_path: Path) -> Path:
@@ -266,20 +309,30 @@ def plot_fdr_tpr_vs_snr(
 
     fig.suptitle(title, fontsize=15, fontweight="bold", y=0.98)
 
-    fig.legend(
+    # This overview carries every row at once, so with many solvers the legend
+    # would obscure the curves if placed inside a panel; it is kept just outside
+    # the right (TPR) panel instead. Anchoring it a hair past the panel's right
+    # edge (right=0.80 -> anchor 0.81) keeps it hugging the figure rather than
+    # drifting off to the far right, and an opaque white box (framealpha=1.0)
+    # avoids any see-through legend background.
+    legend = fig.legend(
         legend_handles,
         legend_labels,
         title=legend_title,
         loc="center left",
-        bbox_to_anchor=(0.995, 0.5),
+        bbox_to_anchor=(0.81, 0.5),
         frameon=True,
+        framealpha=1.0,
+        facecolor="white",
+        edgecolor="0.7",
         fontsize=10,
         title_fontsize=11,
         ncol=1,
     )
+    legend.get_frame().set_linewidth(0.8)
 
     fig.subplots_adjust(
-        left=0.08, right=0.78, bottom=0.12, top=0.86, wspace=0.28
+        left=0.08, right=0.80, bottom=0.12, top=0.86, wspace=0.28
     )
     return fig
 
@@ -354,11 +407,15 @@ def plot_fdr_tpr_vs_snr_grouped(
                 True, which="major", linestyle="--", linewidth=0.7, alpha=0.45
             )
             ax.tick_params(axis="both", labelsize=11)
-            ax.legend(
+            leg = ax.legend(
                 fontsize=9,
                 loc="upper left" if metric == "FDR" else "lower right",
-                framealpha=0.9,
+                frameon=True,
+                framealpha=1.0,
+                facecolor="white",
+                edgecolor="0.7",
             )
+            leg.get_frame().set_linewidth(0.8)
 
             if metric == "FDR":
                 ax.set_ylim(0.0, fdr_axis_top(df, tfdr))
@@ -460,6 +517,20 @@ def write_fdr_tpr_vs_snr_html(
     fig.update_yaxes(
         title_text="True positive rate", range=[-0.02, 1.02], row=1, col=2
     )
+
+    # Draw a full frame (box) around every panel. mirror=True repeats each axis
+    # line on the opposite side of its own panel, so the bottom/top (x) and
+    # left/right (y) lines close the box -- matching the framed look of the
+    # static matplotlib panels (plotly_white otherwise leaves top/right open).
+    # Applied globally so it covers both subplots without clobbering the
+    # per-axis titles/ranges set above.
+    fig.update_xaxes(
+        showline=True, linewidth=1, linecolor="rgb(82,82,82)", mirror=True
+    )
+    fig.update_yaxes(
+        showline=True, linewidth=1, linecolor="rgb(82,82,82)", mirror=True
+    )
+
     fig.update_layout(
         title=title.replace("$", ""),  # plain text: avoid raw LaTeX in HTML
         template="plotly_white",
@@ -472,6 +543,364 @@ def write_fdr_tpr_vs_snr_html(
     fig.write_html(out_html, include_plotlyjs=(True if inline_js else "cdn"))
     print(f"Wrote: {out_html}")
     return True
+
+
+def ordered_grid_rows(frames: dict) -> list[str]:
+    """Union of the 'solver'-column values across per-column frames, in
+    first-seen order. read_mc_results already natural-sorts each frame's rows
+    (so e.g. SKIPL_5p < SKIPL_10p < SKIPL_20p); keeping one ordered list makes
+    the colour / marker assignment identical in every column, which is the whole
+    point of the cross-solver view.
+    """
+    seen: list[str] = []
+    for df in frames.values():
+        for name in df["solver"]:  # the swept row: L-strategy / distribution
+            if name not in seen:
+                seen.append(name)
+    return seen
+
+
+def plot_comparison_grid(
+    frames: dict,
+    title: str,
+    legend_title: str = DEFAULT_LEGEND_TITLE,
+    tfdr: float = DEFAULT_TFDR,
+) -> plt.Figure:
+    """Pattern 4 — cross-solver comparison grid.
+
+    ``frames`` is an *ordered* mapping ``{column_label: tidy_df}`` (one per base
+    solver, e.g. TLARS / TOMP / TAFS). The figure is a 2xN grid: rows = metric
+    (FDR on top, TPR below), columns = the frames' keys. Every panel carries all
+    of the swept rows (the CSV's "solver" column -- L-strategies in demo 04,
+    dummy distributions in demo 05) as lines vs SNR, with colours and markers
+    keyed to the row so a given row is the same colour in every column. All FDR
+    panels share one y-scale and all TPR panels share [0, 1], so the columns are
+    directly comparable. The (potentially long) row legend is drawn once, just
+    right of the grid, with an opaque box.
+    """
+    columns = list(frames.keys())
+    rows = ordered_grid_rows(frames)
+    colors = row_colors(rows)
+    markers = {r: MARKERS[i % len(MARKERS)] for i, r in enumerate(rows)}
+
+    # A shared SNR grid / tick set / y-top across panels keeps them comparable.
+    all_snr = sorted(
+        {snr for df in frames.values() for snr in df["snr"].unique()}
+    )
+    xticks = choose_ticks(all_snr)
+    mev = marker_stride(all_snr)
+    fdr_top = max(fdr_axis_top(df, tfdr) for df in frames.values())
+
+    fig, axes = plt.subplots(
+        nrows=2,
+        ncols=len(columns),
+        figsize=(5.4 * len(columns) + 2.4, 9.0),
+        sharex=True,
+        squeeze=False,
+    )
+
+    handles: list = []
+    labels: list = []
+
+    for row_idx, metric in enumerate(METRICS):
+        for col, column in enumerate(columns):
+            ax = axes[row_idx, col]
+            metric_df = frames[column].loc[frames[column]["metric"] == metric]
+
+            if metric == "FDR" and tfdr > 0:
+                tfdr_line = ax.axhline(
+                    tfdr, color=TFDR_COLOR, linestyle=":", linewidth=2.0,
+                    zorder=1, label=f"tFDR = {tfdr:g}",
+                )
+                if not handles:  # capture the reference line once, first
+                    handles.append(tfdr_line)
+                    labels.append(f"tFDR = {tfdr:g}")
+
+            for row in rows:
+                row_df = metric_df.loc[
+                    metric_df["solver"] == row
+                ].sort_values("snr")
+                if row_df.empty:
+                    continue
+                line, = ax.plot(
+                    row_df["snr"], row_df["value"],
+                    color=colors[row], marker=markers[row],
+                    markersize=6.0, markevery=mev, markeredgecolor="white",
+                    markeredgewidth=0.7, linewidth=1.9, label=row,
+                )
+                # Build the shared legend once, from the top-left panel.
+                if row_idx == 0 and col == 0:
+                    handles.append(line)
+                    labels.append(row)
+
+            ax.set_xscale("log")
+            ax.set_xticks(xticks)
+            ax.xaxis.set_major_formatter(ScalarFormatter())
+            ax.set_xlim(min(all_snr) * 0.82, max(all_snr) * 1.18)
+            ax.grid(
+                True, which="major", linestyle="--", linewidth=0.7, alpha=0.45
+            )
+            ax.tick_params(axis="both", labelsize=11)
+
+            if metric == "FDR":
+                ax.set_ylim(0.0, fdr_top)
+            else:
+                ax.set_ylim(-0.02, 1.02)
+
+            if col == 0:
+                ax.set_ylabel(METRIC_LABELS[metric], fontsize=12)
+            if row_idx == 0:
+                ax.set_title(column, fontsize=14, fontweight="bold")
+            if row_idx == len(METRICS) - 1:
+                ax.set_xlabel("Signal-to-noise ratio (SNR)", fontsize=12)
+
+    fig.suptitle(title, fontsize=15, fontweight="bold", y=0.99)
+
+    legend = fig.legend(
+        handles, labels,
+        title=legend_title,
+        loc="center left",
+        bbox_to_anchor=(0.845, 0.5),
+        frameon=True, framealpha=1.0, facecolor="white", edgecolor="0.7",
+        fontsize=10, title_fontsize=11, ncol=1,
+    )
+    legend.get_frame().set_linewidth(0.8)
+
+    fig.subplots_adjust(
+        left=0.07, right=0.84, bottom=0.08, top=0.90, wspace=0.18, hspace=0.12
+    )
+    return fig
+
+
+# ---------------------------------------------------------------------
+# Demo 08 — scalability dashboard (wider CSV schema than the rest)
+# ---------------------------------------------------------------------
+# Demo 08 is a 2-D sweep (scenario x solver over the SNR grid) on the fully
+# memory-mapped pipeline; its CSV uses a wider schema than the tidy suite one,
+#     scenario,solver,n,p,num_mc,snr,metric,value
+# so it is read via read_scalability() (not read_mc_results) and rendered by
+# plot_scalability_dashboard().
+
+# Base solvers, in a fixed display order with stable colours / markers.
+SCAL_SOLVERS = ("TLARS", "TOMP", "TAFS")
+SCAL_SOLVER_COLORS = {"TLARS": "#1f77b4", "TOMP": "#d62728", "TAFS": "#2ca02c"}
+SCAL_SOLVER_MARKERS = {"TLARS": "o", "TOMP": "s", "TAFS": "^"}
+
+# Column labels as they appear in the CSV's 'metric' field.
+M_RUNTIME = "Total s"
+M_RSS = "RSS MiB"        # resident set size after select() (MiB) - tracks data
+M_PEAKRSS = "PeakRSS"    # process peak RSS (MiB) - inflated by cold-heap footprint
+M_XY = "X+y MiB"         # on-disk X/y mmap backing size (MiB)
+M_FDR = "FDR"
+M_TPR = "TPR"
+SCAL_REF_COLOR = "0.35"  # X/y backing-size reference line
+
+
+def read_scalability(path: Path) -> pd.DataFrame:
+    """Load the wide demo-08 CSV, normalising column and metric whitespace."""
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Input file not found:\n  {path}\n"
+            "Pass the results CSV path as the first argument."
+        )
+    df = pd.read_csv(path)
+    df.columns = df.columns.str.strip().str.lower()
+
+    required = {"scenario", "solver", "n", "p", "snr", "metric", "value"}
+    missing = required - set(df.columns)
+    if missing:
+        raise ValueError(
+            f"CSV is missing required columns: {sorted(missing)}\n"
+            f"Found columns: {df.columns.tolist()}"
+        )
+
+    df["solver"] = df["solver"].astype(str).str.strip()
+    df["metric"] = df["metric"].astype(str).str.strip()
+    for col in ("n", "p", "snr", "value"):
+        df[col] = pd.to_numeric(df[col], errors="raise")
+    return df
+
+
+def _scal_metric_by_p(df: pd.DataFrame, solver: str, metric: str):
+    """Mean / min / max of a metric over the SNR grid, per problem size p.
+
+    Returns (p_values, mean, lo, hi) sorted by p. Aggregating over SNR collapses
+    the third sweep axis into a band, so each solver is a single curve in p.
+    """
+    sub = df[(df["solver"] == solver) & (df["metric"] == metric)]
+    if sub.empty:
+        return [], [], [], []
+    stats = sub.groupby("p")["value"].agg(["mean", "min", "max"]).sort_index()
+    return (
+        stats.index.tolist(), stats["mean"].tolist(),
+        stats["min"].tolist(), stats["max"].tolist(),
+    )
+
+
+def _scal_metric_by_p_all(df: pd.DataFrame, metric: str):
+    """Mean of a metric per problem size p, aggregated over *all* solvers and
+    SNR levels. Used for the memory quantities, which are data-dominated and so
+    essentially solver-independent -- one curve per quantity keeps the panel
+    readable instead of three overlapping ones.
+    """
+    sub = df[df["metric"] == metric]
+    if sub.empty:
+        return [], []
+    stats = sub.groupby("p")["value"].mean().sort_index()
+    return stats.index.tolist(), stats.tolist()
+
+
+def _scal_scatter_snr(ax, df: pd.DataFrame, solver: str, metric: str) -> None:
+    """Overlay the individual per-SNR values as small translucent dots, so the
+    spread behind a mean curve is visible without a dominating filled band."""
+    sub = df[(df["solver"] == solver) & (df["metric"] == metric)]
+    if not sub.empty:
+        ax.scatter(
+            sub["p"], sub["value"], s=18, color=SCAL_SOLVER_COLORS[solver],
+            alpha=0.35, edgecolors="none", zorder=2,
+        )
+
+
+def _scal_p_axis(ax, p_values: list, n_for_p: dict) -> None:
+    """Log x-axis in p, tick labels annotated with the paired sample size n."""
+    ax.set_xscale("log")
+    ax.set_xticks(p_values)
+    ax.xaxis.set_major_formatter(ScalarFormatter())
+    ax.set_xlim(min(p_values) / 1.6, max(p_values) * 1.6)
+    ax.set_xticklabels(
+        [f"{int(p):,}\n(n={n_for_p[int(p)]:,})" for p in p_values]
+    )
+    ax.set_xlabel("Number of features $p$  (paired sample size $n$)", fontsize=11)
+
+
+def plot_scalability_dashboard(
+    df: pd.DataFrame, title: str, tfdr: float = DEFAULT_TFDR
+) -> plt.Figure:
+    """Pattern 5 — demo-08 runtime / memory / quality scaling dashboard.
+
+    A 2x2 grid, x-axis = problem size p (log), one line per base solver,
+    aggregated over the SNR grid: runtime (min-max band), memory (backing size
+    vs resident RSS vs process peak), and FDR / TPR at scale (mean line with
+    translucent per-SNR dots).
+    """
+    solvers = [s for s in SCAL_SOLVERS if s in set(df["solver"])]
+    p_values = sorted(df["p"].unique())
+    n_for_p = {
+        int(p): int(df.loc[df["p"] == p, "n"].iloc[0]) for p in p_values
+    }
+
+    fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(14.0, 10.0))
+    ax_rt, ax_mem = axes[0]
+    ax_fdr, ax_tpr = axes[1]
+
+    # --- Runtime (log-log), mean over SNR with a min-max band ---------------
+    for solver in solvers:
+        p, mean, lo, hi = _scal_metric_by_p(df, solver, M_RUNTIME)
+        if not p:
+            continue
+        ax_rt.fill_between(p, lo, hi, color=SCAL_SOLVER_COLORS[solver], alpha=0.15)
+        ax_rt.plot(
+            p, mean, color=SCAL_SOLVER_COLORS[solver],
+            marker=SCAL_SOLVER_MARKERS[solver], markersize=8,
+            markeredgecolor="white", markeredgewidth=0.8, linewidth=2.2,
+            label=solver,
+        )
+    ax_rt.set_yscale("log")
+    ax_rt.set_ylabel("Total wall-clock per trial [s]", fontsize=12)
+    ax_rt.set_title("Runtime scaling", fontsize=14, fontweight="bold")
+
+    # --- Memory (log-log): backing size vs resident RSS vs process peak ------
+    # These three are data-dominated (nearly solver-independent), so each is a
+    # single curve aggregated over solvers. The story lives in the *gaps*:
+    # resident RSS after select() hugs the on-disk X/y size (memory-mapping
+    # works), while the process peak RSS runs ~10x higher -- the cold per-
+    # experiment coefficient-path heap the demo flags as the scalability limit.
+    p_xy, mean_xy = _scal_metric_by_p_all(df, M_XY)
+    if p_xy:
+        ax_mem.plot(
+            p_xy, mean_xy, color=SCAL_REF_COLOR, linestyle="--", linewidth=2.0,
+            marker="D", markersize=7, markerfacecolor="white",
+            label="$X$/$y$ mmap backing (on disk)",
+        )
+    p_rss, mean_rss = _scal_metric_by_p_all(df, M_RSS)
+    if p_rss:
+        ax_mem.plot(
+            p_rss, mean_rss, color="#1f77b4", linewidth=2.4, marker="o",
+            markersize=8, markeredgecolor="white", markeredgewidth=0.8,
+            label="Resident RSS after select()",
+        )
+    p_peak, mean_peak = _scal_metric_by_p_all(df, M_PEAKRSS)
+    if p_peak:
+        ax_mem.plot(
+            p_peak, mean_peak, color="#d62728", linewidth=2.4, marker="^",
+            markersize=8, markeredgecolor="white", markeredgewidth=0.8,
+            label="Process peak RSS (cold-heap inflated)",
+        )
+    ax_mem.set_yscale("log")
+    ax_mem.set_ylabel("Memory [MiB]", fontsize=12)
+    ax_mem.set_title(
+        "Memory scaling: mmap keeps resident RSS near the data size",
+        fontsize=13, fontweight="bold",
+    )
+
+    # --- FDR at scale -------------------------------------------------------
+    if tfdr > 0:
+        ax_fdr.axhline(
+            tfdr, color="black", linestyle=":", linewidth=2.0,
+            label=f"tFDR = {tfdr:g}",
+        )
+    fdr_top = tfdr * 1.25 if tfdr > 0 else 0.1
+    for solver in solvers:
+        p, mean, _lo, hi = _scal_metric_by_p(df, solver, M_FDR)
+        if not p:
+            continue
+        fdr_top = max(fdr_top, max(hi) * 1.15)
+        _scal_scatter_snr(ax_fdr, df, solver, M_FDR)
+        ax_fdr.plot(
+            p, mean, color=SCAL_SOLVER_COLORS[solver],
+            marker=SCAL_SOLVER_MARKERS[solver], markersize=8,
+            markeredgecolor="white", markeredgewidth=0.8, linewidth=2.2,
+            label=solver,
+        )
+    ax_fdr.set_ylim(0.0, fdr_top)
+    ax_fdr.set_ylabel("False discovery rate", fontsize=12)
+    ax_fdr.set_title("FDR at scale (mean line, per-SNR dots)",
+                     fontsize=14, fontweight="bold")
+
+    # --- TPR at scale -------------------------------------------------------
+    # TPR varies strongly with SNR, so per-SNR dots (not a filled band, which
+    # would swamp the panel at the low-SNR baseline scenario) show the spread.
+    for solver in solvers:
+        p, mean, _lo, _hi = _scal_metric_by_p(df, solver, M_TPR)
+        if not p:
+            continue
+        _scal_scatter_snr(ax_tpr, df, solver, M_TPR)
+        ax_tpr.plot(
+            p, mean, color=SCAL_SOLVER_COLORS[solver],
+            marker=SCAL_SOLVER_MARKERS[solver], markersize=8,
+            markeredgecolor="white", markeredgewidth=0.8, linewidth=2.2,
+            label=solver,
+        )
+    ax_tpr.set_ylim(-0.02, 1.05)
+    ax_tpr.set_ylabel("True positive rate", fontsize=12)
+    ax_tpr.set_title("TPR at scale (mean line, per-SNR dots)",
+                     fontsize=14, fontweight="bold")
+
+    for ax in (ax_rt, ax_mem, ax_fdr, ax_tpr):
+        _scal_p_axis(ax, p_values, n_for_p)
+        ax.grid(True, which="both", linestyle="--", linewidth=0.7, alpha=0.4)
+        ax.tick_params(axis="both", labelsize=10)
+        leg = ax.legend(
+            fontsize=9, loc="best",
+            frameon=True, framealpha=1.0, facecolor="white", edgecolor="0.7",
+        )
+        leg.get_frame().set_linewidth(0.8)
+
+    fig.suptitle(title, fontsize=15, fontweight="bold", y=0.99)
+    fig.subplots_adjust(
+        left=0.075, right=0.975, bottom=0.085, top=0.90, wspace=0.20, hspace=0.32
+    )
+    return fig
 
 
 def save_figure(
@@ -573,7 +1002,8 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> None:
+def main_fdr_tpr() -> None:
+    """Default mode: per-CSV overview + grouped + interactive HTML."""
     args = parse_args()
     csv_path = args.csv_path.resolve()
 
@@ -610,6 +1040,103 @@ def main() -> None:
             tfdr=args.tfdr, legend_title=args.legend_title,
             inline_js=not args.plotly_cdn,
         )
+
+
+def main_grid(argv: list) -> None:
+    """`grid` mode: cross-solver comparison grid from several per-solver CSVs.
+
+    ``--labels`` and ``--csvs`` are parallel lists (one column per pair, in the
+    given order); a listed CSV that does not exist yet is skipped with a note, so
+    the grid renders whatever solvers have been run so far.
+    """
+    parser = argparse.ArgumentParser(
+        prog="trex_plt_utils.py grid",
+        description="Cross-solver FDR/TPR comparison grid.",
+    )
+    parser.add_argument(
+        "--labels", nargs="+", required=True,
+        help="Column labels, one per CSV (e.g. TLARS TOMP TAFS).",
+    )
+    parser.add_argument(
+        "--csvs", nargs="+", required=True, type=Path,
+        help="Per-solver tidy CSVs, parallel to --labels.",
+    )
+    parser.add_argument("--title", default="T-Rex cross-solver comparison")
+    parser.add_argument("--legend-title", default=DEFAULT_LEGEND_TITLE)
+    parser.add_argument("--stem", required=True, help="Output filename stem.")
+    parser.add_argument(
+        "--outdir", type=Path, required=True,
+        help="Output directory (the grid is not tied to one CSV's location).",
+    )
+    parser.add_argument("--formats", nargs="+", default=["png", "pdf"])
+    parser.add_argument("--tfdr", type=float, default=DEFAULT_TFDR)
+    # generate_plots.sh forwards its "$@" to every plotter; ignore flags only
+    # the default mode understands (--no-plotly, --no-grouped, ...).
+    args, _ignored = parser.parse_known_args(argv)
+
+    if len(args.labels) != len(args.csvs):
+        raise SystemExit(
+            f"--labels ({len(args.labels)}) and --csvs ({len(args.csvs)}) "
+            "must have the same length."
+        )
+
+    frames = {}
+    for label, csv in zip(args.labels, args.csvs):
+        csv = csv.resolve()
+        if not csv.exists():
+            print(f"note: skipping {label} - CSV not found:\n  {csv}")
+            continue
+        frames[label] = read_mc_results(csv)
+
+    if not frames:
+        raise SystemExit(
+            "No input CSVs found - run the demo first, then re-run this plotter."
+        )
+
+    fig = plot_comparison_grid(
+        frames, args.title, legend_title=args.legend_title, tfdr=args.tfdr
+    )
+    save_figure(fig, args.outdir.resolve(), args.stem, args.formats)
+    plt.close(fig)
+
+
+def main_scalability(argv: list) -> None:
+    """`scalability` mode: demo-08 runtime / memory / quality dashboard."""
+    parser = argparse.ArgumentParser(
+        prog="trex_plt_utils.py scalability",
+        description="Demo-08 scalability dashboard (wide CSV schema).",
+    )
+    parser.add_argument(
+        "csv_path", type=Path,
+        help="Wide demo-08 CSV (scenario,solver,n,p,num_mc,snr,metric,value).",
+    )
+    parser.add_argument(
+        "--title",
+        default="T-Rex scalability on the memory-mapped pipeline",
+    )
+    parser.add_argument("--stem", required=True, help="Output filename stem.")
+    parser.add_argument("--outdir", type=Path, required=True)
+    parser.add_argument("--formats", nargs="+", default=["png", "pdf"])
+    parser.add_argument("--tfdr", type=float, default=DEFAULT_TFDR)
+    args, _ignored = parser.parse_known_args(argv)
+
+    df = read_scalability(args.csv_path.resolve())
+    fig = plot_scalability_dashboard(df, args.title, tfdr=args.tfdr)
+    save_figure(fig, args.outdir.resolve(), args.stem, args.formats)
+    plt.close(fig)
+
+
+def main() -> None:
+    """Dispatch on the first token: `grid` / `scalability` sub-modes, else the
+    default per-CSV FDR/TPR mode (so bare `trex_plt_utils.py <csv> ...` still
+    works unchanged for demos 02/03 and the per-solver calls of 04/05)."""
+    argv = sys.argv[1:]
+    if argv and argv[0] == "grid":
+        main_grid(argv[1:])
+    elif argv and argv[0] == "scalability":
+        main_scalability(argv[1:])
+    else:
+        main_fdr_tpr()
 
 
 if __name__ == "__main__":

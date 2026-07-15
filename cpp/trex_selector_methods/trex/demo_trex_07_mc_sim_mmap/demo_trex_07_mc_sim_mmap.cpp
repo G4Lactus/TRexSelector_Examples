@@ -262,7 +262,8 @@ void demo_TRexSelector_full_mmap_MonteCarlo(std::size_t num_MC, bool high_dim, b
     // Solver loop → SNR loop → parallel MC (per-thread mmap backing files)
     // ===================================================================
     // MmapFileGuard is declared BEFORE SyntheticDataMapped inside the factory
-    // lambda body (LIFO: mmap handles closed before files removed, exception-safe).
+    // lambda body.
+    // LIFO principle: mmap handles closed before files removed, exception-safe.
     // Each thread uses unique file paths via omp_get_thread_num().
     for (const auto& solver_name : solver_names) {
 
@@ -275,6 +276,7 @@ void demo_TRexSelector_full_mmap_MonteCarlo(std::size_t num_MC, bool high_dim, b
             const auto make_data_mmap = [=](unsigned seed,
                                             const std::string& X_path,
                                             const std::string& y_path) -> trex_sim::TrexDGPData {
+
                 // Guard declared BEFORE SyntheticDataMapped (LIFO cleanup)
                 MmapFileGuard guard{{X_path, y_path}};
                 datagen::SyntheticDataMapped sdm(
@@ -335,7 +337,7 @@ int main() {
     // ============================================================
     if (true)
         demo_TRexSelector_d_mmap_MonteCarlo(
-            10,
+            200,
             true,
             false
         );
@@ -345,7 +347,7 @@ int main() {
     // ============================================================
     if (true)
         demo_TRexSelector_full_mmap_MonteCarlo(
-            500,
+            200,
             true,
             false
         );

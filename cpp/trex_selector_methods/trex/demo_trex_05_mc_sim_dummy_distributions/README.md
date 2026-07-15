@@ -97,9 +97,68 @@ Uniform        ...
 
 Long/stacked format, header column order **`solver,metric,snr,value`** (here the "solver" column holds the distribution name; the base solver is encoded in the file name), with `FDR`, `TPR`, `AvgL`, `AvgT` rows.
 
-### Figures
+---
 
-`./generate_plots.sh` renders one figure set per solver (overview + grouped static figures and an interactive HTML) into `simulation_results/plots/` via the suite-level [../trex_plt_utils.py](../trex_plt_utils.py).
+## Results Visualization
+
+`./generate_plots.sh` renders two complementary views into
+`simulation_results/plots/`: a **cross-solver comparison grid** (the figure for
+this demo's core question) and the standard **per-solver figure sets**.
+
+### Cross-solver comparison grid
+
+The headline figure — a 2×3 grid, rows = metric (FDR / TPR), columns = base
+solver (TLARS / TOMP / TAFS), with all twelve dummy distributions drawn as lines
+in every panel. Colours and markers are keyed to the distribution, so a given
+distribution is the same colour in every panel and can be tracked across solvers.
+All FDR panels share one y-scale and all TPR panels share `[0, 1]`, so the panels
+are directly comparable:
+
+![FDR/TPR per base solver per dummy distribution, 2x3 comparison grid](simulation_results/plots/demo_trex_05_dummy_distributions_grid.png)
+
+*Top row (FDR):* the twelve distributions stay bunched together and well under
+`tFDR = 0.1` within each solver, so the dummy distribution's **shape** barely
+moves FDR — but the *level* is solver-dependent (TLARS shows the familiar hump
+near SNR 0.5–1, while the greedy TOMP / TAFS stay flatter and lower). *Bottom row
+(TPR):* the distribution curves are indistinguishable — they overlap almost
+perfectly — so the injected-dummy law does not affect power. Together this is the
+demo's conclusion: after centering + L2 normalization, the dummy distribution is
+effectively a free parameter, and that holds across all three solver families.
+
+This grid is produced by the suite plotter's `grid` mode (`../trex_plt_utils.py
+grid --labels TLARS TOMP TAFS --csvs ...`), which reads all three solver CSVs at
+once and renders them on a shared scale.
+
+### Per-solver figure sets
+
+For each base solver, the suite-level [../trex_plt_utils.py](../trex_plt_utils.py)
+also renders the usual overview (all twelve distributions on one FDR | TPR pair),
+a de-cluttered grouped 2×2 view, and a self-contained interactive Plotly HTML.
+The TLARS overview, for example:
+
+![TLARS: FDR and TPR versus SNR for all 12 dummy distributions](simulation_results/plots/demo_trex_05_dummy_distributions_results_n300_p1000_tlars_random_support_fdr_tpr_vs_snr.png)
+
+The `_grouped` PNG/PDF and the interactive `.html` (hover for values, **click a
+distribution in the legend to isolate it** in both panels) sit alongside, one set
+per solver (`tlars` / `tomp` / `tafs`). Open an HTML directly in a browser:
+
+```bash
+open simulation_results/plots/demo_trex_05_dummy_distributions_results_n300_p1000_tlars_random_support_fdr_tpr_vs_snr.html
+```
+
+Vector (PDF) copies of every static figure sit alongside the PNGs.
+
+### Regenerating the figures
+
+The wrapper picks up the repo's local `.venv` automatically and renders **all**
+three per-solver sets plus the comparison grid:
+
+```bash
+# From this demo folder:
+./generate_plots.sh                 # 3 per-solver sets (png+pdf+html) + the grid
+./generate_plots.sh --no-plotly     # skip the interactive html
+./generate_plots.sh --tfdr 0.05     # e.g. a different target-FDR line
+```
 
 ---
 
@@ -142,4 +201,4 @@ Long/stacked format, header column order **`solver,metric,snr,value`** (here the
 
 ---
 
-**Last updated**: 2026-07-11
+**Last updated**: 2026-07-14

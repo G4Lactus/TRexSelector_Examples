@@ -2,7 +2,11 @@
 
 ## Purpose
 
-Demonstrate basic T-Rex selector usage and output format via two contrasting scenarios:
+The demo demonstrates the basic T-Rex selector as single run example, illustrating correct API usage and the resulting
+console/file output.
+Suppose we have $n$ observations and $p$ predictors, with a true support $\mathcal{S}^*$ of size $s$
+and fixed coefficients $\beta_j = 1$ for all active variables.
+We present two contrasting scenarios:
 
 1. **High-dimensional** ($p > n$): Moderate sample, many predictors
 2. **Low-dimensional** ($n > p$): Large sample, moderate predictors
