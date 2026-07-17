@@ -46,9 +46,9 @@ $$
 \widehat{\boldsymbol{\beta}}(\lambda) =
 \arg\min_{\boldsymbol{\beta} \in \mathbb{R}^p}
 \left\{
-\left\lVert \boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta} \right\rVert_2^2 +
-\lambda \left\lVert \boldsymbol{\beta} \right\rVert_2^2
-\right\}.
+  \left\lVert \boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta} \right\rVert_2^2
+  + \lambda \left\lVert \boldsymbol{\beta} \right\rVert_2^2
+\right\}
 $$
 
 In the implementation, `ridge_cv_svd` performs per-fold centering and column $\ell_2$-normalization and uses
