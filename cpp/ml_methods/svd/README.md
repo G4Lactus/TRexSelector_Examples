@@ -28,7 +28,7 @@ where
 - $\boldsymbol{\Sigma}$ contains singular values,
 - $\mathbf{V}$ contains right singular vectors.
 
-A truncated rank-$M$ approximation uses only the leading $M$ singular components:
+A truncated $\textrm{rank-}M$ approximation uses only the leading $M$ singular components:
 
 $$
 \mathbf{X}_M = \mathbf{U}_M \boldsymbol{\Sigma}_M \mathbf{V}_M^\top.
