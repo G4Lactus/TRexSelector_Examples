@@ -22,11 +22,11 @@ and penalty parameter $\lambda \ge 0$, ridge regression estimates
 $$
 \widehat{\boldsymbol{\beta}}_{\mathrm{ridge}} =
 \arg\min_{\boldsymbol{\beta} \in \mathbb{R}^p}
-\left\lbrace
+\left
 \lVert \boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta} \rVert_2^2
 +
 \lambda \lVert \boldsymbol{\beta} \rVert_2^2
-\right\rbrace.
+\right.
 $$
 
 ---
