@@ -90,13 +90,15 @@ The selector aims to identify relevant variables while controlling false discove
 
 ### False Discovery Rate (FDR)
 
+### False Discovery Rate (FDR)
+
 $$
 \mathrm{FDR}
 =
 \mathbb{E}
 \left[
-\frac{|\widehat{\mathcal{A}} \setminus \mathcal{A}|}
-{\max\{1, |\widehat{\mathcal{A}}|\}}
+\frac{\lvert\widehat{\mathcal{A}} \setminus \mathcal{A}\rvert}
+{\max\lbrace 1, \lvert\widehat{\mathcal{A}}\rvert\rbrace}
 \right].
 $$
 
@@ -113,14 +115,14 @@ $$
 =
 \mathbb{E}
 \left[
-\frac{|\mathcal{A} \cap \widehat{\mathcal{A}}|}
-{\max\{1, |\mathcal{A}|\}}
+\frac{\lvert\mathcal{A} \cap \widehat{\mathcal{A}}\rvert}
+{\max\lbrace 1, \lvert\mathcal{A}\rvert\rbrace}
 \right].
 $$
 
 Informally:
 
-- **FDR** measures how many selected variables are false discoveries on average.
+- **FDR** measures how many selected variables are false discoveries among the selected ones.
 - **TPR** measures how many truly active variables are recovered on average.
 
 A good procedure keeps FDR below the target level while achieving high TPR.
