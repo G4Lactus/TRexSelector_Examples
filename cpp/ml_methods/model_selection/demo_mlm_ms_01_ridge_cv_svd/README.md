@@ -45,9 +45,8 @@ For a given penalty parameter $\lambda$, ridge regression estimates the coeffici
 $$
 \widehat{\boldsymbol{\beta}}(\lambda) =
 \arg\min_{\boldsymbol{\beta} \in \mathbb{R}^p}
-\left\{
-  \left\lVert \boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta} \right\rVert_2^2
-  + \lambda \left\lVert \boldsymbol{\beta} \right\rVert_2^2
+\left\{\left\lVert \boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta} \right\rVert_2^2 +
+\lambda \left\lVert \boldsymbol{\beta} \right\rVert_2^2
 \right\}
 $$
 
