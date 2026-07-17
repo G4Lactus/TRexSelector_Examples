@@ -17,14 +17,22 @@ Given a data matrix $\boldsymbol{X} \in \mathbb{R}^{n \times p}$, scaling is app
 Two core transformations are demonstrated:
 
 - **Z-score scaling**:
-  $$\tilde{x}_{ij} = \frac{x_{ij} - \bar{x}_j}{s_j},$$
+  
+  ```math
+  \tilde{x}_{ij} = \frac{x_{ij} - \bar{x}_j}{s_j},
+  ```
+
   where $\bar{x}_j$ is the column mean and $s_j$ is the column scale.
 
 - **Lp-norm scaling**:
-  $$
-  \tilde{\boldsymbol{x}}_j = \frac{\boldsymbol{x}_j - \bar{x}_j \mathbf{1}}{\lVert \boldsymbol{x}_j - \bar{x}_j \mathbf{1} \rVert_p}
-  $$
-  , when centering is enabled.
+
+  ```math
+  \tilde{\boldsymbol{x}}_j =
+  \frac{\boldsymbol{x}_j - \bar{x}_j \mathbf{1}}
+  {\lVert \boldsymbol{x}_j - \bar{x}_j \mathbf{1} \rVert_p},
+  ```
+  
+  when centering is enabled.
 
 ---
 
