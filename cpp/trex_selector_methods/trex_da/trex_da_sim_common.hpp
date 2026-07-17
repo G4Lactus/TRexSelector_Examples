@@ -120,6 +120,12 @@ struct SolverInfo {
     std::string       name;
     double            rho_afs        = 0.0;
     bool              use_stagnation = true;
+    /** @brief Exchangeable-tie band width for greedy solvers (TOMP/TAFS).
+     *  0 = off. Restores the within-experiment occurrence spread across
+     *  exchangeable cluster members that the DA deflation's FDR control
+     *  relies on (path solvers spread naturally; greedy solvers are
+     *  winner-take-all). Recommended 0.25 under trex+DA. */
+    double            exch_tie_alpha = 0.0;
 };
 
 
@@ -609,6 +615,84 @@ inline GridPointResult run_mc_trials_base(
 // Save / print grid results
 // ==============================================================================
 
+/** @brief Console/TXT width of the "===" rules framing each result header. */
+inline constexpr std::size_t kHeaderWidth = 78;
+
+/**
+ * @brief Lay a header info line out over as many rows as it needs.
+ *
+ * The config lines grew past the kHeaderWidth rule as demos added parameters
+ * (e.g. the AR(1)+white Q sweep reaches 103 columns), so they are wrapped rather
+ * than allowed to overrun it.
+ *
+ * The suite writes these lines in two styles, and both must break correctly:
+ *   - two-space separated -- "n=300  p_total=1000  M=5"     (demos 02-05)
+ *   - comma separated     -- "AR(1) SNR=2, n=300, p=1000"   (demos 01, 06)
+ *
+ * So a break is taken only at a run of two-or-more spaces, or at a single space
+ * that follows a comma. Any other single space is *inside* a token and must not
+ * be split -- "p_ar=M*Q varies" and "Prior Groups + Toeplitz leaf" both contain
+ * one. A trailing comma stays attached to the token it belongs to, and the
+ * original separator is reproduced when two tokens share a row, so a line that
+ * already fits comes back byte-identical.
+ *
+ * Every row carries @p indent, and continuation rows line up under the first. A
+ * single token wider than @p width is emitted on its own row rather than broken
+ * mid-token.
+ *
+ * @param text    The header info line (a single unwrapped line).
+ * @param width   Column budget per row, including the indent.
+ * @param indent  Leading whitespace for every emitted row.
+ * @return The wrapped block; each row newline-terminated, empty if @p text is.
+ */
+inline std::string wrap_header_extra(const std::string& text,
+                                     std::size_t width = kHeaderWidth,
+                                     const std::string& indent = "  ") {
+    // Each token carries the separator that followed it, so the exact spacing
+    // is restored whenever two tokens end up on the same row.
+    struct Token { std::string text, sep; };
+    std::vector<Token> tokens;
+
+    for (std::size_t pos = 0; pos < text.size();) {
+        std::size_t brk = std::string::npos, brk_end = std::string::npos;
+        for (std::size_t i = pos; i < text.size();) {
+            if (text[i] != ' ') { ++i; continue; }
+            std::size_t j = i;
+            while (j < text.size() && text[j] == ' ') ++j;
+            const bool wide_gap   = (j - i) >= 2;
+            const bool after_comma = (i > 0 && text[i - 1] == ',');
+            if (wide_gap || after_comma) { brk = i; brk_end = j; break; }
+            i = j;  // a lone space inside a token -- keep scanning
+        }
+        if (brk == std::string::npos) {
+            tokens.push_back({text.substr(pos), ""});
+            break;
+        }
+        tokens.push_back({text.substr(pos, brk - pos),
+                          text.substr(brk, brk_end - brk)});
+        pos = brk_end;
+    }
+
+    std::string out, line;
+    for (std::size_t k = 0; k < tokens.size(); ++k) {
+        const std::string& tok = tokens[k].text;
+        if (tok.empty()) continue;
+        if (line.empty()) {
+            line = indent + tok;
+            continue;
+        }
+        const std::string& sep = tokens[k - 1].sep;
+        if (line.size() + sep.size() + tok.size() <= width) {
+            line += sep + tok;
+        } else {
+            out += line + "\n";
+            line = indent + tok;
+        }
+    }
+    if (!line.empty()) out += line + "\n";
+    return out;
+}
+
 /**
  * @brief Save a grid-sweep result table to console and file.
  *
@@ -655,12 +739,17 @@ inline void save_and_print_grid_results(
         << "  DA-TRex MC: " << scenario_tag
         << "  (MC=" << num_MC << ")\n";
     if (!header_extra.empty())
-        hdr << "  " << header_extra << "\n";
+        hdr << wrap_header_extra(header_extra);
     hdr << std::string(78, '=') << "\n\n";
     print_dual(hdr.str());
 
-    // Table dimensions
-    constexpr std::size_t sw = 16, mw = 8, cw = 10;
+    // Table dimensions. The Solver column widens to fit the longest solver
+    // label (+2 padding) so variant-tagged names like "TREX-DA+AR1: TLARS"
+    // stay aligned; it never shrinks below the historical width of 16.
+    constexpr std::size_t mw = 8, cw = 10;
+    std::size_t sw = 16;
+    for (const auto& sv : solvers)
+        sw = std::max(sw, sv.name.size() + 2);
     const auto ncols = grid_values.size();
 
     // Column header
@@ -801,6 +890,7 @@ void run_param_sweep(
         std::cout << "\n  Solver: " << sv.name << "\n";
         trex_ctrl.solver_type           = sv.type;
         trex_ctrl.solver_params.rho_afs = sv.rho_afs;
+        trex_ctrl.solver_params.exch_tie_alpha = sv.exch_tie_alpha;
         trex_ctrl.tloop_stagnation_stop = sv.use_stagnation;
 
         for (std::size_t gi = 0; gi < grid_values.size(); ++gi) {
@@ -835,18 +925,23 @@ void run_param_sweep(
     std::vector<SolverInfo> all_solvers = solvers;
     if (include_base_trex) {
         for (const auto& sv : solvers) {
-            // Derive base name: "TREX-DA: TLARS" -> "TREX: TLARS"
+            // Derive base name: strip any "TREX-DA[+variant]: " prefix, keeping
+            // only the solver, e.g. "TREX-DA: TLARS" or "TREX-DA+AR1: TLARS"
+            // -> "TREX: TLARS".
             std::string base_name = sv.name;
-            std::string trex_prefix = "TREX: ";
-            const std::string da_prefix = "TREX-DA: ";
+            const std::string trex_prefix = "TREX: ";
+            const std::string da_prefix   = "TREX-DA";
             if (base_name.rfind(da_prefix, 0) == 0) {
-                base_name = trex_prefix.append(base_name.substr(da_prefix.size()));
+                const auto colon = base_name.find(": ");
+                base_name = (colon == std::string::npos)
+                                ? trex_prefix + base_name
+                                : trex_prefix + base_name.substr(colon + 2);
             } else {
-                base_name = trex_prefix.append(base_name);
+                base_name = trex_prefix + base_name;
             }
 
             all_solvers.push_back({sv.type, base_name, sv.rho_afs,
-                                      sv.use_stagnation});
+                                      sv.use_stagnation, sv.exch_tie_alpha});
 
             fdr_map[base_name]    = Eigen::VectorXd::Zero(ngrid);
             tpr_map[base_name]    = Eigen::VectorXd::Zero(ngrid);
@@ -858,6 +953,7 @@ void run_param_sweep(
             auto base_ctrl = trex_ctrl_base;
             base_ctrl.solver_type           = sv.type;
             base_ctrl.solver_params.rho_afs = sv.rho_afs;
+            base_ctrl.solver_params.exch_tie_alpha = sv.exch_tie_alpha;
             base_ctrl.tloop_stagnation_stop = sv.use_stagnation;
 
             std::cout << "\n  Solver: " << base_name << " (no DA)\n";
@@ -951,12 +1047,20 @@ void run_snr_sweep(
  *  safely run with stagnation control OFF; greedy solvers (TAFS/TOMP) default
  *  it ON. Flip any flag on demand to compare with/without stagnation control.
  */
-inline std::vector<SolverInfo> default_solvers() {
-    //          type                       name              rho_afs  use_stagnation
+inline std::vector<SolverInfo> default_solvers(const std::string& da_variant = "") {
+    //          type                       name              rho_afs  use_stagnation  exch_tie_alpha
+    // exch_tie_alpha = 0.25 for the greedy solvers: exchangeability-calibrated
+    // stochastic tie-breaking, required for DA FDR control at high correlation
+    // (see HISTORY 2026-07-15 in TRexSelector). Path solver TLARS stays 0.
+    //
+    // da_variant lets a demo tag the DA method with its dependency model, e.g.
+    // "+AR1" → "TREX-DA+AR1: TLARS". Empty (default) keeps the generic
+    // "TREX-DA: <solver>" labels used by the rest of the suite.
+    const std::string p = "TREX-DA" + da_variant + ": ";
     return {
-        {SolverTypeForTRex::TLARS, "TREX-DA: TLARS", 0.0,  /*stagnation=*/false},
-        {SolverTypeForTRex::TAFS,  "TREX-DA: TAFS",  0.3,  /*stagnation=*/true},
-        {SolverTypeForTRex::TOMP,  "TREX-DA: TOMP",  0.0,  /*stagnation=*/true},
+        {SolverTypeForTRex::TLARS, p + "TLARS", 0.0,  /*stagnation=*/false, /*exch_tie=*/0.0},
+        {SolverTypeForTRex::TAFS,  p + "TAFS",  0.3,  /*stagnation=*/true,  /*exch_tie=*/0.25},
+        {SolverTypeForTRex::TOMP,  p + "TOMP",  0.0,  /*stagnation=*/true,  /*exch_tie=*/0.25},
     };
 }
 
@@ -1036,12 +1140,15 @@ inline void save_and_print_2d_two_support_results(
         return o.str();
     };
 
-    // Column header row + separator line
+    // Column header row + separator line. The column axis is named once
+    // (right-aligned over the row-label column) followed by bare values, e.g.
+    //   "         Rho     0.10     0.20 ...", instead of repeating "Rho=" per
+    // column. The leading "  " matches the data rows so values line up exactly.
     auto make_col_header = [&]() -> std::string {
         std::ostringstream h;
-        h << std::string(rlw, ' ');
+        h << "  " << std::right << std::setw(rlw) << col_label;
         for (double cv : col_grid)
-            h << std::right << std::setw(cw) << (col_label + "=" + fmt_val(cv));
+            h << std::right << std::setw(cw) << fmt_val(cv);
         h << "\n" << "  " << std::string(rlw + cw * n_col, '-') << "\n";
         return h.str();
     };
@@ -1072,7 +1179,7 @@ inline void save_and_print_2d_two_support_results(
             << "  DA-TRex MC: " << scenario_tag
             << "  (MC=" << num_MC << ")\n";
         if (!header_extra.empty())
-            hdr << "  " << header_extra << "\n";
+            hdr << wrap_header_extra(header_extra);
         hdr << std::string(78, '=') << "\n\n";
         print_dual(hdr.str());
     }
@@ -1262,7 +1369,7 @@ inline void save_and_print_2d_gap_rho_results(
             << "  DA-TRex MC: " << scenario_tag
             << "  (MC=" << num_MC << ")\n";
         if (!header_extra.empty())
-            hdr << "  " << header_extra << "\n";
+            hdr << wrap_header_extra(header_extra);
         hdr << std::string(78, '=') << "\n\n";
         print_dual(hdr.str());
     }

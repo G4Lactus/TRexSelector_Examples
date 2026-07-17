@@ -8,7 +8,8 @@ patterns for every demo in this folder whose results use the tidy CSV schema
     solver,metric,snr,value
 
 (the "solver" column holds whatever the demo sweeps: base solvers in demos
-02/03, L-loop strategies in demo 04, dummy distributions in demo 05, ...).
+02/03, L-loop strategies in demo 04, dummy distributions in demo 05, storage
+scenarios in demo 07, ...).
 Row colours are inferred from the data, so no per-demo configuration is
 required; each demo's generate_plots.sh supplies its CSV path and titles.
 
@@ -45,7 +46,9 @@ single CSV's location.)
 import argparse
 import re
 import sys
+from collections.abc import Sequence
 from pathlib import Path
+from typing import Any, cast
 
 import matplotlib
 
@@ -53,6 +56,7 @@ matplotlib.use("Agg")  # headless / batch-safe: no display required
 
 import matplotlib.pyplot as plt
 import pandas as pd
+from matplotlib.colors import ListedColormap
 from matplotlib.ticker import ScalarFormatter
 
 # ---------------------------------------------------------------------
@@ -60,7 +64,12 @@ from matplotlib.ticker import ScalarFormatter
 # ---------------------------------------------------------------------
 STEM_SUFFIX = "_fdr_tpr_vs_snr"
 DEFAULT_TFDR = 0.10          # target FDR control level (tFDR)
-DEFAULT_LEGEND_TITLE = "Solver"
+# Names what the CSV's 'solver' column holds. "Method" is the suite-wide default
+# (matching trex_da_plt_utils.py), since for most demos the column lists the
+# selector methods themselves. Demos whose column holds something else pass their
+# own: 'L-strategy' (demo 04), 'Dummy distribution' (demo 05), 'Scenario'
+# (demo 07's storage overlay).
+DEFAULT_LEGEND_TITLE = "Method"
 Y_HEADROOM = 1.25            # budget above the largest FDR value / the tFDR line
 MAX_XTICKS = 6               # thin x-axis ticks when the SNR grid is dense
 
@@ -158,6 +167,26 @@ def default_plots_dir(csv_path: Path) -> Path:
     return csv_path.parent
 
 
+def qualitative_colors(name: str) -> list:
+    """The hand-picked colour list behind a qualitative colormap.
+
+    ``get_cmap`` is typed as returning the base ``Colormap``, but ``.colors``
+    only exists on ``ListedColormap`` -- which is what the qualitative maps
+    (``tab10``, ``Dark2``) actually are. Narrowing here keeps the read type-safe
+    and fails loudly on a colormap that carries no discrete colour list at all
+    (a ``LinearSegmentedColormap`` such as jet).
+    """
+    cmap = plt.get_cmap(name)
+    if not isinstance(cmap, ListedColormap):
+        raise TypeError(
+            f"{name!r} is a {type(cmap).__name__}, which has no discrete "
+            "colour list; pass a ListedColormap such as tab10 or Dark2."
+        )
+    # `.colors` is declared as the broad ArrayLike (which admits scalars); on a
+    # ListedColormap it is concretely the sequence of RGB tuples.
+    return list(cast(Sequence[Any], cmap.colors))
+
+
 def row_colors(rows: list[str]) -> dict[str, tuple]:
     """Assign a stable, clearly distinct colour to each data row.
 
@@ -167,9 +196,7 @@ def row_colors(rows: list[str]) -> dict[str, tuple]:
     position in the (file-order) list, so the mapping is deterministic and works
     for any demo's row set without a hardcoded table.
     """
-    palette = list(plt.get_cmap("tab10").colors) + list(
-        plt.get_cmap("Dark2").colors
-    )
+    palette = qualitative_colors("tab10") + qualitative_colors("Dark2")
     return {
         row: palette[index % len(palette)]
         for index, row in enumerate(rows)
@@ -681,10 +708,29 @@ def plot_comparison_grid(
 # so it is read via read_scalability() (not read_mc_results) and rendered by
 # plot_scalability_dashboard().
 
-# Base solvers, in a fixed display order with stable colours / markers.
+# Base solvers, in a fixed display order with stable colours / markers. These
+# keys are the raw names the demo binary writes into the CSV's 'solver' column.
 SCAL_SOLVERS = ("TLARS", "TOMP", "TAFS")
 SCAL_SOLVER_COLORS = {"TLARS": "#1f77b4", "TOMP": "#d62728", "TAFS": "#2ca02c"}
 SCAL_SOLVER_MARKERS = {"TLARS": "o", "TOMP": "s", "TAFS": "^"}
+
+# TAFS is the only solver here run with a non-zero AFS correlation parameter;
+# the value mirrors the solver table in demo_trex_08_mc_sim_scalability.cpp
+# ({TAFS, "TAFS", lambda2=0.0, rho_afs=0.3}) -- keep the two in sync. It is a
+# defining part of the method rather than a tuning detail, so it is named in the
+# legend. Applied to the *label* only: the lookups above stay keyed on the raw
+# CSV name.
+SCAL_SOLVER_RHO_AFS = {"TAFS": 0.3}
+
+
+def scal_solver_label(solver: str) -> str:
+    """Legend label for a scalability solver, annotated with its defining
+    hyper-parameter where it has one (``TAFS`` -> ``TAFS (rho = 0.3)``).
+
+    Plain ASCII rather than mathtext, matching the DA suite's labels.
+    """
+    rho = SCAL_SOLVER_RHO_AFS.get(solver)
+    return solver if rho is None else f"{solver} (rho = {rho:g})"
 
 # Column labels as they appear in the CSV's 'metric' field.
 M_RUNTIME = "Total s"
@@ -803,7 +849,7 @@ def plot_scalability_dashboard(
             p, mean, color=SCAL_SOLVER_COLORS[solver],
             marker=SCAL_SOLVER_MARKERS[solver], markersize=8,
             markeredgecolor="white", markeredgewidth=0.8, linewidth=2.2,
-            label=solver,
+            label=scal_solver_label(solver),
         )
     ax_rt.set_yscale("log")
     ax_rt.set_ylabel("Total wall-clock per trial [s]", fontsize=12)
@@ -860,7 +906,7 @@ def plot_scalability_dashboard(
             p, mean, color=SCAL_SOLVER_COLORS[solver],
             marker=SCAL_SOLVER_MARKERS[solver], markersize=8,
             markeredgecolor="white", markeredgewidth=0.8, linewidth=2.2,
-            label=solver,
+            label=scal_solver_label(solver),
         )
     ax_fdr.set_ylim(0.0, fdr_top)
     ax_fdr.set_ylabel("False discovery rate", fontsize=12)
@@ -879,7 +925,7 @@ def plot_scalability_dashboard(
             p, mean, color=SCAL_SOLVER_COLORS[solver],
             marker=SCAL_SOLVER_MARKERS[solver], markersize=8,
             markeredgecolor="white", markeredgewidth=0.8, linewidth=2.2,
-            label=solver,
+            label=scal_solver_label(solver),
         )
     ax_tpr.set_ylim(-0.02, 1.05)
     ax_tpr.set_ylabel("True positive rate", fontsize=12)
@@ -940,7 +986,7 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Legend title naming what the CSV's 'solver' column holds "
             f"(default: {DEFAULT_LEGEND_TITLE!r}; e.g. 'L-strategy' for demo "
-            "04, 'Dummy distribution' for demo 05)."
+            "04, 'Dummy distribution' for demo 05, 'Scenario' for demo 07)."
         ),
     )
     parser.add_argument(

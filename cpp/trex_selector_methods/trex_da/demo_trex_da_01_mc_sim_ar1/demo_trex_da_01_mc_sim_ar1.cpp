@@ -4,7 +4,7 @@
 /**
  * @file demo_trex_da_01_mc_sim_ar1.cpp
  *
- * @brief DA-TRex Monte Carlo simulations for the AR(1) Toeplitz DGP.
+ * @brief DA-TRex+AR1 Monte Carlo simulations for the AR(1) Toeplitz DGP.
  *
  * @details
  *  Part 1: MC simulation sweeping SNR (n=300, p=1000, s=10, rho=0.7, 200 MC,
@@ -49,6 +49,7 @@ void demo_ar1_mc_snr_sweep()
     TRexDAControlParameter da_ctrl;
     da_ctrl.method = DAMethod::AR1;
 
+
     const std::vector<double> snr_grid = {0.1, 0.2, 0.5, 1.0, 2.0, 5.0};
     const std::string hdr_base =
         "AR(1) rho=" + fmt_num(rho) +
@@ -63,7 +64,7 @@ void demo_ar1_mc_snr_sweep()
         cfg.num_MC,
         cfg.tFDR,
         cfg.base_seed,
-        default_solvers(),
+        default_solvers("+AR1"),
         [&](double snr, unsigned seed) {
             return dgp_ar1(cfg.n,
                            cfg.p,
@@ -86,7 +87,7 @@ void demo_ar1_mc_snr_sweep()
         cfg.num_MC,
         cfg.tFDR,
         cfg.base_seed,
-        default_solvers(),
+        default_solvers("+AR1"),
         [&](double snr, unsigned seed) {
             return dgp_ar1(cfg.n,
                            cfg.p,
@@ -139,7 +140,7 @@ void demo_ar1_mc_rho_sweep()
         cfg.num_MC,
         cfg.tFDR,
         cfg.base_seed,
-        default_solvers(),
+        default_solvers("+AR1"),
         [&](double rho_val, unsigned seed) {
             return dgp_ar1(cfg.n,
                            cfg.p,
@@ -162,7 +163,7 @@ void demo_ar1_mc_rho_sweep()
         cfg.num_MC,
         cfg.tFDR,
         cfg.base_seed,
-        default_solvers(),
+        default_solvers("+AR1"),
         [&](double rho_val, unsigned seed) {
             return dgp_ar1(cfg.n, cfg.p,
                            make_support(SupportPolicy::Random,
@@ -230,7 +231,7 @@ void demo_ar1_mc_gap_rho_sweep()
     std::map<std::string, Eigen::VectorXd> tpp_rand_map,   fdp_rand_map,
                                            sd_tpp_rand_map, sd_fdp_rand_map;
 
-    const auto solvers = default_solvers();
+    const auto solvers = default_solvers("+AR1");
     for (const auto& sv : solvers) {
         tpp_cs_map[sv.name]     = Eigen::MatrixXd::Zero(n_rho_idx, n_gap_idx);
         fdp_cs_map[sv.name]     = Eigen::MatrixXd::Zero(n_rho_idx, n_gap_idx);
@@ -267,6 +268,7 @@ void demo_ar1_mc_gap_rho_sweep()
         auto trex_ctrl = make_trex_control(cfg.K);
         trex_ctrl.solver_type           = sv.type;
         trex_ctrl.solver_params.rho_afs = sv.rho_afs;
+        trex_ctrl.solver_params.exch_tie_alpha = sv.exch_tie_alpha;
         trex_ctrl.tloop_stagnation_stop = sv.use_stagnation;
 
         std::cout << "\n  Solver: " << sv.name << "\n\n";

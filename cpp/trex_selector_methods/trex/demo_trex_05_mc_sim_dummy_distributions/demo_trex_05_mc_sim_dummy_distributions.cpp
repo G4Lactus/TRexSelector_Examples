@@ -20,7 +20,7 @@
  *            (stagnation stop AUTO-resolves to disabled).
  *    TOMP  — greedy orthogonal matching pursuit
  *            (stagnation stop AUTO-resolves to enabled).
- *    TAFS  — greedy adaptive forward selection, rho_afs = 1.0
+ *    TAFS  — greedy adaptive forward selection, rho_afs = 0.3
  *            (stagnation stop AUTO-resolves to enabled).
  *
  *  Runs in two modes controlled by the `block_support` parameter:

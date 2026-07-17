@@ -18,7 +18,8 @@ Compare the **dummy distributions** of the T-Rex Selector — the distribution f
 - **Base solvers** (outer sweep, one result file pair each):
   - **TLARS** — equiangular LARS path (T-loop stagnation stop AUTO-resolves to *disabled*),
   - **TOMP** — greedy orthogonal matching pursuit (stagnation stop AUTO-resolves to *enabled*),
-  - **TAFS** — greedy adaptive forward selection with `rho_afs = 1.0` (stagnation stop AUTO-resolves to *enabled*)
+  - **TAFS** — greedy adaptive forward selection with `rho_afs = 0.3` (stagnation stop AUTO-resolves to *enabled*); the
+    figures label it `TAFS (rho = 0.3)`
 - **L-loop strategy**: STANDARD (fixed; fresh i.i.d. dummy matrices at each L-loop iteration)
 - **tFDR**: $0.1$
 
@@ -53,7 +54,7 @@ Set per solver × distribution (see the solver / distribution loops):
 
 ```
 solver_type = <varies>           # TLARS / TOMP / TAFS (outer sweep)
-solver_params.rho_afs = 1.0      # TAFS regularization (ignored by TLARS/TOMP)
+solver_params.rho_afs = 0.3      # TAFS regularization (ignored by TLARS/TOMP)
 K = 20                           # Random experiments per T-loop iteration
 max_dummy_multiplier = 10        # Upper bound for the adaptive L-loop
 use_max_T_stop = true            # Cap T ≤ ceil(n/2)

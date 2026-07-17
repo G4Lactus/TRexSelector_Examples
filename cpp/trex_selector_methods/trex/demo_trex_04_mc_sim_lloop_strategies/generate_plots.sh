@@ -40,13 +40,26 @@ if [[ $# -gt 0 && "$1" != -* ]]; then
     "$@"
 fi
 
+# TAFS is the only base solver here run with a non-zero AFS correlation
+# parameter (rho_afs = 0.3 in this demo's solver table; TLARS/TOMP take 0), so
+# the figures name it -- otherwise the setting is lost when a plot is read apart
+# from this demo's README. The loop variable stays the raw name: it also builds
+# the CSV filename token.
+solver_label() {
+  case "$1" in
+    TAFS) echo 'TAFS (rho = 0.3)' ;;
+    *)    echo "$1" ;;
+  esac
+}
+
 # One per-solver figure set (overview + grouped + interactive html) per base
 # solver, via the suite-level plotter.
 for solver in TLARS TOMP TAFS; do
   token="$(echo "$solver" | tr '[:upper:]' '[:lower:]')"
+  label="$(solver_label "$solver")"
   csv="$here/simulation_results/data/demo_trex_04_lloop_strategies_results_n300_p1000_${token}_random_support.csv"
   "$venv_python" "$here/../trex_plt_utils.py" "$csv" \
-    --title 'T-Rex L-loop strategies ($n=300$, $p=1000$, random support, '"$solver"')' \
+    --title 'T-Rex L-loop strategies ($n=300$, $p=1000$, random support, '"$label"')' \
     --legend-title 'L-strategy' \
     "$@"
 done
@@ -58,7 +71,7 @@ done
 # greedy solvers (TOMP / TAFS).
 data="$here/simulation_results/data"
 "$venv_python" "$here/../trex_plt_utils.py" grid \
-  --labels TLARS TOMP TAFS \
+  --labels TLARS TOMP "$(solver_label TAFS)" \
   --csvs \
     "$data/demo_trex_04_lloop_strategies_results_n300_p1000_tlars_random_support.csv" \
     "$data/demo_trex_04_lloop_strategies_results_n300_p1000_tomp_random_support.csv" \
