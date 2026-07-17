@@ -15,7 +15,7 @@ Compare the **L-loop strategies** of the T-Rex Selector — the different mechan
 - **SNR grid**: 21 values — $\{0.1, 0.2, \ldots, 2.0\}$ plus $5.0$
 - **Monte Carlo repetitions**: `num_MC = 200` trials per strategy × SNR level
 - **DGP**: $\mathbf{y} = \mathbf{X}\boldsymbol{\beta} + \boldsymbol{\epsilon}$, $\boldsymbol{\epsilon} \sim N(0, \sigma^2 I_n)$, Normal predictors and Normal noise
-- **Base solvers** (outer sweep, one result-file pair each): **TLARS** (equiangular LARS path; stagnation stop AUTO-resolves to *disabled*), **TOMP** (greedy orthogonal matching pursuit; stagnation stop *enabled*), **TAFS** (greedy adaptive forward selection, `rho_afs = 0.3`; stagnation stop *enabled*) — the same three families as demo 05
+- **Base solvers** (outer sweep, one result-file pair each): **TLARS** (equiangular LARS path; stagnation stop AUTO-resolves to *disabled*), **TOMP** (greedy orthogonal matching pursuit; stagnation stop *enabled*), **TAFS** (greedy adaptive forward selection, `rho_afs = 0.3`; stagnation stop *enabled*) — the same three families as demo 05. TAFS is the only one with a non-zero `rho_afs`, so the figures label it `TAFS (rho = 0.3)`
 - **tFDR**: $0.1$
 
 ---

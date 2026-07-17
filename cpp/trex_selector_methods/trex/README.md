@@ -146,8 +146,8 @@ Each demo subfolder typically contains:
 
 - **`demo_*.cpp`**: the source file for the demo.
 - **`README.md`**: a description of the scenario and the main interpretation.
-- **`generate_plots.sh`** (MC demos 02–05): thin wrapper that renders the demo's
-  figures via the suite-level [trex_plt_utils.py](trex_plt_utils.py).
+- **`generate_plots.sh`** (MC demos 02–05, 07, 08): thin wrapper that renders the
+  demo's figures via the suite-level [trex_plt_utils.py](trex_plt_utils.py).
 - **`simulation_results/`**: generated artifacts only, split into
   - **`data/`** — text summaries and CSV tables written by the demo binary,
   - **`plots/`** — figures (png/pdf/html) written by the plotting scripts.
@@ -227,8 +227,9 @@ trex/
   │
   ├── demo_trex_07_mc_sim_mmap/
   │   ├── demo_trex_07_mc_sim_mmap.cpp
+  │   ├── generate_plots.sh
   │   ├── README.md
-  │   └── simulation_results/          <- data/
+  │   └── simulation_results/          <- data/ + plots/
   │
   └── demo_trex_08_mc_sim_scalability/
       ├── demo_trex_08_mc_sim_scalability.cpp

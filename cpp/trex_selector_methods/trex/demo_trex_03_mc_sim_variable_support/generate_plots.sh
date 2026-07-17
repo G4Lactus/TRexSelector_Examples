@@ -40,5 +40,5 @@ fi
 
 exec "$venv_python" "$here/../trex_plt_utils.py" "$csv" \
   --title 'T-Rex Monte Carlo simulation ($n=300$, $p=1000$, variable support)' \
-  --legend-title 'Solver' \
+  --legend-title 'Method' \
   "$@"
