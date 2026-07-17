@@ -114,21 +114,8 @@ In the fourth scenario, the design matrix is first written to a memory-mapped ba
 read-only mode for fitting. The important idea is that `ridge_cv_svd::fit()` accepts an Eigen-compatible reference type,
 so the mapped matrix can be consumed without copying the full design matrix into a separate dense object at the
 interface boundary.
-
-Mathematically, the regression and cross-validation problem are unchanged:
-
-$$
-\widehat{\boldsymbol{\beta}}(\lambda) =
-\arg\min_{\boldsymbol{\beta}}
-\left\lbrace
-\lVert \boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta} \rVert_2^2
-+
-\lambda \lVert \boldsymbol{\beta} \rVert_2^2
-\right\rbrace.
-$$
-
-What changes is the storage layer. The source notes, however, that this is not a fully out-of-core foldwise solver,
-because individual train/test submatrices are still materialized in RAM inside the CV routine.
+Note that the example is not a fully out-of-core approach because individual train/test submatrices are still
+materialized in RAM inside the CV routine.
 
 ---
 
@@ -172,4 +159,4 @@ The same ridge CV workflow is also implemented in
 
 ---
 
-**Last updated**: 2026-07-09
+**Last updated**: 2026-07-17
