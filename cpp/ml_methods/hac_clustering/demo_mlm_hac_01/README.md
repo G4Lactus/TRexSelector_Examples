@@ -33,8 +33,7 @@ Let
 The recovered clustering is evaluated with the Adjusted Rand Index
 
 $$
-\mathrm{ARI}
-:=
+\mathrm{ARI} :=
 \frac{\mathrm{Index} - \mathbb{E}[\mathrm{Index}]}
 {\mathrm{MaxIndex} - \mathbb{E}[\mathrm{Index}]},
 $$
@@ -62,9 +61,7 @@ Here, $\mu_{z_i}$ is the cluster-specific mean and $\sigma_{z_i}$ is the cluster
 The goal is to cluster the rows $\boldsymbol{x}_1, \dots, \boldsymbol{x}_n$ using Euclidean distance,
 
 $$
-d(i,i')
-=
-\lVert \boldsymbol{x}_i - \boldsymbol{x}_{i'} \rVert_2.
+d(i,i') = \lVert \boldsymbol{x}_i - \boldsymbol{x}_{i'} \rVert_2 .
 $$
 
 A **single-linkage** dendrogram is built with the SLINK algorithm. The dendrogram is then cut to recover $K$ clusters,
@@ -80,14 +77,12 @@ In the variable-clustering scenario, variables are generated in correlated block
 Each variable $j$ belongs to a block $b(j)$, and the entries follow a latent-factor model of the form
 
 $$
-X_{ij}
-=
-\mu_{b(j)}
-+
+X_{ij} =
+\mu_{b(j)} +
 \sigma_{b(j)}
 \left(
 \alpha L_{i,b(j)} + \gamma \varepsilon_{ij}
-\right),
+\right)
 $$
 
 where
