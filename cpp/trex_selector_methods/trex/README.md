@@ -120,8 +120,8 @@ In the simulations, the target level is denoted by **tFDR**, typically
 
 Informally:
 
-- **FDR** measures how many selected variables are false discoveries among the selected ones.
-- **TPR** measures how many truly active variables are recovered on average.
+- **FDR** expected proportion of false discoveries among all discoveries on average.
+- **TPR** expected proportion of true positives among all true signals on average.
 
 A good procedure keeps FDR below the target level while achieving high TPR.
 
