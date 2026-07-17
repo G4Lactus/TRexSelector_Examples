@@ -46,8 +46,8 @@ $$
 \widehat{\boldsymbol{\beta}}(\lambda) =
 \arg\min_{\boldsymbol{\beta} \in \mathbb{R}^p}
 \left\{
-\lVert \boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta} \rVert_2^2 +
-\lambda \lVert \boldsymbol{\beta} \rVert_2^2
+\left\lVert \boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta} \right\rVert_2^2 +
+\lambda \left\lVert \boldsymbol{\beta} \right\rVert_2^2
 \right\}.
 $$
 
