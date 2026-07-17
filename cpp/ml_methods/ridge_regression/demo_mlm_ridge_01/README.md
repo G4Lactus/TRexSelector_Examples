@@ -39,11 +39,11 @@ For a fixed penalty value $\lambda$, ridge regression solves
 $$
 \widehat{\boldsymbol{\beta}}(\lambda) =
 \arg\min_{\boldsymbol{\beta} \in \mathbb{R}^p}
-\left\lbrace
+\left
 \lVert \boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta} \rVert_2^2
 +
 \lambda \lVert \boldsymbol{\beta} \rVert_2^2
-\right\rbrace.
+\right.
 $$
 
 When $\boldsymbol{X}^\top \boldsymbol{X}$ is used directly, this corresponds to the familiar closed-form expression
@@ -150,4 +150,4 @@ The same ridge regression workflow is also implemented in
 
 ---
 
-**Last updated**: 2026-07-09
+**Last updated**: 2026-07-17
