@@ -90,8 +90,6 @@ The selector aims to identify relevant variables while controlling false discove
 
 ### False Discovery Rate (FDR)
 
-### False Discovery Rate (FDR)
-
 $$
 \mathrm{FDR}
 =
