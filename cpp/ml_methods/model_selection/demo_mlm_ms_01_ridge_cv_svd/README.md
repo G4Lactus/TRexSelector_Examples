@@ -45,8 +45,8 @@ For a given penalty parameter $\lambda$, ridge regression estimates the coeffici
 $$
 \widehat{\boldsymbol{\beta}}(\lambda) =
 \arg\min_{\boldsymbol{\beta} \in \mathbb{R}^p}
-\left\{\lVert \boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta} \rVert_2^2 +
-\lambda \lVert \boldsymbol{\beta} \rVert_2^2 \right\}.
+\left\lbrace\lVert \boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta} \rVert_2^2 +
+\lambda \lVert \boldsymbol{\beta} \rVert_2^2 \right\rbrace.
 $$
 
 In the implementation, `ridge_cv_svd` performs per-fold centering and column $\ell_2$-normalization and uses
@@ -118,11 +118,11 @@ Mathematically, the regression and cross-validation problem are unchanged:
 $$
 \widehat{\boldsymbol{\beta}}(\lambda) =
 \arg\min_{\boldsymbol{\beta}}
-\left\{
+\left\lbrace
 \lVert \boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta} \rVert_2^2
 +
 \lambda \lVert \boldsymbol{\beta} \rVert_2^2
-\right\}.
+\right\rbrace.
 $$
 
 What changes is the storage layer. The source notes, however, that this is not a fully out-of-core foldwise solver,

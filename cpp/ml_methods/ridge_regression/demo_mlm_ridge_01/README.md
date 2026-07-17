@@ -39,11 +39,11 @@ For a fixed penalty value $\lambda$, ridge regression solves
 $$
 \widehat{\boldsymbol{\beta}}(\lambda) =
 \arg\min_{\boldsymbol{\beta} \in \mathbb{R}^p}
-\left\{
+\left\lbrace
 \lVert \boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta} \rVert_2^2
 +
 \lambda \lVert \boldsymbol{\beta} \rVert_2^2
-\right\}.
+\right\rbrace.
 $$
 
 When $\boldsymbol{X}^\top \boldsymbol{X}$ is used directly, this corresponds to the familiar closed-form expression
@@ -102,7 +102,7 @@ $$
 and then evaluates the solver over the penalty grid
 
 $$
-\lambda \in \{10^{-4}, 10^{-2}, 0.1, 1, 10, 100, 1000\}
+\lambda \in \lbrace10^{-4}, 10^{-2}, 0.1, 1, 10, 100, 1000\rbrace
 $$
 
 For each penalty value, the demo prints both the coefficient error and the residual norm, which lets the reader inspect

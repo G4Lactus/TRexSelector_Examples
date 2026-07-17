@@ -24,7 +24,7 @@ Let
 - $p$ the number of variables,
 - $K$ the number of true variable blocks,
 - $\boldsymbol{X} \in \mathbb{R}^{n \times p}$ denote the data matrix,
-- $b(j) \in \{1,\dots,K\}$ the true block label of variable $j$.
+- $b(j) \in \lbrace1,\dots,K\rbrace$ the true block label of variable $j$.
 
 In this demo, the dimensions are
 

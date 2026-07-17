@@ -12,9 +12,9 @@ used internally by TRexGVS.
 
 The demo is organized into four scenarios:
 
-1. **Low-dimensional path fitting**: regularization paths for $\alpha \in \{0, 0.5, 1\}$ with $n = 300$, $p = 100$.
-2. **High-dimensional path fitting**: regularization paths for $\alpha \in \{0, 1\}$ with $n = 200$, $p = 500$.
-3. **Low-dimensional cross-validation**: 10-fold CV for $\alpha \in \{0, 0.5, 1\}$ with $n = 300$, $p = 100$.
+1. **Low-dimensional path fitting**: regularization paths for $\alpha \in \lbrace0, 0.5, 1\rbrace$ with $n = 300$, $p = 100$.
+2. **High-dimensional path fitting**: regularization paths for $\alpha \in \lbrace0, 1\rbrace$ with $n = 200$, $p = 500$.
+3. **Low-dimensional cross-validation**: 10-fold CV for $\alpha \in \lbrace0, 0.5, 1\rbrace$ with $n = 300$, $p = 100$.
 4. **Ridge CV with TRexGVS conversion**: 10-fold CV for $\alpha = 0$ with $n = 300$, $p = 200$, and explicit conversion
    from glmnet-scale $\lambda$ to the `lambda_2_lars` scale used downstream.
 
@@ -50,7 +50,7 @@ For fixed $\alpha$ and $\lambda$, the elastic-net estimator solves
 $$
 \widehat{\boldsymbol{\beta}}(\lambda,\alpha) =
 \arg\min_{\boldsymbol{\beta} \in \mathbb{R}^p}
-\left\{
+\left\lbrace
 \frac{1}{2n}\lVert \boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta} \rVert_2^2
 +
 \lambda
@@ -59,7 +59,7 @@ $$
 +
 \frac{1-\alpha}{2}\lVert \boldsymbol{\beta} \rVert_2^2
 \right]
-\right\}.
+\right\rbrace.
 $$
 
 Here the residual sum of squares carries glmnet's $1/(2n)$ normalization (the
@@ -125,7 +125,7 @@ The first scenario studies the regularization path in a low-dimensional regime w
 demo compares three values of the mixing parameter:
 
 $$
-\alpha \in \{0, 0.5, 1\}.
+\alpha \in \lbrace0, 0.5, 1\rbrace.
 $$
 
 This setting is useful for seeing how ridge, intermediate elastic-net shrinkage, and lasso differ in coefficient
@@ -139,7 +139,7 @@ The second scenario studies the path in a high-dimensional regime with $n = 200$
 the demo focuses on ridge and lasso, for which
 
 $$
-\alpha \in \{0, 1\}.
+\alpha \in \lbrace0, 1\rbrace.
 $$
 
 This subproblem highlights how the path behaves when the regression problem becomes high-dimensional and regularization
@@ -153,7 +153,7 @@ lasso-type shrinkage.
 The third scenario performs 10-fold cross-validation in the low-dimensional setting $n = 300$, $p = 100$ for
 
 $$
-\alpha \in \{0, 0.5, 1\}.
+\alpha \in \lbrace0, 0.5, 1\rbrace.
 $$
 
 The goal is to compare how the selected $\lambda$ values differ across ridge, elastic net, and lasso when the same

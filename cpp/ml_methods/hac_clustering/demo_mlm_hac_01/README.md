@@ -27,8 +27,8 @@ Let
 - $p$ be the number of variables,
 - $K$ be the number of true clusters or blocks,
 - $\boldsymbol{X} \in \mathbb{R}^{n \times p}$ denote the data matrix,
-- $z_i \in \{1,\dots,K\}$ the true cluster label of sample $i$,
-- $b(j) \in \{1,\dots,K\}$ the true block label of variable $j$.
+- $z_i \in \lbrace1,\dots,K\rbrace$ the true cluster label of sample $i$,
+- $b(j) \in \lbrace1,\dots,K\rbrace$ the true block label of variable $j$.
 
 The recovered clustering is evaluated with the Adjusted Rand Index
 
