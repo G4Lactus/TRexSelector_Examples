@@ -68,11 +68,10 @@ $$
 
 so the regression problem lies in the $n \ge p$ regime.
 
-The code generates a dense Gaussian design, sets all true coefficients to 1, adds small Gaussian noise, solves the ridge
-problem, and reports the coefficient error
-$`\lVert \widehat{\boldsymbol{\beta}} - \boldsymbol{\beta}_{\mathrm{true}} \rVert_2`$
-together with the residual norm
-$`\lVert \boldsymbol{y} - \boldsymbol{X}\widehat{\boldsymbol{\beta}} \rVert_2`$.
+The code generates a dense Gaussian design, sets all true coefficients to 1, adds small Gaussian noise,
+solves the ridge problem, and reports the coefficient error
+$\lVert \widehat{\boldsymbol{\beta}} - \boldsymbol{\beta}_{\mathrm{true}} \rVert\_2$ together with the
+residual norm $\lVert \boldsymbol{y} - \boldsymbol{X}\widehat{\boldsymbol{\beta}} \rVert\_2$.
 
 ---
 
