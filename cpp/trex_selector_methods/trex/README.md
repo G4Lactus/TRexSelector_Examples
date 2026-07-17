@@ -90,33 +90,33 @@ The selector aims to identify relevant variables while controlling false discove
 
 ### False Discovery Rate (FDR)
 
-$$
+```math
 \mathrm{FDR}
 =
 \mathbb{E}
 \left[
-\frac{\lvert\widehat{\mathcal{A}} \setminus \mathcal{A}\rvert}
-{\max\lbrace 1, \lvert\widehat{\mathcal{A}}\rvert\rbrace}
+\frac{|\widehat{\mathcal{A}} \setminus \mathcal{A}|}
+{\max\{1, |\widehat{\mathcal{A}}|\}}
 \right].
-$$
+```
 
 In the simulations, the target level is denoted by **tFDR**, typically
 
-$$
+```math
 \alpha = 0.1.
-$$
+```
 
 ### True Positive Rate (TPR)
 
-$$
+```math
 \mathrm{TPR}
 =
 \mathbb{E}
 \left[
-\frac{\lvert\mathcal{A} \cap \widehat{\mathcal{A}}\rvert}
-{\max\lbrace 1, \lvert\mathcal{A}\rvert\rbrace}
+\frac{|\mathcal{A} \cap \widehat{\mathcal{A}}|}
+{\max\{1, |\mathcal{A}|\}}
 \right].
-$$
+```
 
 Informally:
 
