@@ -45,15 +45,9 @@ For a given penalty parameter $\lambda$, ridge regression estimates the coeffici
 $$
 \widehat{\boldsymbol{\beta}}(\lambda) =
 \arg\min_{\boldsymbol{\beta} \in \mathbb{R}^p}
-\left\{
-\lVert \boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta} \rVert_2^2
-+
-\lambda \lVert \boldsymbol{\beta} \rVert_2^2
-\right\}.
+\left\{\lVert \boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta} \rVert_2^2 +
+\lambda \lVert \boldsymbol{\beta} \rVert_2^2 \right\}.
 $$
-
-The role of $\lambda$ is to shrink the coefficients toward zero and stabilize the fit, especially when predictors are
-numerous or highly collinear.
 
 In the implementation, `ridge_cv_svd` performs per-fold centering and column $\ell_2$-normalization and uses
 `Eigen::JacobiSVD` for the foldwise numerical solve.
