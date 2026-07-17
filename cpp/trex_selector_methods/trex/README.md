@@ -10,7 +10,8 @@ The demos are designed to help first-time users understand three things:
 2. how to run the classical T-Rex Selector in different settings,
 3. how to interpret the resulting variable selections and simulation summaries.
 
-If you are new to this folder, start with **Demo 01** for a basic single run and then continue with **Demo 02** for a Monte Carlo study across several signal-to-noise ratios.
+If you are new to this folder, start with **Demo 01** for a basic single run and then 
+continue with **Demo 02** for a Monte Carlo study across several signal-to-noise ratios.
 
 ---
 
@@ -70,12 +71,13 @@ $$
 \mathrm{SNR} = \frac{\mathrm{Var}(\boldsymbol{X}\boldsymbol{\beta})}{\mathrm{Var}(\boldsymbol{\varepsilon})}.
 $$
 
-For a fixed design matrix $\boldsymbol{X}$ and coefficient vector $\boldsymbol{\beta}$, the noise variance $\sigma^2$ is adjusted to match a desired target SNR.
+For a fixed design matrix $\boldsymbol{X}$ and coefficient vector $\boldsymbol{\beta}$,
+ the noise variance $\sigma^2$ is adjusted to match a desired target SNR.
 
 Typical SNR values used in the demos are
 
 $$
-\{0.1,\; 0.5,\; 1,\; 2,\; 5\},
+\left\{0.1, 0.5, 1, 2, 5\right\},
 $$
 
 which range from weak to strong signal settings.
