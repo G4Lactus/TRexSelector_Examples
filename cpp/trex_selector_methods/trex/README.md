@@ -77,7 +77,7 @@ For a fixed design matrix $\boldsymbol{X}$ and coefficient vector $\boldsymbol{\
 Typical SNR values used in the demos are
 
 $$
-\left\{0.1, 0.5, 1, 2, 5\right\},
+\left\lbrace 0.1, 0.5, 1, 2, 5 \right\rbrace,
 $$
 
 which range from weak to strong signal settings.
