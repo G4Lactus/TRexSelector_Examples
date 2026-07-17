@@ -1,0 +1,22 @@
+# Type-checking dependencies for the Python plotting modules under cpp/.
+#
+#   .venv/bin/pip install -r requirements-dev.txt
+#
+# These are NOT needed to generate figures -- the plotters run on matplotlib,
+# pandas and plotly alone (see the hint in each demo's generate_plots.sh). They
+# are only needed to run the linter over cpp/**/*_plt_utils.py, configured in
+# mypy.ini:
+#
+#   mypy cpp/trex_selector_methods/trex/trex_plt_utils.py \
+#        cpp/trex_selector_methods/trex_da/trex_da_plt_utils.py
+
+mypy
+
+# pandas ships no py.typed marker, so without this the checker cannot see pandas
+# at all and reports 'Library stubs not installed for "pandas"'. The stub
+# releases track pandas version-for-version, so keep this matched to the pandas
+# in the venv (pandas-stubs 3.0.3.* <-> pandas 3.0.3).
+pandas-stubs~=3.0.3
+
+# Not listed: plotly has no py.typed marker either, but its only stub package
+# (plotly-stubs) is still 0.1.x. mypy.ini silences those imports instead.
