@@ -34,8 +34,8 @@ The recovered clustering is evaluated with the Adjusted Rand Index
 
 $$
 \mathrm{ARI} :=
-\frac{\mathrm{Index} - \mathbb{E}[\mathrm{Index}]}
-{\mathrm{MaxIndex} - \mathbb{E}[\mathrm{Index}]},
+\frac{\mathrm{Index} - \mathbb{E}\lbrack\mathrm{Index}\rbrack}
+{\mathrm{MaxIndex} - \mathbb{E}\lbrack\mathrm{Index}\rbrack},
 $$
 
 where $\mathrm{ARI} = 1$ indicates perfect agreement between true and predicted labels.
@@ -99,10 +99,9 @@ This creates blockwise collinearity among variables.
 Before correlation-based clustering, each column is standardized by
 
 $$
-\widetilde{\boldsymbol{x}}_j
-=
+\widetilde{\boldsymbol{x}}_j =
 \frac{\boldsymbol{x}_j - \bar{x}_j \mathbf{1}}
-{\lVert \boldsymbol{x}_j - \bar{x}_j \mathbf{1} \rVert_2},
+{\lVert \boldsymbol{x}_j - \bar{x}_j \mathbf{1} \rVert_2}
 $$
 
 so that variables are mean-centered and scaled to unit $\ell_2$-norm.
@@ -211,15 +210,23 @@ correct structure at a substantially reduced per-distance cost.
 
 ### SP6 Data model
 
-Here the variables are generated with a **block-diagonal AR(1) Toeplitz** correlation structure. Within each block, the
-correlation between variables decays with their index separation,
+Here the variables are generated with a **block-diagonal AR(1) Toeplitz** correlation structure. Each block $k$ is built
+by the stationary recursion
+$\boldsymbol{x}_{j} = \rho_{k}\,\boldsymbol{x}_{j-1} + \sqrt{1 - \rho_{k}^{2}}\,\boldsymbol{\varepsilon}_{j}$ with
+$\boldsymbol{\varepsilon}_{j}$ standard normal, which leaves every column at unit variance. The correlation therefore
+decays *exactly* with the index separation inside a block, and vanishes between blocks:
 
 $$
-\mathrm{corr}(x_{j}, x_{j+m}) \approx \rho^{\,m},
+\mathrm{corr}(\boldsymbol{x}_{j}, \boldsymbol{x}_{j+m}) =
+\begin{cases}
+\rho_{k}^{\,m}, & b(j) = b(j+m) = k, \\
+0, & \text{otherwise},
+\end{cases}
 $$
 
-so that a variable is strongly correlated with its immediate neighbors but nearly uncorrelated with distant variables in
-the same block.
+so a variable is strongly correlated with its immediate neighbors but nearly uncorrelated with distant variables in the
+same block. Each block carries its own decay rate — $\rho_{k} = 0.95,\, 0.90,\, 0.85,\, 0.80,\, 0.75$ — so even the
+slowest-decaying block is down to $0.95^{100} \approx 0.006$ after a hundred steps.
 
 ### SP6 Mathematical approach
 
