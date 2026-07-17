@@ -46,10 +46,9 @@ For a given penalty parameter $\lambda$, ridge regression estimates the coeffici
 \widehat{\boldsymbol{\beta}}(\lambda)
 =
 \underset{\boldsymbol{\beta} \in \mathbb{R}^p}{\arg\min}
-\Bigl(
 \lVert \boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta} \rVert_2^2
 + \lambda \lVert \boldsymbol{\beta} \rVert_2^2
-\Bigr).
+.
 ```
 
 In the implementation, `ridge_cv_svd` performs per-fold centering and column $\ell_2$-normalization and uses
