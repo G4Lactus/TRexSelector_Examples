@@ -21,8 +21,10 @@ Two core transformations are demonstrated:
   where $\bar{x}_j$ is the column mean and $s_j$ is the column scale.
 
 - **Lp-norm scaling**:
-  $$\tilde{\boldsymbol{x}}_j = \frac{\boldsymbol{x}_j - \bar{x}_j \mathbf{1}}{\lVert \boldsymbol{x}_j - \bar{x}_j \mathbf{1} \rVert_p},$$
-  when centering is enabled.
+  $$
+  \tilde{\boldsymbol{x}}_j = \frac{\boldsymbol{x}_j - \bar{x}_j \mathbf{1}}{\lVert \boldsymbol{x}_j - \bar{x}_j \mathbf{1} \rVert_p}
+  $$
+  , when centering is enabled.
 
 ---
 
