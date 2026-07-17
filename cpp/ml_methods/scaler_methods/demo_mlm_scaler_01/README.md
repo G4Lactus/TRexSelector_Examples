@@ -22,8 +22,7 @@ $\boldsymbol{x}_1, \dots, \boldsymbol{x}_p$.
 For each column $j$, the transformed column is
 
 $$
-\tilde{\boldsymbol{x}}_j
-=
+\tilde{\boldsymbol{x}}_j =
 \frac{\boldsymbol{x}_j - \bar{x}_j \mathbf{1}}{s_j},
 $$
 
@@ -34,8 +33,7 @@ where $\bar{x}_j$ is the sample mean and $s_j$ is the stored scale parameter.
 With centering enabled, the transformed column is
 
 $$
-\tilde{\boldsymbol{x}}_j
-=
+\tilde{\boldsymbol{x}}_j =
 \frac{\boldsymbol{x}_j - \bar{x}_j \mathbf{1}}
 {\lVert \boldsymbol{x}_j - \bar{x}_j \mathbf{1} \rVert_p}.
 $$

@@ -48,8 +48,7 @@ are set to 1 at evenly spaced positions, while the remaining entries are zero.
 For fixed $\alpha$ and $\lambda$, the elastic-net estimator solves
 
 $$
-\widehat{\boldsymbol{\beta}}(\lambda,\alpha)
-=
+\widehat{\boldsymbol{\beta}}(\lambda,\alpha) =
 \arg\min_{\boldsymbol{\beta} \in \mathbb{R}^p}
 \left\{
 \frac{1}{2n}\lVert \boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta} \rVert_2^2

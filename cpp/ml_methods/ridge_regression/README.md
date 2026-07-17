@@ -20,8 +20,7 @@ Given a design matrix $\boldsymbol{X} \in \mathbb{R}^{n \times p}$, response vec
 and penalty parameter $\lambda \ge 0$, ridge regression estimates
 
 $$
-\widehat{\boldsymbol{\beta}}_{\mathrm{ridge}}
-=
+\widehat{\boldsymbol{\beta}}_{\mathrm{ridge}} =
 \arg\min_{\boldsymbol{\beta} \in \mathbb{R}^p}
 \left\{
 \lVert \boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta} \rVert_2^2

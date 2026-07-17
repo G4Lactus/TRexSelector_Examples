@@ -43,8 +43,7 @@ The synthetic variables are generated from a blockwise latent-factor model. For 
 entries of $\boldsymbol{X}$ are generated according to
 
 $$
-X_{ij}
-=
+X_{ij} =
 \mu_{b(j)}
 +
 \sigma_{b(j)}
@@ -97,8 +96,7 @@ matrix occupies only a small RAM budget relative to the full design matrix.
 Before correlation-based clustering, each variable is standardized in place by
 
 $$
-\widetilde{\boldsymbol{x}}_j
-=
+\widetilde{\boldsymbol{x}}_j =
 \frac{\boldsymbol{x}_j - \bar{x}_j \mathbf{1}}
 {\lVert \boldsymbol{x}_j - \bar{x}_j \mathbf{1} \rVert_2}.
 $$

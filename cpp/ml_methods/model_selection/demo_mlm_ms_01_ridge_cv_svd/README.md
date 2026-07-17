@@ -43,8 +43,7 @@ are set to 1, placed at evenly spaced coordinates, while the remaining coefficie
 For a given penalty parameter $\lambda$, ridge regression estimates the coefficients by solving
 
 $$
-\widehat{\boldsymbol{\beta}}(\lambda)
-=
+\widehat{\boldsymbol{\beta}}(\lambda) =
 \arg\min_{\boldsymbol{\beta} \in \mathbb{R}^p}
 \left\{
 \lVert \boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta} \rVert_2^2
@@ -123,8 +122,7 @@ interface boundary.
 Mathematically, the regression and cross-validation problem are unchanged:
 
 $$
-\widehat{\boldsymbol{\beta}}(\lambda)
-=
+\widehat{\boldsymbol{\beta}}(\lambda) =
 \arg\min_{\boldsymbol{\beta}}
 \left\{
 \lVert \boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta} \rVert_2^2

@@ -30,7 +30,7 @@ The CMake presets in this directory expect the install tree at
 ### Presets (`CMakePresets.json`)
 
 | Configure preset | Build preset | Build type | Binary output directory |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `debug` | `debug-build` | Debug (`-g -O0`) | `build/debug/bin/` |
 | `release` | `release-build` | Release (`-O3 -march=native`) | `build/release/bin/` |
 
@@ -64,7 +64,7 @@ All demo executables are registered through the
 ### Library sets
 
 | Variable | Linked TRexSelector components |
-|---|---|
+| --- | --- |
 | `DATA_PREPROCESSING_LIBS` | `trex_ml_methods` |
 | `T_ALGORITHM_LIBS` | `trex_ml_methods`, `trex_tsolvers` |
 | `T_REX_SELECTOR_LIBS` | `trex_selector_methods` (transitively pulls in tsolvers, ml\_methods, utils) |
@@ -80,7 +80,7 @@ out-of-core matrix creation, zero-copy read/write access, and OpenMP parallel
 filling via POSIX `mmap`.
 
 | Demo | Description |
-|---|---|
+| --- | --- |
 | `demo_memory_mapping` | Create, access, parallel-fill, and clean up a memory-mapped matrix |
 
 ---
@@ -91,7 +91,7 @@ Data-preprocessing and numerical building blocks used by the solver and
 selector layers.
 
 | Demo | Description |
-|---|---|
+| --- | --- |
 | `demo_mlm_scaler_01` | Column normalization — Z-score and Lp-norm scalers |
 | `demo_mlm_pca_01` | Principal component analysis (PCA) |
 | `demo_mlm_svd_01` | Singular value decomposition (SVD) |
@@ -114,7 +114,7 @@ selection. Each solver stops at $T_{\text{stop}}$ level rather than computing
 the full regularization path.
 
 | Demo | Solver |
-|---|---|
+| --- | --- |
 | `demo_ts_01_tlars` | T-LARS (Least Angle Regression) |
 | `demo_ts_02_tlasso` | T-LASSO |
 | `demo_ts_03_tstepwise` | T-Stepwise (forward stepwise) |
@@ -166,11 +166,6 @@ memory-mapped screening, correlated designs, and biobank-scale pipelines
 
 Sparse PCA with T-Rex. Monte Carlo simulation demo (1 demo).
 
-The scaling-comparison, solver-equivalence, and R cross-validation diagnostics
-for these selectors moved to the TRexSelector library test suite
-(`TRexSelector/cpp/tests/validation/trex_selector_methods/`), built on demand
-via its `build_diagnostics` target.
-
 ---
 
-*Last updated: 2026-07-08*
+Last updated: 2026-07-08

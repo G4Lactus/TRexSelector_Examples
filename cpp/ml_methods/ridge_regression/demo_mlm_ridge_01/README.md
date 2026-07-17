@@ -37,8 +37,7 @@ with Gaussian predictors and additive Gaussian noise.
 For a fixed penalty value $\lambda$, ridge regression solves
 
 $$
-\widehat{\boldsymbol{\beta}}(\lambda)
-=
+\widehat{\boldsymbol{\beta}}(\lambda) =
 \arg\min_{\boldsymbol{\beta} \in \mathbb{R}^p}
 \left\{
 \lVert \boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta} \rVert_2^2
@@ -50,8 +49,7 @@ $$
 When $\boldsymbol{X}^\top \boldsymbol{X}$ is used directly, this corresponds to the familiar closed-form expression
 
 $$
-\widehat{\boldsymbol{\beta}}_{\mathrm{ridge}}
-=
+\widehat{\boldsymbol{\beta}}_{\mathrm{ridge}} =
 (\boldsymbol{X}^\top \boldsymbol{X} + \lambda \boldsymbol{I})^{-1}\boldsymbol{X}^\top \boldsymbol{y}.
 $$
 
