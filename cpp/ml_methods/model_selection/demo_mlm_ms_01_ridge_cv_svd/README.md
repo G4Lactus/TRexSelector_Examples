@@ -74,8 +74,8 @@ $$
 
 from which the demo reports two common choices:
 
-- $\lambda_{\min} $: the value minimizing cross-validated MSE,
-- $\lambda_{1\mathrm{se}} $: the largest value of $\lambda$ within one standard error (SE) of the minimum.
+- $\lambda_{\min}$: the value minimizing cross-validated MSE,
+- $\lambda_{1\mathrm{se}}$: the largest value of $\lambda$ within one standard error (SE) of the minimum.
 
 The source explicitly prints both `lambda.min` and `lambda.1se` and checks the expected ordering `lambda.min <=
 lambda.1se` in each scenario.

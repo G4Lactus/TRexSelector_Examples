@@ -12,7 +12,7 @@ norm-based normalization.
 
 ## Key concepts
 
-Given a data matrix $\boldsymbol{X} \in \mathbb{R}^{n \times p} $, scaling is applied column by column.
+Given a data matrix $\boldsymbol{X} \in \mathbb{R}^{n \times p}$, scaling is applied column by column.
 
 Two core transformations are demonstrated:
 
@@ -20,7 +20,7 @@ Two core transformations are demonstrated:
   $$
   \tilde{x}_{ij} = \frac{x_{ij} - \bar{x}_j}{s_j},
   $$
-  where \( \bar{x}_j \) is the column mean and \( s_j \) is the column scale.
+  where $\bar{x}_j$ is the column mean and $s_j$ is the column scale.
 
 - **Lp-norm scaling**:
   $$

@@ -23,9 +23,9 @@ cluster labels against the known ground-truth labels from the synthetic data gen
 
 Let
 
-- $n$ the number of samples,
-- $p$ the number of variables,
-- $K$ the number of true clusters or blocks,
+- $n$ be the number of samples,
+- $p$ be the number of variables,
+- $K$ be the number of true clusters or blocks,
 - $\boldsymbol{X} \in \mathbb{R}^{n \times p}$ denote the data matrix,
 - $z_i \in \{1,\dots,K\}$ the true cluster label of sample $i$,
 - $b(j) \in \{1,\dots,K\}$ the true block label of variable $j$.
@@ -217,9 +217,9 @@ $\boldsymbol{\varepsilon}_{j}$ standard normal, which leaves every column at uni
 decays *exactly* with the index separation inside a block, and vanishes between blocks:
 
 $$
-\mathrm{corr}(\boldsymbol{x}_{j}, \boldsymbol{x}_{j+m}) =
+\mathrm{corr}(\boldsymbol{x}_{j}, \boldsymbol{x}_{j + m}) =
 \begin{cases}
-\rho_{k}^{\,m}, & b(j) = b(j+m) = k, \\
+\rho_{k}^{m}, & b(j) = b(j+m) = k, \\
 0, & \text{otherwise},
 \end{cases}
 $$
@@ -256,9 +256,6 @@ When reading the output, focus on the following points:
 - whether the LSH approximation preserves the dominant block structure,
 - how the linkage rule changes both runtime and clustering agreement.
 
-The C++ single-linkage results are cross-checked against R `hclust(method="single")` by
-`validation_mlm_hac_01_rcompare` in the TRexSelector library test suite (`cpp/tests/validation/`).
-
 The same scenarios are also implemented in
 [Python](../../../../Python/ml_methods/hac_clustering/demo_agg_hac_01_in_memory.py) and
 [R](../../../../R/ml_methods/hac_clustering/demo_agg_hac_01_in_memory.R).
@@ -271,7 +268,7 @@ The same scenarios are also implemented in
   switched off while iterating on another.
 - Subproblems 4 and 6 use the exact Pearson-correlation distance, while Subproblems 3 and 5 exercise the LSH filter
   and/or pure $O(1)$ LSH approximation.
-- The synthetic dimensions vary per subproblem (for example, $P$ ranges up to $100{,}000$ variables), so runtimes and
+- The synthetic dimensions vary per subproblem (for example, $p$ ranges up to $100{,}000$ variables), so runtimes and
   memory footprints differ across the six parts.
 
 ---

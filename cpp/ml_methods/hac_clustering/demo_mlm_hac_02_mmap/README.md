@@ -169,14 +169,11 @@ When reading the output, focus on the following points:
 - whether the temporary memory-mapped file is cleaned up successfully at the end.
 
 You can compare the large-scale behavior with the in-memory HAC examples in
-[demo_mlm_hac_01](../demo_mlm_hac_01/README.md). The C++ GVS dummy generation is cross-checked against R
-`add_dummies_GVS()` by `validation_mlm_hac_02_gvs_dummy_rcompare` in the TRexSelector library test suite
-(`cpp/tests/validation/`).
+[demo_mlm_hac_01](../demo_mlm_hac_01/README.md).
 
 The same memory-mapped clustering technique is demonstrated at a smaller, illustrative scale in
 [Python](../../../../Python/ml_methods/hac_clustering/demo_agg_hac_02_mmap.py) and
-[R](../../../../R/ml_methods/hac_clustering/demo_agg_hac_02_mmap.R); neither reproduces the biobank-scale
-(N=100k, P=400k) workload run here.
+[R](../../../../R/ml_methods/hac_clustering/demo_agg_hac_02_mmap.R).
 
 ---
 

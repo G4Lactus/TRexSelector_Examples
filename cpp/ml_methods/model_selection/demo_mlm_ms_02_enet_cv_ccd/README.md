@@ -95,10 +95,10 @@ $$
 \widehat{\boldsymbol{\beta}}(\lambda_K,\alpha).
 $$
 
-The demo summarizes each path by reporting selected $ \lambda $ values together with:
+The demo summarizes each path by reporting selected $\lambda$ values together with:
 
 - the number of nonzero coefficients,
-- the $ \ell_1 $-norm of the fitted coefficient vector,
+- the $\ell_1$-norm of the fitted coefficient vector,
 - the deviance ratio.
 
 This makes it possible to inspect how sparsity and fit quality evolve along the regularization path.
