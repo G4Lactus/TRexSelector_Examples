@@ -10,7 +10,7 @@ The demos are designed to help first-time users understand three things:
 2. how to run the classical T-Rex Selector in different settings,
 3. how to interpret the resulting variable selections and simulation summaries.
 
-If you are new to this folder, start with **Demo 01** for a basic single run and then 
+If you are new to this folder, start with **Demo 01** for a basic single run and then
 continue with **Demo 02** for a Monte Carlo study across several signal-to-noise ratios.
 
 ---
@@ -134,11 +134,12 @@ For first use, the following order is recommended:
 1. **Demo 01 — Single Run**  
    Best starting point. Shows the basic workflow in one low-dimensional and one high-dimensional example.
 
-2. **Demo 02 — Monte Carlo, Fixed Support**  
+2. **Demo 02 — Monte Carlo, Fixed Support**
    Shows how performance changes across SNR values and provides aggregated FDR/TPR output.
 
 3. **Demo 06 — Memory-Mapped Single Run**  
-   Useful if you are interested in large-data workflows or limited-RAM settings. To reveal its full power, we recommend using an SSD drive.
+   Useful if you are interested in large-data workflows or limited-RAM settings. To reveal its full power,
+   we recommend using an SSD drive.
 
 ---
 
@@ -248,7 +249,7 @@ solvers within the T-Rex framework. The numbers below are **illustrative** of th
 solver (exact values depend on the run); consult the generated `simulation_results/` files for actual figures.
 
 | SNR | FDR (TLARS) | TPR (TLARS) |
-|-----|-------------|-------------|
+| ----- | ------------- | ------------- |
 | 0.1 | low         | low         |
 | 0.5 | ≤ tFDR      | rising      |
 | 1.0 | ≤ tFDR      | high        |
@@ -262,7 +263,8 @@ solver (exact values depend on the run); consult the generated `simulation_resul
 - At very low SNR, recovery is difficult.
 - At moderate to high SNR, the procedure recovers most or all active variables.
 
-This is the expected pattern for a method that prioritizes controlled false discoveries while gaining power as signal strength increases.
+This is the expected pattern for a method that prioritizes controlled false discoveries
+while gaining power as signal strength increases.
 
 ---
 

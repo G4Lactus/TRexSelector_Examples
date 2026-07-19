@@ -37,7 +37,7 @@ lloop_strategy = STANDARD        # Fresh i.i.d. dummy matrix per L-loop iteratio
 tloop_stagnation_stop = true     # Early exit when R_mat stagnates
 tloop_max_stagnant_steps = 7     # Stagnation window (7 consecutive unchanged iterations)
 opt_threshold = 0.75             # Optimization grid point
-parallel_rnd_experiments = false # Sequential dummy experiments
+parallel_rnd_experiments = false # Sequential random experiments
 use_memory_mapping = false       # In-memory data
 tFDR = 0.1                       # Target FDR control level
 ```

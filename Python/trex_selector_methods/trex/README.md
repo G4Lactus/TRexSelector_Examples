@@ -102,7 +102,7 @@ The demos configure the selector through plain dicts, converted inside each
 worker process by `_make_trex_ctrl_from_dict()` into a
 `ts.TRexControlParameter`:
 
-- **Core fields**: `K` (dummy-matrix experiments per T-loop iteration),
+- **Core fields**: `K` (random experiments per T-loop iteration),
   `max_dummy_multiplier` (max L = multiplier x p), `use_max_T_stop`,
   `opt_threshold`, `tloop_stagnation_stop`, `tloop_max_stagnant_steps`,
   `parallel_rnd_experiments`, `use_memory_mapping`.

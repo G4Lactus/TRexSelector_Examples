@@ -60,7 +60,7 @@ dummy_distribution = Normal      # Dummy predictors drawn from N(0,1)
 lloop_strategy = STANDARD        # Standard L-loop strategy: Fresh dummies each L-loop iteration
 tloop_stagnation_stop = false    # No stagnation early-exit
 tloop_max_stagnant_steps = 5     # (inactive: stagnation stop disabled)
-parallel_rnd_experiments = false # Sequential dummy experiments
+parallel_rnd_experiments = false # Sequential random experiments
 solver_type = TLARS              # Base solver
 tFDR = 0.1                       # Target FDR control level
 ```
