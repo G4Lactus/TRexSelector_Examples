@@ -11,10 +11,10 @@
  * AR(1) covariance structure within each block. Blocks 0, 1, and 2 are active
  * with beta = 3, while block 3 is an inactive AR(1) trap block.
  *
- * Three parts:
- * 1. SNR sweep at fixed rho = 0.85
- * 2. rho sweep at fixed SNR = 2.0
- * 3. 2-D SNR × rho sweep
+ * One part:
+ * 1. 2-D SNR × rho sweep
+ *    (subsumes the former 1-D SNR and rho sweeps as its rho = 0.85 column and
+ *     SNR = 2 row)
  *
  * DGP:
  * - make_ar1_blocks_dgp()
@@ -32,9 +32,9 @@
  * - lambda2 = CV_1SE_CCD
  *
  * Methods compared:
- * - EN (TENET)
- * - EN (TENET_AUG)
- * - IEN
+ * - TENET
+ * - TENET_AUG
+ * - TIENET_AUG
  *
  * MC:
  * - 200 trials per grid point
@@ -56,11 +56,6 @@ struct AR1BlocksPreset {
   std::string scenario_tag;
   std::string file_stem_prefix;
 
-  double fixed_rho_for_snr = 0.85;
-  double fixed_snr_for_rho = 2.0;
-
-  std::vector<double> snr_grid_1d;
-  std::vector<double> rho_grid_1d;
   std::vector<double> snr_grid_2d;
   std::vector<double> rho_grid_2d;
 };
@@ -81,12 +76,6 @@ static AR1BlocksPreset make_ar1_blocks_preset() {
   p.scenario_tag = "AR1-Blocks";
   p.file_stem_prefix = "gvs_ar1_blocks";
 
-  p.fixed_rho_for_snr = 0.85;
-  p.fixed_snr_for_rho = 2.0;
-
-  p.snr_grid_1d = {0.1, 0.2, 0.5, 1.0, 2.0, 5.0};
-  p.rho_grid_1d = {0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80,
-                   0.90, 0.95, 0.99};
   p.snr_grid_2d = {0.2, 0.5, 1.0, 2.0, 5.0};
   p.rho_grid_2d = {0.30, 0.50, 0.70, 0.85, 0.90, 0.99};
 
@@ -119,105 +108,43 @@ static AR1BlocksMethodSet make_method_set(const GVSSimConfig& cfg) {
 }
 
 // =============================================================================
-// Part 1 — SNR sweep
-// =============================================================================
-
-/**
- * @brief Run an MC SNR sweep on the AR(1)-blocks DGP at fixed rho = 0.85.
- */
-static void run_ar1_part1_snr_sweep(const GVSSimConfig& cfg,
-                                    const AR1BlocksPreset& preset,
-                                    const AR1BlocksMethodSet& ms) {
-  const double fixed_rho = preset.fixed_rho_for_snr;
-
-  GVSDGPFactory snr_fn = [&cfg, fixed_rho](double snr, unsigned seed) {
-    return make_ar1_blocks_dgp(cfg.n, cfg.p, snr, fixed_rho, seed);
-  };
-
-  cdiag::print_section_header(
-      "Part 1: SNR Sweep | " + preset.scenario_tag +
-      "\nn=" + std::to_string(cfg.n) + " p=" + std::to_string(cfg.p) +
-      " s=150 MC=" + std::to_string(cfg.num_MC) +
-      " tFDR=" + fmt_num(cfg.tFDR) +
-      " rho=0.85 (fixed)");
-
-  auto en = run_gvs_snr_sweep(
-      snr_fn, preset.snr_grid_1d, cfg, ms.en, ms.trex_ctrl, "EN");
-  auto en_aug = run_gvs_snr_sweep(
-      snr_fn, preset.snr_grid_1d, cfg, ms.en_aug, ms.trex_ctrl, "EN+AUG");
-  auto ien = run_gvs_snr_sweep(
-      snr_fn, preset.snr_grid_1d, cfg, ms.ien, ms.trex_ctrl, "IEN");
-
-  print_mc_snr_table(
-      preset.scenario_tag,
-      preset.snr_grid_1d,
-      en,
-      en_aug,
-      ien,
-      cfg,
-      preset.file_stem_prefix + "_snr");
-}
-
-// =============================================================================
-// Part 2 — rho sweep
-// =============================================================================
-
-/**
- * @brief Run an MC rho sweep on the AR(1)-blocks DGP at fixed SNR.
- */
-static void run_ar1_part2_rho_sweep(const GVSSimConfig& cfg,
-                                    const AR1BlocksPreset& preset,
-                                    const AR1BlocksMethodSet& ms) {
-  GVSRhoDGPFactory rho_fn = [&cfg](double rho, unsigned seed) {
-    return make_ar1_blocks_dgp(cfg.n, cfg.p, cfg.snr, rho, seed);
-  };
-
-  cdiag::print_section_header(
-      "Part 2: rho Sweep | " + preset.scenario_tag +
-      " (SNR=" + fmt_num(cfg.snr) + ")");
-
-  auto en = run_gvs_rho_sweep(
-      rho_fn, preset.rho_grid_1d, cfg, ms.en, ms.trex_ctrl, "EN");
-  auto en_aug = run_gvs_rho_sweep(
-      rho_fn, preset.rho_grid_1d, cfg, ms.en_aug, ms.trex_ctrl, "EN+AUG");
-  auto ien = run_gvs_rho_sweep(
-      rho_fn, preset.rho_grid_1d, cfg, ms.ien, ms.trex_ctrl, "IEN");
-
-  print_mc_rho_table(
-      preset.scenario_tag,
-      preset.rho_grid_1d,
-      en,
-      en_aug,
-      ien,
-      cfg,
-      preset.file_stem_prefix + "_rho");
-}
-
-// =============================================================================
-// Part 3 — 2-D SNR × rho sweep
+// Part 1 — 2-D SNR × rho sweep
 // =============================================================================
 
 /**
  * @brief Run a 2-D MC sweep over SNR and rho on the AR(1)-blocks DGP.
  */
-static void run_ar1_part3_2d_sweep(const GVSSimConfig& cfg,
+static void run_ar1_part1_2d_sweep(const GVSSimConfig& cfg,
                                    const AR1BlocksPreset& preset,
                                    const AR1BlocksMethodSet& ms) {
   GVS2DDGPFactory dgp_2d = [&cfg](double snr, double rho, unsigned seed) {
     return make_ar1_blocks_dgp(cfg.n, cfg.p, snr, rho, seed);
   };
 
-  cdiag::print_section_header("Part 3: 2-D SNR x rho | " + preset.scenario_tag);
+  cdiag::print_section_header(
+      "Part 1: 2-D SNR x rho Sweep | " + preset.scenario_tag);
+  std::cout << "  n=" << cfg.n << "  p=" << cfg.p << "  s=150"
+            << "  MC=" << cfg.num_MC << "  tFDR=" << fmt_num(cfg.tFDR)
+            << "  K=" << cfg.K << "  corr_max=" << fmt_num(cfg.corr_max) << "\n"
+            << "  methods: TENET / TENET_AUG / TIENET_AUG"
+            << "  |  lambda2=CV_1SE_CCD  linkage=Single\n"
+            << "  snr_grid: {";
+  for (std::size_t i = 0; i < preset.snr_grid_2d.size(); ++i)
+    std::cout << (i ? ", " : "") << fmt_num(preset.snr_grid_2d[i]);
+  std::cout << "}\n  rho_grid: {";
+  for (std::size_t i = 0; i < preset.rho_grid_2d.size(); ++i)
+    std::cout << (i ? ", " : "") << fmt_num(preset.rho_grid_2d[i]);
+  std::cout << "}\n";
 
   auto en = run_gvs_2d_sweep(
       dgp_2d, preset.snr_grid_2d, preset.rho_grid_2d, cfg,
-      ms.en, ms.trex_ctrl, "EN");
+      ms.en, ms.trex_ctrl, "TENET");
   auto en_aug = run_gvs_2d_sweep(
       dgp_2d, preset.snr_grid_2d, preset.rho_grid_2d, cfg,
-      ms.en_aug, ms.trex_ctrl, "EN+AUG");
+      ms.en_aug, ms.trex_ctrl, "TENET_AUG");
   auto ien = run_gvs_2d_sweep(
       dgp_2d, preset.snr_grid_2d, preset.rho_grid_2d, cfg,
-      ms.ien, ms.trex_ctrl, "IEN");
+      ms.ien, ms.trex_ctrl, "TIENET_AUG");
 
   std::vector<std::string> snr_labels, rho_labels;
   for (double s : preset.snr_grid_2d) {
@@ -227,12 +154,12 @@ static void run_ar1_part3_2d_sweep(const GVSSimConfig& cfg,
     rho_labels.push_back("rho=" + fmt_num(r));
   }
 
-  print_mc_matrix("mean_FDP [EN]", snr_labels, rho_labels, en, false);
-  print_mc_matrix("mean_TPP [EN]", snr_labels, rho_labels, en, true);
-  print_mc_matrix("mean_FDP [EN+AUG]", snr_labels, rho_labels, en_aug, false);
-  print_mc_matrix("mean_TPP [EN+AUG]", snr_labels, rho_labels, en_aug, true);
-  print_mc_matrix("mean_FDP [IEN]", snr_labels, rho_labels, ien, false);
-  print_mc_matrix("mean_TPP [IEN]", snr_labels, rho_labels, ien, true);
+  print_mc_matrix("mean_FDP [TENET]", snr_labels, rho_labels, en, false);
+  print_mc_matrix("mean_TPP [TENET]", snr_labels, rho_labels, en, true);
+  print_mc_matrix("mean_FDP [TENET_AUG]", snr_labels, rho_labels, en_aug, false);
+  print_mc_matrix("mean_TPP [TENET_AUG]", snr_labels, rho_labels, en_aug, true);
+  print_mc_matrix("mean_FDP [TIENET_AUG]", snr_labels, rho_labels, ien, false);
+  print_mc_matrix("mean_TPP [TIENET_AUG]", snr_labels, rho_labels, ien, true);
 
   save_mc_2d_tables(
       preset.scenario_tag,
@@ -250,14 +177,10 @@ static void run_ar1_part3_2d_sweep(const GVSSimConfig& cfg,
 // =============================================================================
 
 /**
- * @brief Run the AR(1)-blocks benchmark through all three parts.
+ * @brief Run the AR(1)-blocks benchmark (2-D SNR × rho sweep).
  */
-static void run_ar1_blocks_benchmark(const GVSSimConfig& base_cfg,
+static void run_ar1_blocks_benchmark(const GVSSimConfig& cfg,
                                      const AR1BlocksPreset& preset) {
-  GVSSimConfig cfg = base_cfg;
-  cfg.snr = preset.fixed_snr_for_rho;
-  cfg.sd_x = 0.0; // not used; rho is passed directly to the AR(1) DGP
-
   const auto ms = make_method_set(cfg);
 
   cdiag::print_section_header(
@@ -265,9 +188,7 @@ static void run_ar1_blocks_benchmark(const GVSSimConfig& base_cfg,
       "\nDGP = make_ar1_blocks_dgp"
       "\nblocks = {20, 50, 80, 65}, active = {0,1,2}, inactive trap = {3}");
 
-  run_ar1_part1_snr_sweep(cfg, preset, ms);
-  run_ar1_part2_rho_sweep(cfg, preset, ms);
-  run_ar1_part3_2d_sweep(cfg, preset, ms);
+  run_ar1_part1_2d_sweep(cfg, preset, ms);
 
   std::cout << preset.scenario_tag << " GVS MC simulations complete.\n";
 }
@@ -289,13 +210,11 @@ int main() {
   GVSSimConfig cfg;
   cfg.n = 200;
   cfg.p = 500;
-  cfg.sd_x = 0.0; // unused in this file
   cfg.tFDR = 0.1;
   cfg.K = 20;
   cfg.num_MC = 200;
   cfg.base_seed = 2026;
   cfg.corr_max = 0.98;
-  cfg.snr = 2.0;
 
   // ==========================================================================
   //  Run simulations

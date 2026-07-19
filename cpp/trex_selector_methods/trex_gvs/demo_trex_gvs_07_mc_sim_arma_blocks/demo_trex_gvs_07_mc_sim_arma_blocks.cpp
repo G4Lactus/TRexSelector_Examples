@@ -7,10 +7,10 @@
  * @brief MC simulation: T-Rex+GVS on heterogeneous ARMA blocks.
  *
  * @details
- * Three parts:
- *   1. SNR sweep at fixed ar_coef = 0.8
- *   2. ar_coef sweep at fixed SNR = 2.0
- *   3. 2-D SNR × ar_coef sweep
+ * One part:
+ *   1. 2-D SNR × ar_coef sweep
+ *      (subsumes the former 1-D SNR and ar_coef sweeps as its ar_coef = 0.8
+ *       column and SNR = 2 row)
  *
  * DGP:
  *   make_arma_blocks_dgp()
@@ -28,9 +28,9 @@
  *   - lambda2 = CV_1SE_CCD
  *
  * Methods compared:
- *   - EN (TENET)
- *   - EN (TENET_AUG)
- *   - IEN
+ *   - TENET
+ *   - TENET_AUG
+ *   - TIENET_AUG
  *
  * MC:
  *   - 200 trials per grid point
@@ -52,11 +52,6 @@ struct ARMABlocksPreset {
     std::string scenario_tag;
     std::string file_stem_prefix;
 
-    double fixed_ar_coef_for_snr = 0.8;
-    double fixed_snr_for_ar_coef = 2.0;
-
-    std::vector<double> snr_grid_1d;
-    std::vector<double> ar_coef_grid_1d;
     std::vector<double> snr_grid_2d;
     std::vector<double> ar_coef_grid_2d;
 };
@@ -77,17 +72,6 @@ static ARMABlocksPreset make_arma_blocks_preset()
     ARMABlocksPreset p;
     p.scenario_tag = "ARMA-Blocks";
     p.file_stem_prefix = "gvs_arma_blocks";
-
-    p.fixed_ar_coef_for_snr = 0.8;
-    p.fixed_snr_for_ar_coef = 2.0;
-
-    p.snr_grid_1d = {0.1, 0.2, 0.5, 1.0, 2.0, 5.0};
-
-    p.ar_coef_grid_1d = {
-        0.10, 0.20, 0.30, 0.40,
-        0.50, 0.60, 0.70, 0.80,
-        0.90, 0.95
-    };
 
     p.snr_grid_2d = {0.2, 0.5, 1.0, 2.0, 5.0};
 
@@ -122,100 +106,13 @@ static ARMABlocksMethodSet make_method_set(const GVSSimConfig& cfg)
 }
 
 // =============================================================================
-// Part 1 — SNR sweep
-// =============================================================================
-
-/**
- * @brief Run an MC SNR sweep on the ARMA-blocks DGP at fixed ar_coef.
- */
-static void run_arma_part1_snr_sweep(
-    const GVSSimConfig& cfg,
-    const ARMABlocksPreset& preset,
-    const ARMABlocksMethodSet& ms)
-{
-    const double fixed_ar = preset.fixed_ar_coef_for_snr;
-
-    GVSDGPFactory snr_fn = [&cfg, fixed_ar](double snr, unsigned seed) {
-        return make_arma_blocks_dgp(cfg.n, cfg.p, snr, fixed_ar, seed);
-    };
-
-    cdiag::print_section_header(
-        "Part 1: SNR Sweep | " + preset.scenario_tag +
-        "\nn=" + std::to_string(cfg.n) +
-        " p=" + std::to_string(cfg.p) +
-        " s=150 MC=" + std::to_string(cfg.num_MC) +
-        " tFDR=" + fmt_num(cfg.tFDR) +
-        " ar_coef=0.8 (fixed)");
-
-    auto en = run_gvs_snr_sweep(
-        snr_fn, preset.snr_grid_1d, cfg, ms.en, ms.trex_ctrl, "EN");
-
-    auto en_aug = run_gvs_snr_sweep(
-        snr_fn, preset.snr_grid_1d, cfg, ms.en_aug, ms.trex_ctrl, "EN+AUG");
-
-    auto ien = run_gvs_snr_sweep(
-        snr_fn, preset.snr_grid_1d, cfg, ms.ien, ms.trex_ctrl, "IEN");
-
-    print_mc_snr_table(
-        preset.scenario_tag,
-        preset.snr_grid_1d,
-        en,
-        en_aug,
-        ien,
-        cfg,
-        preset.file_stem_prefix + "_snr");
-}
-
-// =============================================================================
-// Part 2 — ar_coef sweep
-// =============================================================================
-
-/**
- * @brief Run an MC ar_coef sweep on the ARMA-blocks DGP at fixed SNR.
- */
-static void run_arma_part2_arcoef_sweep(
-    const GVSSimConfig& cfg,
-    const ARMABlocksPreset& preset,
-    const ARMABlocksMethodSet& ms)
-{
-    // GVSRhoDGPFactory is reused here as a generic 1-D sweep factory:
-    // the first argument is ar_coef, not rho.
-    GVSRhoDGPFactory ar_fn = [&cfg](double ar_coef, unsigned seed) {
-        return make_arma_blocks_dgp(cfg.n, cfg.p, cfg.snr, ar_coef, seed);
-    };
-
-    cdiag::print_section_header(
-        "Part 2: ar_coef Sweep | " + preset.scenario_tag +
-        " (SNR=" + fmt_num(cfg.snr) + ")");
-
-    auto en = run_gvs_rho_sweep(
-        ar_fn, preset.ar_coef_grid_1d, cfg, ms.en, ms.trex_ctrl, "EN");
-
-    auto en_aug = run_gvs_rho_sweep(
-        ar_fn, preset.ar_coef_grid_1d, cfg, ms.en_aug, ms.trex_ctrl, "EN+AUG");
-
-    auto ien = run_gvs_rho_sweep(
-        ar_fn, preset.ar_coef_grid_1d, cfg, ms.ien, ms.trex_ctrl, "IEN");
-
-    print_mc_param_sweep_table(
-        preset.scenario_tag,
-        "ar_coef",
-        preset.ar_coef_grid_1d,
-        en,
-        en_aug,
-        ien,
-        cfg,
-        preset.file_stem_prefix + "_arcoef");
-}
-
-// =============================================================================
-// Part 3 — 2-D SNR × ar_coef sweep
+// Part 1 — 2-D SNR × ar_coef sweep
 // =============================================================================
 
 /**
  * @brief Run a 2-D MC sweep over SNR and ar_coef on the ARMA-blocks DGP.
  */
-static void run_arma_part3_2d_sweep(
+static void run_arma_part1_2d_sweep(
     const GVSSimConfig& cfg,
     const ARMABlocksPreset& preset,
     const ARMABlocksMethodSet& ms)
@@ -225,7 +122,19 @@ static void run_arma_part3_2d_sweep(
     };
 
     cdiag::print_section_header(
-        "Part 3: 2-D SNR x ar_coef | " + preset.scenario_tag);
+        "Part 1: 2-D SNR x ar_coef Sweep | " + preset.scenario_tag);
+    std::cout << "  n=" << cfg.n << "  p=" << cfg.p << "  s=150"
+              << "  MC=" << cfg.num_MC << "  tFDR=" << fmt_num(cfg.tFDR)
+              << "  K=" << cfg.K << "  corr_max=" << fmt_num(cfg.corr_max) << "\n"
+              << "  methods: TENET / TENET_AUG / TIENET_AUG"
+              << "  |  lambda2=CV_1SE_CCD  linkage=Single\n"
+              << "  snr_grid: {";
+    for (std::size_t i = 0; i < preset.snr_grid_2d.size(); ++i)
+        std::cout << (i ? ", " : "") << fmt_num(preset.snr_grid_2d[i]);
+    std::cout << "}\n  ar_coef_grid: {";
+    for (std::size_t i = 0; i < preset.ar_coef_grid_2d.size(); ++i)
+        std::cout << (i ? ", " : "") << fmt_num(preset.ar_coef_grid_2d[i]);
+    std::cout << "}\n";
 
     auto en = run_gvs_2d_sweep(
         dgp_2d,
@@ -234,7 +143,7 @@ static void run_arma_part3_2d_sweep(
         cfg,
         ms.en,
         ms.trex_ctrl,
-        "EN");
+        "TENET");
 
     auto en_aug = run_gvs_2d_sweep(
         dgp_2d,
@@ -243,7 +152,7 @@ static void run_arma_part3_2d_sweep(
         cfg,
         ms.en_aug,
         ms.trex_ctrl,
-        "EN+AUG");
+        "TENET_AUG");
 
     auto ien = run_gvs_2d_sweep(
         dgp_2d,
@@ -252,7 +161,7 @@ static void run_arma_part3_2d_sweep(
         cfg,
         ms.ien,
         ms.trex_ctrl,
-        "IEN");
+        "TIENET_AUG");
 
     std::vector<std::string> snr_labels, ar_labels;
     for (double s : preset.snr_grid_2d)
@@ -260,12 +169,12 @@ static void run_arma_part3_2d_sweep(
     for (double a : preset.ar_coef_grid_2d)
         ar_labels.push_back("ac=" + fmt_num(a));
 
-    print_mc_matrix("mean_FDP [EN]",     snr_labels, ar_labels, en,     false);
-    print_mc_matrix("mean_TPP [EN]",     snr_labels, ar_labels, en,     true);
-    print_mc_matrix("mean_FDP [EN+AUG]", snr_labels, ar_labels, en_aug, false);
-    print_mc_matrix("mean_TPP [EN+AUG]", snr_labels, ar_labels, en_aug, true);
-    print_mc_matrix("mean_FDP [IEN]",    snr_labels, ar_labels, ien,    false);
-    print_mc_matrix("mean_TPP [IEN]",    snr_labels, ar_labels, ien,    true);
+    print_mc_matrix("mean_FDP [TENET]",     snr_labels, ar_labels, en,     false);
+    print_mc_matrix("mean_TPP [TENET]",     snr_labels, ar_labels, en,     true);
+    print_mc_matrix("mean_FDP [TENET_AUG]", snr_labels, ar_labels, en_aug, false);
+    print_mc_matrix("mean_TPP [TENET_AUG]", snr_labels, ar_labels, en_aug, true);
+    print_mc_matrix("mean_FDP [TIENET_AUG]",    snr_labels, ar_labels, ien,    false);
+    print_mc_matrix("mean_TPP [TIENET_AUG]",    snr_labels, ar_labels, ien,    true);
 
     save_mc_2d_tables(
         preset.scenario_tag,
@@ -283,15 +192,12 @@ static void run_arma_part3_2d_sweep(
 // =============================================================================
 
 /**
- * @brief Run the heterogeneous ARMA-blocks benchmark through all three parts.
+ * @brief Run the heterogeneous ARMA-blocks benchmark (2-D SNR × ar_coef sweep).
  */
 static void run_arma_blocks_benchmark(
-    const GVSSimConfig& base_cfg,
+    const GVSSimConfig& cfg,
     const ARMABlocksPreset& preset)
 {
-    GVSSimConfig cfg = base_cfg;
-    cfg.snr = preset.fixed_snr_for_ar_coef;
-
     const auto ms = make_method_set(cfg);
 
     cdiag::print_section_header(
@@ -300,9 +206,7 @@ static void run_arma_blocks_benchmark(
         "\nblocks = {20, 50, 80, 65}, s = 150"
         "\nactive blocks = {0, 1, 2}, trap block = 3");
 
-    run_arma_part1_snr_sweep(cfg, preset, ms);
-    run_arma_part2_arcoef_sweep(cfg, preset, ms);
-    run_arma_part3_2d_sweep(cfg, preset, ms);
+    run_arma_part1_2d_sweep(cfg, preset, ms);
 
     std::cout << preset.scenario_tag << " GVS MC simulations complete.\n";
 }
@@ -325,13 +229,11 @@ int main()
     GVSSimConfig cfg;
     cfg.n         = 200;
     cfg.p         = 500;
-    cfg.sd_x      = 0.0;   // not used in this DGP; ar_coef is passed directly
     cfg.tFDR      = 0.1;
     cfg.K         = 20;
     cfg.num_MC    = 200;
     cfg.base_seed = 2026;
     cfg.corr_max  = 0.98;
-    cfg.snr       = 2.0;   // fixed Part-2 value; overwritten in driver
 
 
     // ==========================================================================

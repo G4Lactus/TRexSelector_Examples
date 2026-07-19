@@ -239,13 +239,13 @@ inline GVSSingleRunResult run_gvs_single(
 {
     const auto t0 = std::chrono::steady_clock::now();
 
-    // IEN requires TLASSO (augmented system absorbs the L2 penalty).
+    // IEN requires TIENET_AUG (row-augmented system absorbs the group penalty).
     // EN solver variant is controlled by gvs_ctrl.en_solver (default: TENET_AUG).
     // TRexGVSControlParameter nests its own trex_ctrl member.
     TRexGVSControlParameter trex_gvs_ctrl = gvs_ctrl;
     trex_gvs_ctrl.trex_ctrl = trex_ctrl;
     if (trex_gvs_ctrl.gvs_type != GVSType::EN)
-        trex_gvs_ctrl.trex_ctrl.solver_type = SolverTypeForTRex::TLASSO;
+        trex_gvs_ctrl.trex_ctrl.solver_type = SolverTypeForTRex::TIENET_AUG;
 
     TRexGVSSelector selector(X_map, y_map, tFDR,
                              trex_gvs_ctrl,
@@ -279,7 +279,7 @@ inline GVSSingleRunResult run_gvs_single(
 /**
  * @brief Print a formatted single-run result block (mirrors R's .print_result()).
  *
- * @param tag    Short scenario / method label (e.g. "Hastie GVS [EN]").
+ * @param tag    Short scenario / method label (e.g. "Hastie GVS [TENET]").
  * @param dat    DGP metadata.
  * @param res    Single-run result to display.
  * @param tFDR   Target FDR (printed for reference).
@@ -354,6 +354,10 @@ using GVSDGPFactory = std::function<GVSDGPResult(double snr, unsigned seed)>;
  * @param base_seed      Seed for trial 0; trial i uses base_seed + i.
  *
  * @return GVSGridPointResult with mean and sd of FDP and TPP.
+ *
+ * @note The progress label should carry the parameter reading (e.g.
+ *       "SNR = 0.10", as in the trex_da demos); @p param itself is only
+ *       forwarded to the DGP factory.
  */
 inline GVSGridPointResult run_gvs_mc_trials(
     const GVSDGPFactory&           dgp_fn,
@@ -370,9 +374,7 @@ inline GVSGridPointResult run_gvs_mc_trials(
     std::vector<double> tpp_vec(num_MC, 0.0);
 
     std::cout << "  " << progress_label
-              << " — Running " << num_MC << " MC trials (param="
-              << std::fixed << std::setprecision(2) << param << ") ...\n"
-              << std::flush;
+              << " — Running " << num_MC << " MC trials ...\n" << std::flush;
 
     #pragma omp parallel for schedule(dynamic)
     for (int mc = 0; mc < iMC; ++mc) {
@@ -384,7 +386,7 @@ inline GVSGridPointResult run_gvs_mc_trials(
         Eigen::Map<Eigen::VectorXd> y_map(dat.y.data(), dat.y.rows());
 
         // Derive solver_type from gvs_ctrl to satisfy the TRexGVSSelector
-        // compatibility check (EN→TENET/TENET_AUG, IEN→TLASSO).
+        // compatibility check (EN→TENET/TENET_AUG, IEN→TIENET_AUG).
         // Per-trial cv_seed ensures unique fold assignments.
         // TRexGVSControlParameter nests its own trex_ctrl member.
         TRexGVSControlParameter trex_gvs_ctrl = gvs_ctrl;
@@ -396,7 +398,7 @@ inline GVSGridPointResult run_gvs_mc_trials(
                     ? SolverTypeForTRex::TENET_AUG
                     : SolverTypeForTRex::TENET;
         else
-            trex_gvs_ctrl.trex_ctrl.solver_type = SolverTypeForTRex::TLASSO;
+            trex_gvs_ctrl.trex_ctrl.solver_type = SolverTypeForTRex::TIENET_AUG;
 
         TRexGVSSelector selector(X_map, y_map, tFDR,
                                  trex_gvs_ctrl,
@@ -433,7 +435,7 @@ inline GVSGridPointResult run_gvs_mc_trials(
     }
 
     std::cout << "  " << progress_label
-              << " — done.  TPP=" << std::fixed << std::setprecision(3) << mean_tpp
+              << " — done. TPP=" << std::fixed << std::setprecision(3) << mean_tpp
               << "  FDP=" << mean_fdp << "\n\n" << std::flush;
 
     return {mean_fdp, mean_tpp, sd_fdp, sd_tpp};
@@ -445,14 +447,14 @@ inline GVSGridPointResult run_gvs_mc_trials(
 // ==============================================================================
 
 /**
- * @brief Run a full SNR-grid MC sweep for one (EN or IEN) method variant.
+ * @brief Run a full SNR-grid MC sweep for one (TENET, TENET_AUG, or TIENET_AUG) method variant.
  *
  * @param dgp_fn     DGP factory — must be thread-safe.
  * @param snr_grid   Vector of SNR values to sweep over.
  * @param cfg        Simulation config (num_MC, base_seed, tFDR, …).
  * @param gvs_ctrl   GVS control parameters (gvs_type is set by caller).
  * @param trex_ctrl  Base T-Rex control parameters.
- * @param label      Short label for progress messages (e.g. "EN", "IEN").
+ * @param label      Short label for progress messages (e.g. "TENET", "TIENET_AUG").
  *
  * @return One GVSGridPointResult per entry in snr_grid.
  */
@@ -467,10 +469,14 @@ inline std::vector<GVSGridPointResult> run_gvs_snr_sweep(
     std::vector<GVSGridPointResult> results;
     results.reserve(snr_grid.size());
 
+    std::cout << "\n  Method: " << label << "\n";
+
     for (double snr : snr_grid) {
+        std::ostringstream lbl;
+        lbl << "SNR = " << std::fixed << std::setprecision(2) << snr;
         results.push_back(
             run_gvs_mc_trials(
-                dgp_fn, snr, cfg.num_MC, label,
+                dgp_fn, snr, cfg.num_MC, lbl.str(),
                 cfg.tFDR, gvs_ctrl, trex_ctrl,
                 static_cast<unsigned>(cfg.base_seed)));
     }
@@ -488,7 +494,7 @@ inline std::vector<GVSGridPointResult> run_gvs_snr_sweep(
  *
  * Columns: mean_FDP  sd_FDP  mean_TPP  sd_TPP
  *
- * @param method_label  Method name displayed as table heading (e.g. "EN").
+ * @param method_label  Method name displayed as table heading (e.g. "TENET").
  * @param param_labels  Labels for each row (e.g. "snr=0.10", "rho=0.30").
  * @param results       One GVSGridPointResult per row.
  */
@@ -536,16 +542,16 @@ inline void print_mc_1d_method_table(
 // ==============================================================================
 
 /**
- * @brief Print three per-method tables for an SNR sweep (EN, EN+AUG, IEN).
+ * @brief Print three per-method tables for an SNR sweep (TENET, TENET_AUG, TIENET_AUG).
  *
  * Each table shows mean_FDP, sd_FDP, mean_TPP, sd_TPP as columns.
  * If file_stem is non-empty, also writes a .txt and a .csv to DEMO_OUTPUT_DIR.
  *
  * @param scenario_tag    Short label printed in the header.
  * @param snr_grid        The swept SNR values.
- * @param en_results      EN (TENET) results per SNR point.
- * @param en_aug_results  EN (TENET_AUG) results per SNR point.
- * @param ien_results     IEN results per SNR point.
+ * @param en_results      TENET results per SNR point.
+ * @param en_aug_results  TENET_AUG results per SNR point.
+ * @param ien_results     TIENET_AUG results per SNR point.
  * @param cfg             Simulation config (num_MC, tFDR, …).
  * @param file_stem       Output file stem (no folder, no extension). Empty = no file output.
  */
@@ -586,9 +592,9 @@ inline void print_mc_snr_table(
     for (double s : snr_grid)
         labels.push_back("snr=" + fmt_num(s));
 
-    print_mc_1d_method_table("EN",     labels, en_results,     fout);
-    print_mc_1d_method_table("EN+AUG", labels, en_aug_results, fout);
-    print_mc_1d_method_table("IEN",    labels, ien_results,    fout);
+    print_mc_1d_method_table("TENET",     labels, en_results,     fout);
+    print_mc_1d_method_table("TENET_AUG", labels, en_aug_results, fout);
+    print_mc_1d_method_table("TIENET_AUG",    labels, ien_results,    fout);
 
     write(std::string(78, '=') + "\n\n");
 
@@ -604,12 +610,12 @@ inline void print_mc_snr_table(
                 << std::fixed << std::setprecision(6);
             for (std::size_t i = 0; i < snr_grid.size(); ++i) {
                 const double snr = snr_grid[i];
-                csv << "EN,mean_FDP,"     << snr << "," << en_results[i].mean_fdp     << "," << en_results[i].sd_fdp     << "\n";
-                csv << "EN,mean_TPP,"     << snr << "," << en_results[i].mean_tpp     << "," << en_results[i].sd_tpp     << "\n";
-                csv << "EN+AUG,mean_FDP," << snr << "," << en_aug_results[i].mean_fdp << "," << en_aug_results[i].sd_fdp << "\n";
-                csv << "EN+AUG,mean_TPP," << snr << "," << en_aug_results[i].mean_tpp << "," << en_aug_results[i].sd_tpp << "\n";
-                csv << "IEN,mean_FDP,"    << snr << "," << ien_results[i].mean_fdp    << "," << ien_results[i].sd_fdp    << "\n";
-                csv << "IEN,mean_TPP,"    << snr << "," << ien_results[i].mean_tpp    << "," << ien_results[i].sd_tpp    << "\n";
+                csv << "TENET,mean_FDP,"     << snr << "," << en_results[i].mean_fdp     << "," << en_results[i].sd_fdp     << "\n";
+                csv << "TENET,mean_TPP,"     << snr << "," << en_results[i].mean_tpp     << "," << en_results[i].sd_tpp     << "\n";
+                csv << "TENET_AUG,mean_FDP," << snr << "," << en_aug_results[i].mean_fdp << "," << en_aug_results[i].sd_fdp << "\n";
+                csv << "TENET_AUG,mean_TPP," << snr << "," << en_aug_results[i].mean_tpp << "," << en_aug_results[i].sd_tpp << "\n";
+                csv << "TIENET_AUG,mean_FDP,"    << snr << "," << ien_results[i].mean_fdp    << "," << ien_results[i].sd_fdp    << "\n";
+                csv << "TIENET_AUG,mean_TPP,"    << snr << "," << ien_results[i].mean_tpp    << "," << ien_results[i].sd_tpp    << "\n";
             }
             std::cout << "[Info] CSV saved to: " << dir + file_stem + ".csv\n\n";
         }
@@ -631,14 +637,14 @@ using GVSRhoDGPFactory = GVSDGPFactory;
 
 
 /**
- * @brief Run a full rho-grid MC sweep for one (EN or IEN) method variant.
+ * @brief Run a full rho-grid MC sweep for one (TENET, TENET_AUG, or TIENET_AUG) method variant.
  *
  * @param dgp_fn     DGP factory whose first argument is rho (not SNR).
  * @param rho_grid   Vector of rho values to sweep over.
  * @param cfg        Simulation config (num_MC, base_seed, tFDR, snr, …).
  * @param gvs_ctrl   GVS control parameters.
  * @param trex_ctrl  Base T-Rex control parameters.
- * @param label      Short label for progress messages (e.g. "EN", "IEN").
+ * @param label      Short label for progress messages (e.g. "TENET", "TIENET_AUG").
  *
  * @return One GVSGridPointResult per entry in rho_grid.
  */
@@ -653,10 +659,14 @@ inline std::vector<GVSGridPointResult> run_gvs_rho_sweep(
     std::vector<GVSGridPointResult> results;
     results.reserve(rho_grid.size());
 
+    std::cout << "\n  Method: " << label << "\n";
+
     for (double rho : rho_grid) {
+        std::ostringstream lbl;
+        lbl << "Rho = " << std::fixed << std::setprecision(2) << rho;
         results.push_back(
             run_gvs_mc_trials(
-                dgp_fn, rho, cfg.num_MC, label,
+                dgp_fn, rho, cfg.num_MC, lbl.str(),
                 cfg.tFDR, gvs_ctrl, trex_ctrl,
                 static_cast<unsigned>(cfg.base_seed)));
     }
@@ -670,16 +680,16 @@ inline std::vector<GVSGridPointResult> run_gvs_rho_sweep(
 // ==============================================================================
 
 /**
- * @brief Print three per-method tables for a rho sweep (EN, EN+AUG, IEN).
+ * @brief Print three per-method tables for a rho sweep (TENET, TENET_AUG, TIENET_AUG).
  *
  * Each table shows mean_FDP, sd_FDP, mean_TPP, sd_TPP as columns.
  * If file_stem is non-empty, also writes a .txt and a .csv to DEMO_OUTPUT_DIR.
  *
  * @param scenario_tag    Short label printed in the header.
  * @param rho_grid        The swept rho values.
- * @param en_results      EN (TENET) results per rho point.
- * @param en_aug_results  EN (TENET_AUG) results per rho point.
- * @param ien_results     IEN results per rho point.
+ * @param en_results      TENET results per rho point.
+ * @param en_aug_results  TENET_AUG results per rho point.
+ * @param ien_results     TIENET_AUG results per rho point.
  * @param cfg             Simulation config (num_MC, tFDR, snr, …).
  * @param file_stem       Output file stem (no folder, no extension). Empty = no file output.
  */
@@ -721,9 +731,9 @@ inline void print_mc_rho_table(
     for (double r : rho_grid)
         labels.push_back("rho=" + fmt_num(r));
 
-    print_mc_1d_method_table("EN",     labels, en_results,     fout);
-    print_mc_1d_method_table("EN+AUG", labels, en_aug_results, fout);
-    print_mc_1d_method_table("IEN",    labels, ien_results,    fout);
+    print_mc_1d_method_table("TENET",     labels, en_results,     fout);
+    print_mc_1d_method_table("TENET_AUG", labels, en_aug_results, fout);
+    print_mc_1d_method_table("TIENET_AUG",    labels, ien_results,    fout);
 
     write(std::string(78, '=') + "\n\n");
 
@@ -739,17 +749,17 @@ inline void print_mc_rho_table(
                 << std::fixed << std::setprecision(6);
             for (std::size_t i = 0; i < rho_grid.size(); ++i) {
                 const double rho = rho_grid[i];
-                csv << "EN,mean_FDP,"     << rho << "," << en_results[i].mean_fdp     << ","
+                csv << "TENET,mean_FDP,"     << rho << "," << en_results[i].mean_fdp     << ","
                     << en_results[i].sd_fdp     << "\n";
-                csv << "EN,mean_TPP,"     << rho << "," << en_results[i].mean_tpp
+                csv << "TENET,mean_TPP,"     << rho << "," << en_results[i].mean_tpp
                     << "," << en_results[i].sd_tpp     << "\n";
-                csv << "EN+AUG,mean_FDP," << rho << "," << en_aug_results[i].mean_fdp << ","
+                csv << "TENET_AUG,mean_FDP," << rho << "," << en_aug_results[i].mean_fdp << ","
                     << en_aug_results[i].sd_fdp << "\n";
-                csv << "EN+AUG,mean_TPP," << rho << "," << en_aug_results[i].mean_tpp << ","
+                csv << "TENET_AUG,mean_TPP," << rho << "," << en_aug_results[i].mean_tpp << ","
                     << en_aug_results[i].sd_tpp << "\n";
-                csv << "IEN,mean_FDP,"    << rho << "," << ien_results[i].mean_fdp    << ","
+                csv << "TIENET_AUG,mean_FDP,"    << rho << "," << ien_results[i].mean_fdp    << ","
                     << ien_results[i].sd_fdp    << "\n";
-                csv << "IEN,mean_TPP,"    << rho << "," << ien_results[i].mean_tpp    << ","
+                csv << "TIENET_AUG,mean_TPP,"    << rho << "," << ien_results[i].mean_tpp    << ","
                     << ien_results[i].sd_tpp    << "\n";
             }
             std::cout << "[Info] CSV saved to: " << dir + file_stem + ".csv\n\n";
@@ -800,17 +810,21 @@ inline std::vector<std::vector<GVSGridPointResult>> run_gvs_2d_sweep(
     std::vector<std::vector<GVSGridPointResult>> results(
         n_snr, std::vector<GVSGridPointResult>(n_rho));
 
+    std::cout << "\n  Method: " << label << "\n\n";
+
     for (std::size_t i_snr = 0; i_snr < n_snr; ++i_snr) {
         for (std::size_t i_rho = 0; i_rho < n_rho; ++i_rho) {
             const double snr = snr_grid[i_snr];
             const double rho = rho_grid[i_rho];
 
-            std::cout << "  [" << label << "] ["
-                      << (i_snr * n_rho + i_rho + 1) << "/"
-                      << (n_snr * n_rho) << "]"
-                      << "  SNR=" << std::fixed << std::setprecision(2) << snr
-                      << "  rho=" << rho
-                      << "  running " << cfg.num_MC << " MC trials...\n"
+            std::ostringstream lbl;
+            lbl << "[" << (i_snr * n_rho + i_rho + 1) << "/"
+                << (n_snr * n_rho) << "] " << label
+                << "  SNR=" << std::fixed << std::setprecision(2) << snr
+                << "  rho=" << rho;
+
+            std::cout << "  " << lbl.str()
+                      << " — Running " << cfg.num_MC << " MC trials ...\n"
                       << std::flush;
 
             std::vector<double> fdp_vec(cfg.num_MC, 0.0);
@@ -825,7 +839,7 @@ inline std::vector<std::vector<GVSGridPointResult>> run_gvs_2d_sweep(
                                                    dat.X.rows(), dat.X.cols());
                 Eigen::Map<Eigen::VectorXd> y_map(dat.y.data(), dat.y.rows());
 
-                // Derive solver_type from gvs_ctrl (EN→TENET/TENET_AUG, IEN→TLASSO).
+                // Derive solver_type from gvs_ctrl (EN→TENET/TENET_AUG, IEN→TIENET_AUG).
                 // Per-trial cv_seed ensures unique fold assignments.
                 // TRexGVSControlParameter nests its own trex_ctrl member.
                 TRexGVSControlParameter trex_gvs_ctrl = gvs_ctrl;
@@ -837,7 +851,7 @@ inline std::vector<std::vector<GVSGridPointResult>> run_gvs_2d_sweep(
                             ? SolverTypeForTRex::TENET_AUG
                             : SolverTypeForTRex::TENET;
                 else
-                    trex_gvs_ctrl.trex_ctrl.solver_type = SolverTypeForTRex::TLASSO;
+                    trex_gvs_ctrl.trex_ctrl.solver_type = SolverTypeForTRex::TIENET_AUG;
 
                 TRexGVSSelector selector(X_map, y_map, cfg.tFDR, trex_gvs_ctrl,
                                          static_cast<int>(trial_seed),
@@ -874,8 +888,8 @@ inline std::vector<std::vector<GVSGridPointResult>> run_gvs_2d_sweep(
 
             results[i_snr][i_rho] = {mean_fdp, mean_tpp, sd_fdp, sd_tpp};
 
-            std::cout << "    [" << label << "] done."
-                      << "  TPP=" << std::fixed << std::setprecision(3) << mean_tpp
+            std::cout << "  " << lbl.str()
+                      << " — done. TPP=" << std::fixed << std::setprecision(3) << mean_tpp
                       << "  FDP=" << mean_fdp << "\n\n" << std::flush;
         }
     }
@@ -889,7 +903,101 @@ inline std::vector<std::vector<GVSGridPointResult>> run_gvs_2d_sweep(
 // ==============================================================================
 
 /**
- * @brief Print a named grid table from a 2-D sweep result.
+ * @brief Strip a common "axis=value" prefix from grid labels.
+ *
+ * Rewrites each label in place to its bare value (e.g. "snr=0.2" -> "0.2") and
+ * returns the axis name ("snr"). Labels without a '=' are left untouched and
+ * do not contribute an axis name. Used so 2-D tables can name each axis once in
+ * a corner cell instead of repeating "rho=" in every column header.
+ */
+inline std::string strip_axis_prefix(std::vector<std::string>& labels) {
+    std::string axis;
+    for (auto& lbl : labels) {
+        const auto pos = lbl.find('=');
+        if (pos != std::string::npos) {
+            if (axis.empty()) axis = lbl.substr(0, pos);
+            lbl = lbl.substr(pos + 1);
+        }
+    }
+    return axis;
+}
+
+
+/**
+ * @brief Render a 2-D sweep matrix to a string.
+ *
+ * Layout (row axis on the left, column axis named once in the corner):
+ *
+ *     mean_TPP [TENET]
+ *     ----------------------------------------------------------------
+ *       snr \ rho      0.30      0.50      0.70      0.90      0.95      0.99
+ *     ----------------------------------------------------------------
+ *          0.20      0.1355    0.4264    0.6536    0.7940    0.8279    0.8258
+ *
+ * The redundant per-column "rho=" prefix is dropped; the corner cell
+ * "<row_axis> \\ <col_axis>" names both axes once. Column headers are the bare
+ * swept values.
+ *
+ * @param title      Table title string (e.g. "mean_TPP [TENET]").
+ * @param row_labels Row labels, typically "snr=<v>" (rewritten internally).
+ * @param col_labels Column labels, typically "rho=<v>" (rewritten internally).
+ * @param values     Result matrix indexed [row][col].
+ * @param print_tpp  If true, render mean_tpp; if false, mean_fdp.
+ */
+inline std::string render_mc_matrix_str(
+    const std::string&                                  title,
+    const std::vector<std::string>&                     row_labels,
+    const std::vector<std::string>&                     col_labels,
+    const std::vector<std::vector<GVSGridPointResult>>& values,
+    bool                                                print_tpp)
+{
+    std::vector<std::string> rvals = row_labels;
+    std::vector<std::string> cvals = col_labels;
+    const std::string row_axis = strip_axis_prefix(rvals);
+    const std::string col_axis = strip_axis_prefix(cvals);
+
+    // Corner cell names both axes once, e.g. "snr \ rho".
+    std::string corner;
+    if (!row_axis.empty() || !col_axis.empty())
+        corner = row_axis + " \\ " + col_axis;
+
+    // Row-label field wide enough for the corner and every bare row value.
+    std::size_t rw = corner.size();
+    for (const auto& v : rvals) rw = std::max(rw, v.size());
+    const int rwi = static_cast<int>(std::max<std::size_t>(rw + 2, 10));
+    constexpr int cw = 10;  // value column width (bare header + value both fit)
+
+    const int total = rwi + cw * static_cast<int>(cvals.size());
+
+    std::ostringstream oss;
+    oss << "\n  " << title << "\n"
+        << "  " << std::string(total, '-') << "\n";
+
+    // Header row: corner label, then bare column values.
+    oss << "  " << std::right << std::setw(rwi) << corner;
+    for (const auto& c : cvals)
+        oss << std::right << std::setw(cw) << c;
+    oss << "\n"
+        << "  " << std::string(total, '-') << "\n";
+
+    // Data rows: bare row value, then metric values.
+    oss << std::fixed << std::setprecision(4);
+    for (std::size_t r = 0; r < values.size() && r < rvals.size(); ++r) {
+        oss << "  " << std::right << std::setw(rwi) << rvals[r];
+        for (std::size_t c = 0; c < values[r].size() && c < cvals.size(); ++c) {
+            const double val = print_tpp ? values[r][c].mean_tpp
+                                         : values[r][c].mean_fdp;
+            oss << std::right << std::setw(cw) << val;
+        }
+        oss << "\n";
+    }
+    oss << "\n";
+    return oss.str();
+}
+
+
+/**
+ * @brief Print a named grid table from a 2-D sweep result to std::cout.
  *
  * @param title      Table title string.
  * @param row_labels Labels for each row (SNR levels).
@@ -904,31 +1012,8 @@ inline void print_mc_matrix(
     const std::vector<std::vector<GVSGridPointResult>>& values,
     bool                                                print_tpp)
 {
-    constexpr int rw = 12;  // row-label width
-    constexpr int cw = 8;   // value column width
-
-    std::cout << "\n  " << title << "\n"
-              << "  " << std::string(rw + static_cast<int>(col_labels.size()) * cw, '-')
-              << "\n";
-
-    // Header
-    std::cout << "  " << std::left << std::setw(rw) << "";
-    for (const auto& cl : col_labels)
-        std::cout << std::right << std::setw(cw) << cl;
-    std::cout << "\n";
-
-    // Data rows
-    for (std::size_t r = 0; r < values.size() && r < row_labels.size(); ++r) {
-        std::cout << "  " << std::left << std::setw(rw) << row_labels[r];
-        for (std::size_t c = 0; c < values[r].size() && c < col_labels.size(); ++c) {
-            const double val = print_tpp ? values[r][c].mean_tpp
-                                         : values[r][c].mean_fdp;
-            std::cout << std::right << std::fixed << std::setprecision(4)
-                      << std::setw(cw) << val;
-        }
-        std::cout << "\n";
-    }
-    std::cout << "\n";
+    std::cout << render_mc_matrix_str(title, row_labels, col_labels,
+                                      values, print_tpp);
 }
 
 
@@ -947,9 +1032,9 @@ inline void print_mc_matrix(
  * @param scenario_tag  Short label printed in the header.
  * @param param_name    Label prefix for each row (max ~7 chars fits rw=12).
  * @param param_grid    The swept parameter values.
- * @param en_results      EN (TENET) results per parameter point.
- * @param en_aug_results  EN (TENET_AUG) results per parameter point.
- * @param ien_results     IEN results per parameter point.
+ * @param en_results      TENET results per parameter point.
+ * @param en_aug_results  TENET_AUG results per parameter point.
+ * @param ien_results     TIENET_AUG results per parameter point.
  * @param cfg             Simulation config (num_MC, tFDR, snr, n, p, …).
  * @param file_stem       Output file stem (no folder, no extension). Empty = no file output.
  */
@@ -992,9 +1077,9 @@ inline void print_mc_param_sweep_table(
     for (double v : param_grid)
         labels.push_back(param_name + "=" + fmt_num(v));
 
-    print_mc_1d_method_table("EN",     labels, en_results,     fout);
-    print_mc_1d_method_table("EN+AUG", labels, en_aug_results, fout);
-    print_mc_1d_method_table("IEN",    labels, ien_results,    fout);
+    print_mc_1d_method_table("TENET",     labels, en_results,     fout);
+    print_mc_1d_method_table("TENET_AUG", labels, en_aug_results, fout);
+    print_mc_1d_method_table("TIENET_AUG",    labels, ien_results,    fout);
 
     write(std::string(78, '=') + "\n\n");
 
@@ -1010,12 +1095,12 @@ inline void print_mc_param_sweep_table(
                 << std::fixed << std::setprecision(6);
             for (std::size_t i = 0; i < param_grid.size(); ++i) {
                 const double pv = param_grid[i];
-                csv << "EN,mean_FDP,"     << pv << "," << en_results[i].mean_fdp     << "," << en_results[i].sd_fdp     << "\n";
-                csv << "EN,mean_TPP,"     << pv << "," << en_results[i].mean_tpp     << "," << en_results[i].sd_tpp     << "\n";
-                csv << "EN+AUG,mean_FDP," << pv << "," << en_aug_results[i].mean_fdp << "," << en_aug_results[i].sd_fdp << "\n";
-                csv << "EN+AUG,mean_TPP," << pv << "," << en_aug_results[i].mean_tpp << "," << en_aug_results[i].sd_tpp << "\n";
-                csv << "IEN,mean_FDP,"    << pv << "," << ien_results[i].mean_fdp    << "," << ien_results[i].sd_fdp    << "\n";
-                csv << "IEN,mean_TPP,"    << pv << "," << ien_results[i].mean_tpp    << "," << ien_results[i].sd_tpp    << "\n";
+                csv << "TENET,mean_FDP,"     << pv << "," << en_results[i].mean_fdp     << "," << en_results[i].sd_fdp     << "\n";
+                csv << "TENET,mean_TPP,"     << pv << "," << en_results[i].mean_tpp     << "," << en_results[i].sd_tpp     << "\n";
+                csv << "TENET_AUG,mean_FDP," << pv << "," << en_aug_results[i].mean_fdp << "," << en_aug_results[i].sd_fdp << "\n";
+                csv << "TENET_AUG,mean_TPP," << pv << "," << en_aug_results[i].mean_tpp << "," << en_aug_results[i].sd_tpp << "\n";
+                csv << "TIENET_AUG,mean_FDP,"    << pv << "," << ien_results[i].mean_fdp    << "," << ien_results[i].sd_fdp    << "\n";
+                csv << "TIENET_AUG,mean_TPP,"    << pv << "," << ien_results[i].mean_tpp    << "," << ien_results[i].sd_tpp    << "\n";
             }
             std::cout << "[Info] CSV saved to: " << dir + file_stem + ".csv\n\n";
         }
@@ -1067,35 +1152,19 @@ inline void save_mc_2d_tables(
                 << ", n=" << cfg.n << ", p=" << cfg.p << ")\n"
                 << std::string(78, '=') << "\n";
 
-            constexpr int rw = 12;
-            constexpr int cw = 8;
             auto write_matrix = [&](const std::string& title,
                                     const std::vector<std::vector<GVSGridPointResult>>& vals,
                                     bool tpp) {
-                txt << "\n  " << title << "\n"
-                    << "  " << std::string(rw + static_cast<int>(col_labels.size()) * cw, '-') << "\n";
-                txt << "  " << std::left << std::setw(rw) << "";
-                for (const auto& cl : col_labels)
-                    txt << std::right << std::setw(cw) << cl;
-                txt << "\n";
-                for (std::size_t r = 0; r < vals.size() && r < row_labels.size(); ++r) {
-                    txt << "  " << std::left << std::setw(rw) << row_labels[r];
-                    for (std::size_t c = 0; c < vals[r].size() && c < col_labels.size(); ++c) {
-                        const double val = tpp ? vals[r][c].mean_tpp : vals[r][c].mean_fdp;
-                        txt << std::right << std::fixed << std::setprecision(4)
-                            << std::setw(cw) << val;
-                    }
-                    txt << "\n";
-                }
-                txt << "\n";
+                txt << render_mc_matrix_str(title, row_labels, col_labels,
+                                            vals, tpp);
             };
 
-            write_matrix("mean_TPP [EN]",     en_2d,     true);
-            write_matrix("mean_FDP [EN]",     en_2d,     false);
-            write_matrix("mean_TPP [EN+AUG]", en_aug_2d, true);
-            write_matrix("mean_FDP [EN+AUG]", en_aug_2d, false);
-            write_matrix("mean_TPP [IEN]",    ien_2d,    true);
-            write_matrix("mean_FDP [IEN]",    ien_2d,    false);
+            write_matrix("mean_TPP [TENET]",     en_2d,     true);
+            write_matrix("mean_FDP [TENET]",     en_2d,     false);
+            write_matrix("mean_TPP [TENET_AUG]", en_aug_2d, true);
+            write_matrix("mean_FDP [TENET_AUG]", en_aug_2d, false);
+            write_matrix("mean_TPP [TIENET_AUG]",    ien_2d,    true);
+            write_matrix("mean_FDP [TIENET_AUG]",    ien_2d,    false);
 
             std::cout << "[Info] TXT saved to: " << dir + file_stem + ".txt\n";
         }
@@ -1109,17 +1178,17 @@ inline void save_mc_2d_tables(
                 << std::fixed << std::setprecision(6);
             for (std::size_t i = 0; i < en_2d.size() && i < row_labels.size(); ++i) {
                 for (std::size_t j = 0; j < en_2d[i].size() && j < col_labels.size(); ++j) {
-                    csv << "EN,mean_FDP,"     << row_labels[i] << "," << col_labels[j]
+                    csv << "TENET,mean_FDP,"     << row_labels[i] << "," << col_labels[j]
                         << "," << en_2d[i][j].mean_fdp     << "," << en_2d[i][j].sd_fdp     << "\n";
-                    csv << "EN,mean_TPP,"     << row_labels[i] << "," << col_labels[j]
+                    csv << "TENET,mean_TPP,"     << row_labels[i] << "," << col_labels[j]
                         << "," << en_2d[i][j].mean_tpp     << "," << en_2d[i][j].sd_tpp     << "\n";
-                    csv << "EN+AUG,mean_FDP," << row_labels[i] << "," << col_labels[j]
+                    csv << "TENET_AUG,mean_FDP," << row_labels[i] << "," << col_labels[j]
                         << "," << en_aug_2d[i][j].mean_fdp << "," << en_aug_2d[i][j].sd_fdp << "\n";
-                    csv << "EN+AUG,mean_TPP," << row_labels[i] << "," << col_labels[j]
+                    csv << "TENET_AUG,mean_TPP," << row_labels[i] << "," << col_labels[j]
                         << "," << en_aug_2d[i][j].mean_tpp << "," << en_aug_2d[i][j].sd_tpp << "\n";
-                    csv << "IEN,mean_FDP,"    << row_labels[i] << "," << col_labels[j]
+                    csv << "TIENET_AUG,mean_FDP,"    << row_labels[i] << "," << col_labels[j]
                         << "," << ien_2d[i][j].mean_fdp    << "," << ien_2d[i][j].sd_fdp    << "\n";
-                    csv << "IEN,mean_TPP,"    << row_labels[i] << "," << col_labels[j]
+                    csv << "TIENET_AUG,mean_TPP,"    << row_labels[i] << "," << col_labels[j]
                         << "," << ien_2d[i][j].mean_tpp    << "," << ien_2d[i][j].sd_tpp    << "\n";
                 }
             }
@@ -1475,7 +1544,7 @@ inline BlockMethodResult run_block_method(
 {
     const auto t0 = std::chrono::steady_clock::now();
 
-    // Derive solver_type from gvs_ctrl (EN→TENET/TENET_AUG, IEN→TLASSO).
+    // Derive solver_type from gvs_ctrl (EN→TENET/TENET_AUG, IEN→TIENET_AUG).
     // TRexGVSControlParameter nests its own trex_ctrl member.
     TRexGVSControlParameter trex_gvs_ctrl = gvs_ctrl;
     trex_gvs_ctrl.trex_ctrl = trex_ctrl;
@@ -1485,7 +1554,7 @@ inline BlockMethodResult run_block_method(
                 ? SolverTypeForTRex::TENET_AUG
                 : SolverTypeForTRex::TENET;
     else
-        trex_gvs_ctrl.trex_ctrl.solver_type = SolverTypeForTRex::TLASSO;
+        trex_gvs_ctrl.trex_ctrl.solver_type = SolverTypeForTRex::TIENET_AUG;
 
     TRexGVSSelector selector(X_map, y_map, tFDR, trex_gvs_ctrl,
                               seed, /*verbose=*/false);
@@ -1847,6 +1916,9 @@ inline void print_block_trial_result(
  * @param snr_grid         SNR values swept.
  * @param results          results[i_rho][i_snr] — BlockGridResult.
  * @param cfg              Benchmark configuration.
+ * @param file_stem        Output file stem (no folder, no extension). If
+ *                         non-empty, the table is also written as .txt and all
+ *                         aggregates as a tidy .csv to DEMO_OUTPUT_DIR.
  */
 inline void print_block_grid_table(
     const std::string&                                    scenario_tag,
@@ -1854,7 +1926,8 @@ inline void print_block_grid_table(
     const std::vector<double>&                            rho_grid,
     const std::vector<double>&                            snr_grid,
     const std::vector<std::vector<BlockGridResult>>&      results,
-    const BlockBenchConfig&                               cfg)
+    const BlockBenchConfig&                               cfg,
+    const std::string&                                    file_stem = "")
 {
     // Choose the scenario-specific block metric name and accessor
     std::string blk_metric_name;
@@ -1873,7 +1946,7 @@ inline void print_block_grid_table(
         return 0.0;
     };
 
-    constexpr int cw = 9;
+    constexpr int cw = 10;
     const std::string methods[4] = {"M1(EN-C)", "M2(EN-O)", "M3(IE-C)", "M4(IE-O)"};
     auto get_agg = [](const BlockGridResult& g, int m) -> const BlockMethodAggregate& {
         switch (m) {
@@ -1884,53 +1957,106 @@ inline void print_block_grid_table(
         }
     };
 
-    std::cout << "\n" << std::string(90, '=') << "\n"
-              << "  Block Bench MC: " << scenario_tag
-              << "  (MC=" << cfg.num_MC << ", tFDR=" << cfg.tFDR
-              << ", n=" << cfg.n << ", p=" << cfg.p
-              << ", G=" << cfg.G << ", blk=" << cfg.block_size << ")\n"
-              << std::string(90, '=') << "\n";
+    std::ostringstream oss;
+    oss << "\n" << std::string(90, '=') << "\n"
+        << "  Block Bench MC: " << scenario_tag
+        << "  (MC=" << cfg.num_MC << ", tFDR=" << cfg.tFDR
+        << ", n=" << cfg.n << ", p=" << cfg.p
+        << ", G=" << cfg.G << ", blk=" << cfg.block_size << ")\n"
+        << std::string(90, '=') << "\n";
 
     for (std::size_t i_rho = 0; i_rho < rho_grid.size(); ++i_rho) {
-        std::cout << "\n  rho = " << std::fixed << std::setprecision(2)
-                  << rho_grid[i_rho] << "\n";
+        oss << "\n  rho = " << std::fixed << std::setprecision(2)
+            << rho_grid[i_rho] << "\n";
 
         // Header
-        std::cout << "  " << std::left << std::setw(12) << "method"
-                  << std::right
-                  << std::setw(7) << "SNR"
-                  << std::setw(cw) << "TPR"
-                  << std::setw(cw) << "FDR"
-                  << std::setw(cw) << "block_FDR"
-                  << std::setw(cw) << blk_metric_name
-                  << std::setw(cw) << "purity"
-                  << std::setw(cw) << "T_stop"
-                  << std::setw(cw) << "M_found"
-                  << "\n"
-                  << "  " << std::string(12 + 7 + 7 * cw, '-') << "\n";
+        oss << "  " << std::left << std::setw(12) << "method"
+            << std::right
+            << std::setw(7) << "SNR"
+            << std::setw(cw) << "TPR"
+            << std::setw(cw) << "FDR"
+            << std::setw(cw) << "block_FDR"
+            << std::setw(cw) << blk_metric_name
+            << std::setw(cw) << "purity"
+            << std::setw(cw) << "T_stop"
+            << std::setw(cw) << "M_found"
+            << "\n"
+            << "  " << std::string(12 + 7 + 7 * cw, '-') << "\n";
 
         for (std::size_t i_snr = 0; i_snr < snr_grid.size(); ++i_snr) {
             for (int m = 0; m < 4; ++m) {
                 const auto& a = get_agg(results[i_rho][i_snr], m);
-                std::cout << "  " << std::left << std::setw(12) << methods[m]
-                          << std::right << std::fixed << std::setprecision(2)
-                          << std::setw(7) << snr_grid[i_snr]
-                          << std::setprecision(4)
-                          << std::setw(cw) << a.mean_coord_tpr
-                          << std::setw(cw) << a.mean_coord_fdp
-                          << std::setw(cw) << a.mean_block_fdp
-                          << std::setw(cw) << get_blk_metric(a)
-                          << std::setw(cw) << a.mean_purity
-                          << std::setprecision(1)
-                          << std::setw(cw) << a.mean_T_stop
-                          << std::setprecision(1)
-                          << std::setw(cw) << a.mean_M_found
-                          << "\n";
+                oss << "  " << std::left << std::setw(12) << methods[m]
+                    << std::right << std::fixed << std::setprecision(2)
+                    << std::setw(7) << snr_grid[i_snr]
+                    << std::setprecision(4)
+                    << std::setw(cw) << a.mean_coord_tpr
+                    << std::setw(cw) << a.mean_coord_fdp
+                    << std::setw(cw) << a.mean_block_fdp
+                    << std::setw(cw) << get_blk_metric(a)
+                    << std::setw(cw) << a.mean_purity
+                    << std::setprecision(1)
+                    << std::setw(cw) << a.mean_T_stop
+                    << std::setprecision(1)
+                    << std::setw(cw) << a.mean_M_found
+                    << "\n";
             }
-            std::cout << "\n";
+            oss << "\n";
         }
     }
-    std::cout << std::string(90, '=') << "\n\n";
+    oss << std::string(90, '=') << "\n\n";
+
+    const std::string table = oss.str();
+    std::cout << table;
+
+    if (file_stem.empty()) return;
+
+    const std::string dir(DEMO_OUTPUT_DIR);
+    std::filesystem::create_directories(dir);
+
+    {
+        std::ofstream txt(dir + file_stem + ".txt");
+        if (txt.is_open()) {
+            txt << table;
+            std::cout << "[Info] TXT saved to: " << dir + file_stem + ".txt\n";
+        }
+    }
+
+    // CSV: tidy long format with all aggregates (mean + sd where available)
+    {
+        std::ofstream csv(dir + file_stem + ".csv");
+        if (csv.is_open()) {
+            csv << "scenario,rho,snr,method,"
+                   "mean_coord_tpr,sd_coord_tpr,mean_coord_fdp,sd_coord_fdp,"
+                   "mean_exact_sup,mean_block_hit,mean_block_fdp,"
+                   "mean_full_block,mean_null_act,mean_purity,"
+                   "mean_lambda2,mean_T_stop,mean_M_found\n"
+                << std::fixed << std::setprecision(6);
+            for (std::size_t i_rho = 0; i_rho < rho_grid.size(); ++i_rho) {
+                for (std::size_t i_snr = 0; i_snr < snr_grid.size(); ++i_snr) {
+                    for (int m = 0; m < 4; ++m) {
+                        const auto& a = get_agg(results[i_rho][i_snr], m);
+                        csv << scenario_tag << ","
+                            << rho_grid[i_rho] << ","
+                            << snr_grid[i_snr] << ","
+                            << methods[m] << ","
+                            << a.mean_coord_tpr << "," << a.sd_coord_tpr << ","
+                            << a.mean_coord_fdp << "," << a.sd_coord_fdp << ","
+                            << a.mean_exact_sup << ","
+                            << a.mean_block_hit << ","
+                            << a.mean_block_fdp << ","
+                            << a.mean_full_block << ","
+                            << a.mean_null_act << ","
+                            << a.mean_purity << ","
+                            << a.mean_lambda2 << ","
+                            << a.mean_T_stop << ","
+                            << a.mean_M_found << "\n";
+                    }
+                }
+            }
+            std::cout << "[Info] CSV saved to: " << dir + file_stem + ".csv\n\n";
+        }
+    }
 }
 
 

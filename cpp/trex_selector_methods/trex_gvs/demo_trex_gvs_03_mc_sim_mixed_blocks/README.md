@@ -2,83 +2,132 @@
 
 ## Purpose
 
-Evaluate T-Rex+GVS on a more realistic grouped design: four contiguous equicorrelated blocks of unequal size, placed in **random order** with **random noise gaps** between and around them, and including one **inactive equicorrelated trap block**. This file merges two benchmark presets that share the same underlying generator, `make_mixed_blocks_dgp()`.
+Evaluate T-Rex+GVS on a more realistic grouped design: four contiguous equicorrelated blocks of unequal size,
+ placed in **random order** with **random noise gaps** between and around them, and including one **inactive
+ equicorrelated trap block**.
+ The design stresses whether the pipeline can recover the active groups while correctly rejecting a null block that
+ shares their correlation structure.
+ Selection and evaluation are per variable (see
+ [What is actually measured](../README.md#what-is-actually-measured-in-these-demos)).
 
 ---
 
 ## Data Generation Parameters (`make_mixed_blocks_dgp`)
 
-- Four contiguous blocks of sizes $\{20, 50, 80, 65\}$, each following the equicorrelated model
-  $$
-  X_{ij} = Z_{i,\,g(j)} + \sigma_x\, \xi_{ij}, \qquad \xi_{ij} \sim \mathcal{N}(0,1).
-  $$
-- **Blocks 0–2 are active** ($\beta_j = 3$); **block 3 is an inactive trap** ($\beta_j = 0$) with the same equicorrelated structure as the active blocks.
-- Blocks are placed in a **random order** with **random-width noise gaps** (5 gap slots: before, between, and after the blocks) filled with i.i.d. background columns.
-- $n = 200$, $p = 500$, $s = 150$ (sum of the three active blocks).
+We consider again the linear model:
 
----
+$$
+\boldsymbol{y} = \boldsymbol{X}\boldsymbol{\beta} + \boldsymbol{\epsilon},
+\qquad \boldsymbol{\epsilon} \sim \mathcal{N}(\boldsymbol{0}, \sigma_{\varepsilon}^2 \boldsymbol{I}_n)
+$$
 
-## Two Presets
+- $\boldsymbol{y} \in \mathbb{R}^n$ is the response vector.
+- $\boldsymbol{X} \in \mathbb{R}^{n \times p}$ is the design matrix.
+- $\boldsymbol{\beta} \in \mathbb{R}^p$ is the coefficient vector, with $s$ nonzero entries.
+- $\boldsymbol{\epsilon}$ is the noise vector, i.i.d. standard normal.
+- $\sigma_{\varepsilon}^2$ is the noise variance, calibrated to achieve a target linear signal-to-noise ratio (SNR).
+- $n = 200$, $p = 500$, $s = 150$ (the sum of the three active blocks).
 
-### Preset 1 — Mixed-Blocks (default $\sigma_x$)
-- Part 1: SNR sweep at fixed $\sigma_x = \sqrt{0.01}$ ($\rho \approx 0.99$).
-- Part 2: $\rho$ sweep at fixed $\mathrm{SNR}=2.0$, $\rho \in \{0.10,\dots,0.99\}$ (9 levels).
-- Part 3: 2-D SNR $\times$ $\rho$ grid.
+Each block of the design matrix $\boldsymbol{X}$ follows the equicorrelated latent-factor model:
 
-### Preset 2 — Mixed-Blocks-Rho075 (fixed $\rho = 0.75$)
-- Part 1: SNR sweep at fixed $\rho = 0.75$ (derived $\sigma_x$).
-- Part 2: $\rho$ sweep at fixed $\mathrm{SNR}=2.0$, with expanded coverage (11 levels, including $0.40$ and $0.60$).
-- Part 3: 2-D SNR $\times$ $\rho$ grid. Its $\rho$ axis is $\{0.30, 0.50, 0.70, 0.85, 0.90, 0.99\}$, which replaces Preset 1's $0.95$ with $0.85$ — shifting coverage toward a lower $\rho$ rather than extending it (both presets already reach $0.99$).
+$$
+X_{ij} = Z_{i,\,g(j)} + \sigma_x\, \xi_{ij}, \qquad \xi_{ij} \sim \mathcal{N}(0,1),
+$$
 
-Both presets share $\mathrm{SNR} \in \{0.1, 0.2, 0.5, 1.0, 2.0, 5.0\}$ for the SNR sweep and the same 2-D SNR grid $\{0.2, 0.5, 1.0, 2.0, 5.0\}$. Preset 1's 2-D $\rho$ axis is $\{0.30, 0.50, 0.70, 0.90, 0.95, 0.99\}$.
+- Four contiguous blocks of sizes $\{20, 50, 80, 65\}$ (215 grouped columns in total).
+- **Blocks 0–2 are active** ($\beta_j = 3$); **block 3 is an inactive trap** ($\beta_j = 0$) carrying the same
+   equicorrelated structure as the active blocks.
+- Blocks are placed in a **random order** with **random-width noise gaps** (5 gap slots: before, between, and after
+   the blocks) filled with i.i.d. $\mathcal{N}(0,1)$ background columns.
+- Within-block correlation $\rho = 1/(1 + \sigma_x^2)$, same convention as Demo 01.
 
 ---
 
 ## Control Parameters
 
-```
-K = 20
-tFDR = 0.1
-corr_max = 0.98
-hc_linkage = Single
-lambda2_method = CV_1SE_CCD
-MC = 200
+```text
+K = 20                          # Random experiments per T-loop iteration
+tFDR = 0.1                      # Target FDR
+corr_max = 0.98                 # HAC auto-clustering correlation threshold
+hc_linkage = Single             # Single-linkage HAC
+lambda2_method = CV_1SE_CCD     # Elastic-net penalty selection
+MC = 200                        # Monte Carlo repetitions per grid point
 ```
 
 ---
 
 ## Methods Compared
 
-- **EN** (`TENET`), **EN+AUG** (`TENET_AUG`), **IEN**.
+Three T-Rex+GVS solver variants: **TENET** (elastic net) [[3]](#references),
+**TENET_AUG** (row-augmented elastic net) [[1]](#references), and **TIENET_AUG** (informed
+elastic net) [[2]](#references). All use single-linkage HAC grouping
+and `CV_1SE_CCD` for the $\lambda_2$ selection.
+
+---
+
+## The Sweep
+
+A single **2-D SNR $\times$ $\rho$ grid**, over
+$\mathrm{SNR} \in \{0.2, 0.5, 1, 2, 5\}$ and
+$\rho \in \{0.30, 0.50, 0.70, 0.85, 0.90, 0.95, 0.99\}$
+(with $\sigma_x = \sqrt{(1-\rho)/\rho}$), 200 MC trials per cell. The seven $\rho$ levels span
+weak to near-collinear within-block correlation.
 
 ---
 
 ## Output Files
 
-Written to `simulation_results/`:
+Written to `simulation_results/data/`:
 
-- `gvs_mixed_blocks_snr.txt` / `.csv`, `gvs_mixed_blocks_rho.txt` / `.csv`, `gvs_mixed_blocks_2d.txt` / `.csv` — Preset 1.
-- `gvs_mixed_blocks_rho075_snr.txt` / `.csv`, `gvs_mixed_blocks_rho075_rho.txt` / `.csv`, `gvs_mixed_blocks_rho075_2d.txt` / `.csv` — Preset 2.
+- `gvs_mixed_blocks_2d.txt` / `.csv` — mean FDP/TPP over the SNR $\times$ $\rho$ grid.
+
+Figures (PNG + PDF) go to `simulation_results/plots/`, produced by `./generate_plots.sh`.
 
 ---
 
 ## Running the Demo
 
 ```bash
-./build/debug/bin/trex_selector_methods/trex_gvs/demo_trex_gvs_03_mc_sim_mixed_blocks/demo_trex_gvs_03_mc_sim_mixed_blocks
+./build/release/bin/trex_selector_methods/trex_gvs/demo_trex_gvs_03_mc_sim_mixed_blocks/demo_trex_gvs_03_mc_sim_mixed_blocks
+./generate_plots.sh   # render the figure below from the saved CSV
 ```
 
-Both presets run in the same executable invocation.
+---
+
+## Simulation Results
+
+- **TENET** and **TENET_AUG** track each other closely and keep FDR controlled (roughly $0.05$–$0.08$, everywhere
+   below target) — the inactive equicorrelated trap block does **not** inflate FDR, since its group is identified
+   as null and excluded.
+- **TIENET_AUG** is far more conservative (FDR near $0$, lower TPR), with a TPR collapse in the extreme
+   $\rho = 0.99$ column where the within-block columns become nearly collinear.
+- The random gaps and random block order mainly test that the grouping/clustering logic is invariant to block
+   *placement*: TPR rises with SNR just as in the contiguous designs, so placement does not materially change
+   detection power.
+- Sweeping $\rho$ from $0.30$ up to $0.99$ shows how detection power and FDR control respond as within-block
+   correlation strengthens, all else equal.
+
+TPR (top) and FDR (bottom) heatmaps over the SNR $\times$ $\rho$ grid, one column per solver;
+FDR cells above the $\mathrm{tFDR} = 0.1$ target are outlined in cyan.
+
+![Mixed-blocks SNR × rho sweep](simulation_results/plots/gvs_mixed_blocks_2d.png)
 
 ---
 
-## Interpretation
+## References
 
-- FDR is expected to remain controlled near $\mathrm{tFDR}=0.1$ for **EN**/**EN+AUG** across both presets, since the inactive trap block shares the active blocks' correlation structure and should be excluded correctly once its group is identified as null.
-- TPR should increase with SNR as usual, with the random gaps and block order mainly testing that the grouping/clustering logic is invariant to block placement rather than materially changing detection power.
-- Comparing Preset 1 (very high default $\rho\approx0.99$) against Preset 2 (moderate $\rho=0.75$) shows how performance degrades as within-block correlation decreases, all else equal.
-- As in Demos 01–02, expect **IEN** to be substantially more conservative than the EN-based methods on this design.
+1. Machkour, J., Muma, M., & Palomar, D. P., "False Discovery Rate Control for Grouped Variable Selection
+   in High-Dimensional Linear Models using the T-Knock Filter.", European Signal Processing Conference (EUSIPCO), 2022,
+    pp. 892–896, EURASIP.
+    [DOI-Link](https://doi.org/10.23919/EUSIPCO55093.2022.9909883)
+2. Machkour, J., Muma, M., & Palomar, D. P., "The Informed Elastic Net for Fast Grouped Variable Selection and
+   FDR Control in Genomics Research.", Workshop on Computational Advances in Multi-Sensor Adaptive Processing (CAMSAP),
+    2023, pp. 466–470, IEEE.
+    [DOI-Link](https://doi.org/10.1109/CAMSAP58249.2023.10403489)
+3. Zou, H., & Hastie, T. (2005). "Regularization and variable selection via the elastic net." *Journal of the Royal
+   Statistical Society: Series B (Statistical Methodology)*, 67(2), pp. 301–320.
+   [DOI-Link](https://doi.org/10.1111/j.1467-9868.2005.00503.x)
 
 ---
 
-**Last updated**: 2026-07-08
+**Last updated**: 2026-07-19
