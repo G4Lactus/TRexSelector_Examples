@@ -28,6 +28,7 @@
  *  Result output (console + TXT + tidy CSV in DEMO_OUTPUT_DIR):
  *    - save_and_print_mc_results()          FDR / TPR / Est. FDR sweep tables
  *    - save_and_print_biobank_mc_results()  same, plus per-method Usage %
+ *    - rekey_for_display()                  library keys -> display names
  *
  * @note Demo-internal header — not part of the TRexSelector library.
  */
@@ -98,8 +99,8 @@ struct ScreenMethodInfo {
 /** @brief Default method set for ordinary-vs-bootstrap comparisons. */
 inline std::vector<ScreenMethodInfo> default_methods() {
     return {
-        {"Screen-TRex Ordinary",  ScreenTRexMethod::TREX, false},
-        {"Screen-TRex Bootstrap", ScreenTRexMethod::TREX, true }
+        {"Screen-TRex Ordinary: TLARS",     ScreenTRexMethod::TREX, false},
+        {"Screen-TRex Bootstrap-CI: TLARS", ScreenTRexMethod::TREX, true }
     };
 }
 
@@ -140,6 +141,34 @@ inline ScreenTRexControlParameter make_screen_control(
     ctrl.rho_thr_DA       = 0.02;
     ctrl.n_blocks         = n_blocks;
     return ctrl;
+}
+
+
+/**
+ * @brief Re-key result maps from the library's method_used strings to display
+ *        names for the output tables and figure legends.
+ *
+ * @details The biobank demos accumulate into maps keyed by
+ *          BiobankScreenTRexResult::method_used, so those keys are fixed by the
+ *          library. This copies each series under the suite's display name
+ *          ("<screening method>: <solver>"), keeping the saved tables and the
+ *          plotted legends consistent with the other demos.
+ *
+ * @param keys      Library method_used strings, in display order.
+ * @param display   Display names, same length and order as `keys`.
+ * @param src       Map keyed by `keys`.
+ * @return          Map keyed by `display`.
+ */
+inline std::map<std::string, Eigen::VectorXd> rekey_for_display(
+    const std::vector<std::string>&               keys,
+    const std::vector<std::string>&               display,
+    const std::map<std::string, Eigen::VectorXd>& src)
+{
+    std::map<std::string, Eigen::VectorXd> out;
+    for (std::size_t i = 0; i < keys.size(); ++i) {
+        out[display[i]] = src.at(keys[i]);
+    }
+    return out;
 }
 
 

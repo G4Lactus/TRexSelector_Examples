@@ -49,10 +49,17 @@ void demo_MMap_Biobank_MonteCarlo(std::size_t num_MC)
     const std::size_t p            = 1000;
     const std::size_t support_size = 10;
     const std::vector<double> snr_values = {0.1, 0.5, 1.0, 2.0, 5.0};
+    // Map keys are fixed by the library (BiobankScreenTRexResult::method_used);
+    // display_names is what the saved tables and figure legends show.
     const std::vector<std::string> method_names = {
         "Screen-TRex (ordinary)",
         "Screen-TRex (bootstrap-CI)",
         "T-Rex (fallback)"
+    };
+    const std::vector<std::string> display_names = {
+        "Screen-TRex Ordinary: TLARS",
+        "Screen-TRex Bootstrap-CI: TLARS",
+        "T-Rex fallback: TLARS"
     };
     const Eigen::Index ns = static_cast<Eigen::Index>(snr_values.size());
 
@@ -132,8 +139,11 @@ void demo_MMap_Biobank_MonteCarlo(std::size_t num_MC)
          << "_s" << support_size;
 
     save_and_print_biobank_mc_results(
-        num_MC, stem.str(), snr_values, method_names,
-        fdp_map, tpp_map, est_fdr_map, usage_map);
+        num_MC, stem.str(), snr_values, display_names,
+        rekey_for_display(method_names, display_names, fdp_map),
+        rekey_for_display(method_names, display_names, tpp_map),
+        rekey_for_display(method_names, display_names, est_fdr_map),
+        rekey_for_display(method_names, display_names, usage_map));
 }
 
 
@@ -152,10 +162,17 @@ void demo_MMap_Biobank_MultiplePhenotypesMC(std::size_t num_MC)
     const std::size_t q            = 5;    // phenotypes per MC run
     const std::size_t support_size = 5;
     const std::vector<double> snr_values = {0.1, 0.5, 1.0, 2.0, 5.0};
+    // Map keys are fixed by the library (BiobankScreenTRexResult::method_used);
+    // display_names is what the saved tables and figure legends show.
     const std::vector<std::string> method_names = {
         "Screen-TRex (ordinary)",
         "Screen-TRex (bootstrap-CI)",
         "T-Rex (fallback)"
+    };
+    const std::vector<std::string> display_names = {
+        "Screen-TRex Ordinary: TLARS",
+        "Screen-TRex Bootstrap-CI: TLARS",
+        "T-Rex fallback: TLARS"
     };
     const Eigen::Index ns = static_cast<Eigen::Index>(snr_values.size());
 
@@ -260,8 +277,11 @@ void demo_MMap_Biobank_MultiplePhenotypesMC(std::size_t num_MC)
          << "_q" << q << "_s" << support_size;
 
     save_and_print_biobank_mc_results(
-        num_MC, stem.str(), snr_values, method_names,
-        fdp_map, tpp_map, est_fdr_map, usage_map);
+        num_MC, stem.str(), snr_values, display_names,
+        rekey_for_display(method_names, display_names, fdp_map),
+        rekey_for_display(method_names, display_names, tpp_map),
+        rekey_for_display(method_names, display_names, est_fdr_map),
+        rekey_for_display(method_names, display_names, usage_map));
 }
 
 

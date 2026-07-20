@@ -66,11 +66,11 @@ void demo_DA_AR1_MonteCarlo(std::size_t num_MC,
 
     // Methods to compare
     const std::vector<ScreenMethodInfo> methods = {
-        {"Screen-TRex Ordinary", ScreenTRexMethod::TREX, false},
-        {"Screen-TRex Bootstrap", ScreenTRexMethod::TREX, true},
-        {"Screen-TRex Ordinary+DA-AR1", ScreenTRexMethod::TREX_DA_AR1,
+        {"Screen-TRex Ordinary: TLARS", ScreenTRexMethod::TREX, false},
+        {"Screen-TRex Bootstrap-CI: TLARS", ScreenTRexMethod::TREX, true},
+        {"Screen-TRex Ordinary+DA-AR1: TLARS", ScreenTRexMethod::TREX_DA_AR1,
             false},
-        {"Screen-TRex Bootstrap+DA-AR1", ScreenTRexMethod::TREX_DA_AR1,
+        {"Screen-TRex Bootstrap-CI+DA-AR1: TLARS", ScreenTRexMethod::TREX_DA_AR1,
             true}
     };
 
@@ -154,11 +154,11 @@ void demo_DA_Equi_MonteCarlo(std::size_t num_MC,
 
     // Methods to compare
     const std::vector<ScreenMethodInfo> methods = {
-        {"Screen-TRex Ordinary", ScreenTRexMethod::TREX, false},
-        {"Screen-TRex Bootstrap", ScreenTRexMethod::TREX, true},
-        {"Screen-TRex Ordinary DA-EQUI", ScreenTRexMethod::TREX_DA_EQUI,
+        {"Screen-TRex Ordinary: TLARS", ScreenTRexMethod::TREX, false},
+        {"Screen-TRex Bootstrap-CI: TLARS", ScreenTRexMethod::TREX, true},
+        {"Screen-TRex Ordinary+DA-EQUI: TLARS", ScreenTRexMethod::TREX_DA_EQUI,
              false},
-        {"Screen-TRex Bootstrap DA-EQUI", ScreenTRexMethod::TREX_DA_EQUI,
+        {"Screen-TRex Bootstrap-CI+DA-EQUI: TLARS", ScreenTRexMethod::TREX_DA_EQUI,
             true}
     };
 
@@ -241,13 +241,13 @@ void demo_DA_AR1_RhoSweep_MonteCarlo(std::size_t num_MC,
         {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
 
     const std::vector<ScreenMethodInfo> methods = {
-        {"Screen-TRex Ordinary",         ScreenTRexMethod::TREX,
+        {"Screen-TRex Ordinary: TLARS",         ScreenTRexMethod::TREX,
             false},
-        {"Screen-TRex Bootstrap",        ScreenTRexMethod::TREX,
+        {"Screen-TRex Bootstrap-CI: TLARS",        ScreenTRexMethod::TREX,
             true },
-        {"Screen-TRex Ordinary+DA-AR1",  ScreenTRexMethod::TREX_DA_AR1,
+        {"Screen-TRex Ordinary+DA-AR1: TLARS",  ScreenTRexMethod::TREX_DA_AR1,
             false},
-        {"Screen-TRex Bootstrap+DA-AR1", ScreenTRexMethod::TREX_DA_AR1,
+        {"Screen-TRex Bootstrap-CI+DA-AR1: TLARS", ScreenTRexMethod::TREX_DA_AR1,
             true }
     };
 
@@ -327,13 +327,13 @@ void demo_DA_Equi_RhoSweep_MonteCarlo(
         {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
 
     const std::vector<ScreenMethodInfo> methods = {
-        {"Screen-TRex Ordinary",          ScreenTRexMethod::TREX,
+        {"Screen-TRex Ordinary: TLARS",          ScreenTRexMethod::TREX,
             false},
-        {"Screen-TRex Bootstrap",         ScreenTRexMethod::TREX,
+        {"Screen-TRex Bootstrap-CI: TLARS",         ScreenTRexMethod::TREX,
             true },
-        {"Screen-TRex Ordinary DA-EQUI",  ScreenTRexMethod::TREX_DA_EQUI,
+        {"Screen-TRex Ordinary+DA-EQUI: TLARS",  ScreenTRexMethod::TREX_DA_EQUI,
              false},
-        {"Screen-TRex Bootstrap DA-EQUI", ScreenTRexMethod::TREX_DA_EQUI,
+        {"Screen-TRex Bootstrap-CI+DA-EQUI: TLARS", ScreenTRexMethod::TREX_DA_EQUI,
              true }
     };
 
@@ -416,13 +416,13 @@ void demo_DA_BlockEqui_RhoSweep_MonteCarlo(
         {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
 
     const std::vector<ScreenMethodInfo> methods = {
-        {"Screen-TRex Ordinary",          ScreenTRexMethod::TREX,
+        {"Screen-TRex Ordinary: TLARS",          ScreenTRexMethod::TREX,
             false},
-        {"Screen-TRex Bootstrap",         ScreenTRexMethod::TREX,
+        {"Screen-TRex Bootstrap-CI: TLARS",         ScreenTRexMethod::TREX,
             true },
-        {"Screen-TRex Ord+DA-BLOCK-EQUI", ScreenTRexMethod::TREX_DA_BLOCK_EQUI,
+        {"Screen-TRex Ordinary+DA-BLOCK-EQUI: TLARS", ScreenTRexMethod::TREX_DA_BLOCK_EQUI,
             false},
-        {"Screen-TRex Boot+DA-BLOCK-EQUI", ScreenTRexMethod::TREX_DA_BLOCK_EQUI,
+        {"Screen-TRex Bootstrap-CI+DA-BLOCK-EQUI: TLARS", ScreenTRexMethod::TREX_DA_BLOCK_EQUI,
             true }
     };
 

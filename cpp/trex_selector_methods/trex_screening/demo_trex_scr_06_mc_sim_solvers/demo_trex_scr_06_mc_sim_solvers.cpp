@@ -70,11 +70,11 @@ struct SolverVariant {
 inline std::vector<SolverVariant> ordinary_solver_variants()
 {
     return {
-        {"TLARS (Ordinary)",    SolverTypeForTRex::TLARS, 0.0,
+        {"Screen-TRex Ordinary: TLARS",    SolverTypeForTRex::TLARS, 0.0,
          ScreenTRexMethod::TREX, false},
-        {"TAFS-0.3 (Ordinary)", SolverTypeForTRex::TAFS,  0.3,
+        {"Screen-TRex Ordinary: TAFS-0.3", SolverTypeForTRex::TAFS,  0.3,
          ScreenTRexMethod::TREX, false},
-        {"TOMP (Ordinary)",     SolverTypeForTRex::TOMP,  0.0,
+        {"Screen-TRex Ordinary: TOMP",     SolverTypeForTRex::TOMP,  0.0,
          ScreenTRexMethod::TREX, false},
     };
 }
@@ -85,12 +85,13 @@ inline std::vector<SolverVariant> all_solver_variants()
     std::vector<SolverVariant> v;
     v.reserve(6);
     for (const bool bs : {false, true}) {
-        const std::string suffix = bs ? " (Bootstrap)" : " (Ordinary)";
-        v.push_back({"TLARS"    + suffix, SolverTypeForTRex::TLARS, 0.0,
+        const std::string prefix =
+            bs ? "Screen-TRex Bootstrap-CI: " : "Screen-TRex Ordinary: ";
+        v.push_back({prefix + "TLARS",    SolverTypeForTRex::TLARS, 0.0,
                      ScreenTRexMethod::TREX, bs});
-        v.push_back({"TAFS-0.3" + suffix, SolverTypeForTRex::TAFS,  0.3,
+        v.push_back({prefix + "TAFS-0.3", SolverTypeForTRex::TAFS,  0.3,
                      ScreenTRexMethod::TREX, bs});
-        v.push_back({"TOMP"     + suffix, SolverTypeForTRex::TOMP,  0.0,
+        v.push_back({prefix + "TOMP",     SolverTypeForTRex::TOMP,  0.0,
                      ScreenTRexMethod::TREX, bs});
     }
     return v;

@@ -74,7 +74,7 @@ The three routing outcomes of Algorithm 1 [[1]](#references), all using `ScreenT
 - **Screen-TRex Ordinary** — the majority-vote rule ($\Phi_j > 0.5$); tried first for every phenotype.
 - **Screen-TRex Bootstrap-CI** — the bootstrap confidence-band rule (`R_boot = 1000` replicates); tried
    only when the Ordinary estimate falls outside the window.
-- **T-Rex (fallback)** — the classical T-Rex selector at `target_FDR_trex = 0.10`, used when neither
+- **T-Rex fallback: TLARS** — the classical T-Rex selector at `target_FDR_trex = 0.10`, used when neither
    screening rule produces an acceptable estimate.
 
 All reported FDR and TPR values are **conditional on routing**: they average only over the phenotypes that

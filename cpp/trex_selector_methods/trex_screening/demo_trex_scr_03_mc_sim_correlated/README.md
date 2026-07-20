@@ -80,7 +80,7 @@ Every part compares four methods — the two thresholding rules of Demo 01, plai
 
 - **Screen-TRex Ordinary** — majority vote $\{ j : \Phi_j > 0.5 \}$, no correlation handling
    (`ScreenTRexMethod::TREX`).
-- **Screen-TRex Bootstrap** — bootstrap confidence band around the estimated FDR curve
+- **Screen-TRex Bootstrap-CI** — bootstrap confidence band around the estimated FDR curve
    (`R_boot = 1000` replicates), no correlation handling.
 - **Screen-TRex + DA** — the same two rules on top of a **dependency-aware** method
    (`TREX_DA_AR1`, `TREX_DA_EQUI`, or `TREX_DA_BLOCK_EQUI`), which groups variables whose correlation
@@ -142,7 +142,7 @@ Each file holds FDR, TPR, and estimated FDR per method and grid point. Figures (
 - **DA lowers the error rate at a modest power cost.** Ordinary+DA-AR1 roughly *halves* the plain
    Ordinary FDR for $\mathrm{SNR} \ge 1$ ($0.072$ vs. $0.125$ at $\mathrm{SNR} = 1$; $0.037$ vs. $0.102$
    at $\mathrm{SNR} = 2$) while giving up only a few points of TPR ($0.767$ vs. $0.824$).
-- **Bootstrap+DA-AR1 is extremely conservative.** Its FDR never exceeds $0.021$ once
+- **Bootstrap-CI+DA-AR1 is extremely conservative.** Its FDR never exceeds $0.021$ once
    $\mathrm{SNR} \ge 0.5$, but its TPR tops out at $0.510$ at $\mathrm{SNR} = 5$ — it buys near-zero
    false discoveries by leaving half the true signal on the table.
 - **The internal estimate is still well-behaved here.** For $\mathrm{SNR} \ge 0.5$ it brackets the
@@ -163,7 +163,7 @@ the realized FDR and the dashed line the procedure's own estimated FDR.
 - **DA-EQUI does not rescue the Ordinary rule.** Ordinary DA-EQUI tracks plain Ordinary almost exactly
    ($0.844$ vs. $0.852$ at $\mathrm{SNR} = 1$). Matching the DA variant to the true design structure is
    not enough when every column shares one latent factor.
-- **Bootstrap DA-EQUI helps partially, and pays for it.** It is the one method that bends the curve
+- **Bootstrap-CI+DA-EQUI helps partially, and pays for it.** It is the one method that bends the curve
    ($0.708$ vs. $0.841$ at $\mathrm{SNR} = 1$), but $0.67$–$0.72$ FDR is still unusable, and its TPR
    trails the others throughout ($0.839$ vs. $0.988$ at $\mathrm{SNR} = 5$).
 - **A non-monotone artifact at the bottom of the sweep.** The realized Ordinary FDR is *lower* at
@@ -187,7 +187,7 @@ estimated FDR.
 - **DA-AR1 buys roughly one step of the $\rho$ grid.** Ordinary+DA-AR1 lowers FDR at every $\rho$
    ($0.422$ vs. $0.513$ at $\rho = 0.9$; $0.208$ vs. $0.315$ at $\rho = 0.8$) at a cost of a few to
    fourteen points of TPR. It is a real improvement, but it delays the failure rather than preventing it.
-- **Bootstrap+DA-AR1 controls the FDR by declining to select.** Its FDR stays within $0.001$–$0.009$
+- **Bootstrap-CI+DA-AR1 controls the FDR by declining to select.** Its FDR stays within $0.001$–$0.009$
    across the *entire* $\rho$ range — nominally the best result in this demo — but its TPR falls from
    $0.143$ at $\rho = 0.1$ to $0.051$ at $\rho = 0.6$ and $0.004$ at $\rho = 0.9$. At high correlation it
    returns essentially an empty set. This is a bias/variance trade, not a free fix, and a near-zero FDR
@@ -205,7 +205,7 @@ TPR (left) and FDR (right) vs. $\rho$, one line per method; solid = realized FDR
    monotonically to $0.958$ at $\rho = 0.9$, while TPR collapses $0.899 \to 0.059$. Unlike AR(1), there
    is no usable region of the sweep.
 - **No DA variant rescues it.** Ordinary DA-EQUI ends at $0.959$ and Bootstrap at $0.947$ —
-   indistinguishable from plain Ordinary. Bootstrap DA-EQUI is again the only one that differs at low
+   indistinguishable from plain Ordinary. Bootstrap-CI+DA-EQUI is again the only one that differs at low
    $\rho$ ($0.008$ FDR at $\rho = 0.1$), and again only because it selects almost nothing there
    (TPR $= 0.013$); by $\rho = 0.5$ it has converged to the others at $0.754$.
 - **This is the demo's central caution: the FDR estimate is wildly optimistic exactly where the method
@@ -224,12 +224,12 @@ TPR (left) and FDR (right) vs. $\rho$, one line per method; solid = realized FDR
    $0.207 \to 0.929$ over the sweep. It is far better than the fully equicorrelated case at low $\rho$
    ($0.207$ vs. $0.655$ at $\rho = 0.1$), because independence *across* blocks survives, but by
    $\rho = 0.9$ the two designs are equally hopeless.
-- **DA-BLOCK-EQUI helps meaningfully at low correlation only.** Ord+DA-BLOCK-EQUI cuts FDR from $0.207$
+- **DA-BLOCK-EQUI helps meaningfully at low correlation only.** Ordinary+DA-BLOCK-EQUI cuts FDR from $0.207$
    to $0.045$ at $\rho = 0.1$ and from $0.412$ to $0.184$ at $\rho = 0.2$ — the clearest DA win anywhere
    in this demo — but the advantage has eroded by $\rho = 0.5$ ($0.643$ vs. $0.721$) and is gone at
    $\rho = 0.9$ ($0.926$ vs. $0.929$). The TPR cost is real throughout ($0.610$ vs. $0.874$ at
    $\rho = 0.1$).
-- **Boot+DA-BLOCK-EQUI is degenerate here.** Its FDR never exceeds $0.110$, but its TPR never exceeds
+- **Bootstrap-CI+DA-BLOCK-EQUI is degenerate here.** Its FDR never exceeds $0.110$, but its TPR never exceeds
    $0.040$ and is exactly $0.000$ at $\rho = 0.3$. The method returns empty or near-empty sets across the
    sweep; its FDR column carries no usable information.
 - **The estimate is again too optimistic, though less catastrophically.** Ordinary reports

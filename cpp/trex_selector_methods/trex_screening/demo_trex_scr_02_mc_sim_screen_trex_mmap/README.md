@@ -2,15 +2,15 @@
 
 ## Purpose
 
-Show that the **memory-mapped Screen-TRex workflow** reproduces the in-memory baseline while keeping the
+The demo shows that the **memory-mapped Screen-TRex workflow** reproduces the in-memory baseline while keeping the
  dummy (D) matrices on disk instead of in RAM.
- The study is the same experiment as [Demo 01](../demo_trex_scr_01_mc_sim_screen_trex/README.md) — same
+The study is the same experiment as [Demo 01](../demo_trex_scr_01_mc_sim_screen_trex/README.md) — same
  i.i.d. Gaussian design, same SNR sweep, same two thresholding rules (**Ordinary** and **Bootstrap-CI**) —
  with the single change `TRexControlParameter::use_memory_mapping = true`.
- The point of this demo is therefore *equivalence at a lower memory footprint*, not a different statistical
+The point of this demo is therefore *equivalence at a lower memory footprint*, not a different statistical
  regime: memory mapping is what makes very large $p$ feasible on machines that cannot hold the dummy
  matrices in RAM.
- Screening returns a *candidate set*, and FDR/TPR are evaluated on the individual selected variables
+Screening returns a *candidate set*, and FDR/TPR are evaluated on the individual selected variables
  (see [What is actually measured](../README.md#what-is-actually-measured-in-these-demos)).
 
 ---
@@ -66,7 +66,7 @@ Two Screen-TRex thresholding rules [[1]](#references), both using `ScreenTRexMet
 
 - **Screen-TRex Ordinary** — selects $\{ j : \Phi_j > 0.5 \}$, a simple majority vote of the random
    experiments.
-- **Screen-TRex Bootstrap** — builds a bootstrap confidence band around the estimated FDR curve
+- **Screen-TRex Bootstrap-CI** — builds a bootstrap confidence band around the estimated FDR curve
    (`R_boot = 1000` replicates) and picks its threshold from that band.
 
 Both report an **estimated FDR** alongside the realized FDR/TPR — the procedure's own internal assessment
