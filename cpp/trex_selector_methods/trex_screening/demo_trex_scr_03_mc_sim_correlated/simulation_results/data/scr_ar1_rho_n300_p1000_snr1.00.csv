@@ -1,0 +1,109 @@
+method,metric,rho,value
+Screen-TRex Ordinary,FDR,0.100000,0.068426
+Screen-TRex Ordinary,TPR,0.100000,0.811500
+Screen-TRex Ordinary,Est. FDR,0.100000,0.118577
+Screen-TRex Ordinary,FDR,0.200000,0.078679
+Screen-TRex Ordinary,TPR,0.200000,0.818000
+Screen-TRex Ordinary,Est. FDR,0.200000,0.115094
+Screen-TRex Ordinary,FDR,0.300000,0.086714
+Screen-TRex Ordinary,TPR,0.300000,0.809500
+Screen-TRex Ordinary,Est. FDR,0.300000,0.116080
+Screen-TRex Ordinary,FDR,0.400000,0.098711
+Screen-TRex Ordinary,TPR,0.400000,0.823000
+Screen-TRex Ordinary,Est. FDR,0.400000,0.112393
+Screen-TRex Ordinary,FDR,0.500000,0.103500
+Screen-TRex Ordinary,TPR,0.500000,0.811000
+Screen-TRex Ordinary,Est. FDR,0.500000,0.113324
+Screen-TRex Ordinary,FDR,0.600000,0.168595
+Screen-TRex Ordinary,TPR,0.600000,0.809500
+Screen-TRex Ordinary,Est. FDR,0.600000,0.105637
+Screen-TRex Ordinary,FDR,0.700000,0.222659
+Screen-TRex Ordinary,TPR,0.700000,0.804500
+Screen-TRex Ordinary,Est. FDR,0.700000,0.098628
+Screen-TRex Ordinary,FDR,0.800000,0.314950
+Screen-TRex Ordinary,TPR,0.800000,0.764500
+Screen-TRex Ordinary,Est. FDR,0.800000,0.091928
+Screen-TRex Ordinary,FDR,0.900000,0.512707
+Screen-TRex Ordinary,TPR,0.900000,0.643500
+Screen-TRex Ordinary,Est. FDR,0.900000,0.076550
+Screen-TRex Bootstrap,FDR,0.100000,0.029108
+Screen-TRex Bootstrap,TPR,0.100000,0.381500
+Screen-TRex Bootstrap,Est. FDR,0.100000,0.049738
+Screen-TRex Bootstrap,FDR,0.200000,0.026735
+Screen-TRex Bootstrap,TPR,0.200000,0.342000
+Screen-TRex Bootstrap,Est. FDR,0.200000,0.044880
+Screen-TRex Bootstrap,FDR,0.300000,0.035216
+Screen-TRex Bootstrap,TPR,0.300000,0.378500
+Screen-TRex Bootstrap,Est. FDR,0.300000,0.046760
+Screen-TRex Bootstrap,FDR,0.400000,0.041022
+Screen-TRex Bootstrap,TPR,0.400000,0.384500
+Screen-TRex Bootstrap,Est. FDR,0.400000,0.049336
+Screen-TRex Bootstrap,FDR,0.500000,0.033563
+Screen-TRex Bootstrap,TPR,0.500000,0.303500
+Screen-TRex Bootstrap,Est. FDR,0.500000,0.039742
+Screen-TRex Bootstrap,FDR,0.600000,0.060649
+Screen-TRex Bootstrap,TPR,0.600000,0.330000
+Screen-TRex Bootstrap,Est. FDR,0.600000,0.038611
+Screen-TRex Bootstrap,FDR,0.700000,0.081241
+Screen-TRex Bootstrap,TPR,0.700000,0.327500
+Screen-TRex Bootstrap,Est. FDR,0.700000,0.036096
+Screen-TRex Bootstrap,FDR,0.800000,0.134882
+Screen-TRex Bootstrap,TPR,0.800000,0.363000
+Screen-TRex Bootstrap,Est. FDR,0.800000,0.039883
+Screen-TRex Bootstrap,FDR,0.900000,0.208078
+Screen-TRex Bootstrap,TPR,0.900000,0.310000
+Screen-TRex Bootstrap,Est. FDR,0.900000,0.032106
+Screen-TRex Ordinary+DA-AR1,FDR,0.100000,0.046207
+Screen-TRex Ordinary+DA-AR1,TPR,0.100000,0.743000
+Screen-TRex Ordinary+DA-AR1,Est. FDR,0.100000,0.133543
+Screen-TRex Ordinary+DA-AR1,FDR,0.200000,0.044477
+Screen-TRex Ordinary+DA-AR1,TPR,0.200000,0.763000
+Screen-TRex Ordinary+DA-AR1,Est. FDR,0.200000,0.130114
+Screen-TRex Ordinary+DA-AR1,FDR,0.300000,0.051693
+Screen-TRex Ordinary+DA-AR1,TPR,0.300000,0.753500
+Screen-TRex Ordinary+DA-AR1,Est. FDR,0.300000,0.131228
+Screen-TRex Ordinary+DA-AR1,FDR,0.400000,0.059296
+Screen-TRex Ordinary+DA-AR1,TPR,0.400000,0.763000
+Screen-TRex Ordinary+DA-AR1,Est. FDR,0.400000,0.127660
+Screen-TRex Ordinary+DA-AR1,FDR,0.500000,0.051927
+Screen-TRex Ordinary+DA-AR1,TPR,0.500000,0.737000
+Screen-TRex Ordinary+DA-AR1,Est. FDR,0.500000,0.134564
+Screen-TRex Ordinary+DA-AR1,FDR,0.600000,0.093977
+Screen-TRex Ordinary+DA-AR1,TPR,0.600000,0.741500
+Screen-TRex Ordinary+DA-AR1,Est. FDR,0.600000,0.127164
+Screen-TRex Ordinary+DA-AR1,FDR,0.700000,0.139690
+Screen-TRex Ordinary+DA-AR1,TPR,0.700000,0.692500
+Screen-TRex Ordinary+DA-AR1,Est. FDR,0.700000,0.129313
+Screen-TRex Ordinary+DA-AR1,FDR,0.800000,0.208113
+Screen-TRex Ordinary+DA-AR1,TPR,0.800000,0.660500
+Screen-TRex Ordinary+DA-AR1,Est. FDR,0.800000,0.124709
+Screen-TRex Ordinary+DA-AR1,FDR,0.900000,0.421655
+Screen-TRex Ordinary+DA-AR1,TPR,0.900000,0.508000
+Screen-TRex Ordinary+DA-AR1,Est. FDR,0.900000,0.119586
+Screen-TRex Bootstrap+DA-AR1,FDR,0.100000,0.004802
+Screen-TRex Bootstrap+DA-AR1,TPR,0.100000,0.143000
+Screen-TRex Bootstrap+DA-AR1,Est. FDR,0.100000,0.018661
+Screen-TRex Bootstrap+DA-AR1,FDR,0.200000,0.008023
+Screen-TRex Bootstrap+DA-AR1,TPR,0.200000,0.189500
+Screen-TRex Bootstrap+DA-AR1,Est. FDR,0.200000,0.026660
+Screen-TRex Bootstrap+DA-AR1,FDR,0.300000,0.009029
+Screen-TRex Bootstrap+DA-AR1,TPR,0.300000,0.144000
+Screen-TRex Bootstrap+DA-AR1,Est. FDR,0.300000,0.019685
+Screen-TRex Bootstrap+DA-AR1,FDR,0.400000,0.009371
+Screen-TRex Bootstrap+DA-AR1,TPR,0.400000,0.160000
+Screen-TRex Bootstrap+DA-AR1,Est. FDR,0.400000,0.023167
+Screen-TRex Bootstrap+DA-AR1,FDR,0.500000,0.004889
+Screen-TRex Bootstrap+DA-AR1,TPR,0.500000,0.127500
+Screen-TRex Bootstrap+DA-AR1,Est. FDR,0.500000,0.019917
+Screen-TRex Bootstrap+DA-AR1,FDR,0.600000,0.006842
+Screen-TRex Bootstrap+DA-AR1,TPR,0.600000,0.050500
+Screen-TRex Bootstrap+DA-AR1,Est. FDR,0.600000,0.008020
+Screen-TRex Bootstrap+DA-AR1,FDR,0.700000,0.006905
+Screen-TRex Bootstrap+DA-AR1,TPR,0.700000,0.051500
+Screen-TRex Bootstrap+DA-AR1,Est. FDR,0.700000,0.006302
+Screen-TRex Bootstrap+DA-AR1,FDR,0.800000,0.008920
+Screen-TRex Bootstrap+DA-AR1,TPR,0.800000,0.034000
+Screen-TRex Bootstrap+DA-AR1,Est. FDR,0.800000,0.004925
+Screen-TRex Bootstrap+DA-AR1,FDR,0.900000,0.001111
+Screen-TRex Bootstrap+DA-AR1,TPR,0.900000,0.003500
+Screen-TRex Bootstrap+DA-AR1,Est. FDR,0.900000,0.000556

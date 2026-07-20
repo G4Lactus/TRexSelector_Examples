@@ -1,0 +1,61 @@
+method,metric,snr,value
+Screen-TRex (ordinary),Usage,0.100000,0.000000
+Screen-TRex (ordinary),FDR,0.100000,0.000000
+Screen-TRex (ordinary),TPR,0.100000,0.000000
+Screen-TRex (ordinary),Est. FDR,0.100000,0.473000
+Screen-TRex (ordinary),Usage,0.500000,0.115000
+Screen-TRex (ordinary),FDR,0.500000,0.195531
+Screen-TRex (ordinary),TPR,0.500000,0.617391
+Screen-TRex (ordinary),Est. FDR,0.500000,0.229361
+Screen-TRex (ordinary),Usage,1.000000,0.475000
+Screen-TRex (ordinary),FDR,1.000000,0.074250
+Screen-TRex (ordinary),TPR,1.000000,0.805263
+Screen-TRex (ordinary),Est. FDR,1.000000,0.120050
+Screen-TRex (ordinary),Usage,2.000000,0.225000
+Screen-TRex (ordinary),FDR,2.000000,0.068420
+Screen-TRex (ordinary),TPR,2.000000,0.975556
+Screen-TRex (ordinary),Est. FDR,2.000000,0.095050
+Screen-TRex (ordinary),Usage,5.000000,0.115000
+Screen-TRex (ordinary),FDR,5.000000,0.069170
+Screen-TRex (ordinary),TPR,5.000000,1.000000
+Screen-TRex (ordinary),Est. FDR,5.000000,0.094767
+Screen-TRex (bootstrap-CI),Usage,0.100000,0.000000
+Screen-TRex (bootstrap-CI),FDR,0.100000,0.000000
+Screen-TRex (bootstrap-CI),TPR,0.100000,0.000000
+Screen-TRex (bootstrap-CI),Est. FDR,0.100000,0.379333
+Screen-TRex (bootstrap-CI),Usage,0.500000,0.090000
+Screen-TRex (bootstrap-CI),FDR,0.500000,0.153219
+Screen-TRex (bootstrap-CI),TPR,0.500000,0.638889
+Screen-TRex (bootstrap-CI),Est. FDR,0.500000,0.120651
+Screen-TRex (bootstrap-CI),Usage,1.000000,0.430000
+Screen-TRex (bootstrap-CI),FDR,1.000000,0.060798
+Screen-TRex (bootstrap-CI),TPR,1.000000,0.843023
+Screen-TRex (bootstrap-CI),Est. FDR,1.000000,0.053648
+Screen-TRex (bootstrap-CI),Usage,2.000000,0.775000
+Screen-TRex (bootstrap-CI),FDR,2.000000,0.052971
+Screen-TRex (bootstrap-CI),TPR,2.000000,0.998710
+Screen-TRex (bootstrap-CI),Est. FDR,2.000000,0.073495
+Screen-TRex (bootstrap-CI),Usage,5.000000,0.885000
+Screen-TRex (bootstrap-CI),FDR,5.000000,0.050144
+Screen-TRex (bootstrap-CI),TPR,5.000000,1.000000
+Screen-TRex (bootstrap-CI),Est. FDR,5.000000,0.084062
+T-Rex (fallback),Usage,0.100000,1.000000
+T-Rex (fallback),FDR,0.100000,0.008333
+T-Rex (fallback),TPR,0.100000,0.002000
+T-Rex (fallback),Est. FDR,0.100000,0.100000
+T-Rex (fallback),Usage,0.500000,0.795000
+T-Rex (fallback),FDR,0.500000,0.025472
+T-Rex (fallback),TPR,0.500000,0.194340
+T-Rex (fallback),Est. FDR,0.500000,0.100000
+T-Rex (fallback),Usage,1.000000,0.095000
+T-Rex (fallback),FDR,1.000000,0.015038
+T-Rex (fallback),TPR,1.000000,0.526316
+T-Rex (fallback),Est. FDR,1.000000,0.100000
+T-Rex (fallback),Usage,2.000000,0.000000
+T-Rex (fallback),FDR,2.000000,0.000000
+T-Rex (fallback),TPR,2.000000,0.000000
+T-Rex (fallback),Est. FDR,2.000000,0.100000
+T-Rex (fallback),Usage,5.000000,0.000000
+T-Rex (fallback),FDR,5.000000,0.000000
+T-Rex (fallback),TPR,5.000000,0.000000
+T-Rex (fallback),Est. FDR,5.000000,0.100000
