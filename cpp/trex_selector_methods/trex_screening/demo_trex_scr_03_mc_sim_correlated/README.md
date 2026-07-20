@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Measure what **predictor correlation does to Screen-TRex**, and whether the **dependency-aware (DA)**
+The demo measures what **predictor correlation does to Screen-TRex**, and whether the **dependency-aware (DA)**
  variants repair the damage.
  Three correlation structures are put in front of the screener — AR(1), equicorrelated, and
  block-equicorrelated — and in each case the plain Ordinary and Bootstrap-CI rules are compared against

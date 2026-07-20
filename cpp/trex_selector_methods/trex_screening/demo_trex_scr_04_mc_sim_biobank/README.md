@@ -2,16 +2,16 @@
 
 ## Purpose
 
-Demonstrate the **Biobank Screen-TRex workflow** ("Algorithm 1"), which screens *many phenotypes* against a
- single shared design matrix $\boldsymbol{X}$.
- Per phenotype the algorithm tries **Screen-TRex Ordinary** first; if the estimated FDR falls outside the
- acceptable window $[0.05, 0.15]$ it retries with **Screen-TRex Bootstrap-CI**; if that also lands outside
+The demo illustrates the **Biobank Screen-TRex workflow** ("Algorithm 1") of [[1]](#references),
+ which screens *many phenotypes* against a single shared design matrix $\boldsymbol{X}$.
+Per phenotype the algorithm tries **Screen-TRex Ordinary** first; if the estimated FDR falls outside the
+ acceptable window $\lbrack 0.05, 0.15\rbrack$ it retries with **Screen-TRex Bootstrap-CI**; if that also lands outside
  the window it falls back to the **classical T-Rex selector** at a target FDR of $0.10$.
- The interesting quantity is therefore not a single error rate but the *routing behaviour*: which method
+The interesting quantity is therefore not a single error rate but the *routing behaviour*: which method
  handles which phenotype, and how well each performs on the subset it was given.
- This demo keeps the dummy matrices **in memory** (`use_memory_mapping = false`); demo 05 runs the identical
+This demo keeps the dummy matrices **in memory** (`use_memory_mapping = false`); demo 05 runs the identical
  study with memory-mapped, disk-backed dummy matrices.
- Screening returns a *candidate set*, and FDR/TPR are evaluated on the individual selected variables
+Screening returns a *candidate set*, and FDR/TPR are evaluated on the individual selected variables
  (see [What is actually measured](../README.md#what-is-actually-measured-in-these-demos)).
 
 ---
@@ -62,7 +62,7 @@ use_memory_mapping = false   # Dummy matrices held in memory
 MC = 200                     # Monte Carlo repetitions per grid point
 ```
 
-The window $[0.05, 0.15]$ is the routing criterion: a screening result is *accepted* only if the
+The window $\lbrack 0.05, 0.15\rbrack$ is the routing criterion: a screening result is *accepted* only if the
  procedure's own estimated FDR lands inside it.
 
 ---
@@ -141,7 +141,7 @@ Figures (PNG + PDF) go to `simulation_results/plots/`, produced by `./generate_p
    safe side.
 
 TPR (conditional on routing), FDR (solid = realized, dashed = the procedure's own estimate, with the
-$[0.05, 0.15]$ routing window shaded), and per-method Usage % vs. SNR.
+$\lbrack 0.05, 0.15\rbrack$ routing window shaded), and per-method Usage % vs. SNR.
 
 ![Biobank Screen-TRex, single phenotype: TPR/FDR/Usage vs SNR](simulation_results/plots/scr_biobank_snr_n300_p1000_s10.png)
 
@@ -166,7 +166,7 @@ $[0.05, 0.15]$ routing window shaded), and per-method Usage % vs. SNR.
    conservative route is both the most-used and the most reliable one.
 
 TPR (conditional on routing), FDR (solid = realized, dashed = the procedure's own estimate, with the
-$[0.05, 0.15]$ routing window shaded), and per-method Usage % vs. SNR.
+$\lbrack 0.05, 0.15\rbrack$ routing window shaded), and per-method Usage % vs. SNR.
 
 ![Biobank Screen-TRex, five phenotypes: TPR/FDR/Usage vs SNR](simulation_results/plots/scr_biobank_multi_n300_p1000_q5_s5.png)
 

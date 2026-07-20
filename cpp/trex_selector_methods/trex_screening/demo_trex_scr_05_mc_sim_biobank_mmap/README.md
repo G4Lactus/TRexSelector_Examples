@@ -2,11 +2,11 @@
 
 ## Purpose
 
-Repeat the **Biobank Screen-TRex workflow** ("Algorithm 1") of demo 04 with **memory-mapped dummy matrices**
- (`use_memory_mapping = true`), the storage mode intended for biobank-scale problems where holding the
- dummy matrices in RAM is infeasible.
+The demo repeats the **Biobank Screen-TRex workflow** ("Algorithm 1") of demo 04 with
+ **memory-mapped dummy matrices** (`use_memory_mapping = true`), the storage mode intended for
+ biobank-scale problems where holding the dummy matrices in RAM is infeasible.
  The algorithm is unchanged: per phenotype it tries **Screen-TRex Ordinary** first; if the estimated FDR
- falls outside the acceptable window $[0.05, 0.15]$ it retries with **Screen-TRex Bootstrap-CI**; if that
+ falls outside the acceptable window $\lbrack 0.05, 0.15\rbrack$ it retries with **Screen-TRex Bootstrap-CI**; if that
  also lands outside the window it falls back to the **classical T-Rex selector** at a target FDR of $0.10$.
  Demo 04 is the in-memory reference for every number reported here — the point of this demo is to show
  that moving the dummy matrices to disk changes the memory footprint and not the statistics.
@@ -61,7 +61,7 @@ use_memory_mapping = true    # Dummy matrices stored on disk (Boost memory-mappe
 MC = 200                     # Monte Carlo repetitions per grid point
 ```
 
-The only difference from demo 04 is `use_memory_mapping = true`. The window $[0.05, 0.15]$ is the routing
+The only difference from demo 04 is `use_memory_mapping = true`. The window $\lbrack 0.05, 0.15 \rbrack$ is the routing
  criterion: a screening result is *accepted* only if the procedure's own estimated FDR lands inside it.
 
 ---
@@ -137,7 +137,7 @@ Figures (PNG + PDF) go to `simulation_results/plots/`, produced by `./generate_p
    $0.050$–$0.061$.
 
 TPR (conditional on routing), FDR (solid = realized, dashed = the procedure's own estimate, with the
-$[0.05, 0.15]$ routing window shaded), and per-method Usage % vs. SNR.
+$\lbrack 0.05, 0.15\rbrack$ routing window shaded), and per-method Usage % vs. SNR.
 
 ![Biobank Screen-TRex (memory-mapped), single phenotype: TPR/FDR/Usage vs SNR](simulation_results/plots/scr_biobank_mmap_snr_n300_p1000_s10.png)
 
@@ -162,7 +162,7 @@ $[0.05, 0.15]$ routing window shaded), and per-method Usage % vs. SNR.
    resolves via `std::random_device`, so the two runs use different random experiments.
 
 TPR (conditional on routing), FDR (solid = realized, dashed = the procedure's own estimate, with the
-$[0.05, 0.15]$ routing window shaded), and per-method Usage % vs. SNR.
+$\lbrack 0.05, 0.15\rbrack$ routing window shaded), and per-method Usage % vs. SNR.
 
 ![Biobank Screen-TRex (memory-mapped), five phenotypes: TPR/FDR/Usage vs SNR](simulation_results/plots/scr_biobank_mmap_multi_n300_p1000_q5_s5.png)
 
