@@ -27,6 +27,9 @@
 // T-Rex Selector includes
 #include <trex_selector_methods/trex_core/trex.hpp>
 #include <utils/datageneration/utils_datagen.hpp>
+
+// Demo utilities (sparse printers for the per-variable structures)
+#include "../trex_sim_utils.hpp"
 #include <utils/eval_metrics/utils_eval_cdiagnostics.hpp>
 #include <utils/eval_metrics/utils_eval_rates.hpp>
 
@@ -136,20 +139,13 @@ void demo_TRexSelector(bool high_dim, bool rnd_coef) {
         print_dual(ss.str());
     }
 
-    {
-        const auto& phi_prime = trex.getPhiPrime();
-        std::ostringstream ss;
-        ss << "\nAdjusted Relative Occurrences (Phi_prime):\n"
-           << phi_prime.transpose() << "\n";
-        print_dual(ss.str());
-    }
+    // Phi_prime and Phi carry one entry per variable, so they are printed
+    // sparsely (see trex_sim::print_sparse_vector / print_sparse_matrix).
+    trex_sim::print_sparse_vector("Adjusted Relative Occurrences (Phi_prime)",
+                                  trex.getPhiPrime(), print_dual);
 
-    {
-        const auto& phi_mat = trex.getPhiMat();
-        std::ostringstream ss;
-        ss << "\nPhi Matrix (Phi):\n" << phi_mat << "\n";
-        print_dual(ss.str());
-    }
+    trex_sim::print_sparse_matrix("Phi Matrix (Phi)", trex.getPhiMat(),
+                                  print_dual);
 
     {
         const auto& fdp_hat_mat = trex.getFDPHatMat();

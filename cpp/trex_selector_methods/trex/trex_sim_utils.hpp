@@ -241,6 +241,109 @@ inline void save_selection_csv(
  * @param selector          Completed TRexSelector instance (for matrix accessors).
  * @param out               Dual output callback (console + file).
  */
+// ==============================================================================
+// Sparse printing of the selector's per-variable structures
+// ==============================================================================
+
+/**
+ * @brief Print only the nonzero entries of a p-vector, with their indices.
+ *
+ * @details Phi_prime carries one entry per variable, so a dense dump puts p
+ *          numbers on a single line (45,000 characters at p = 5000) of which
+ *          typically ~0.1% are nonzero. Listing the nonzeros keeps every value
+ *          a reader would use — the zeros are implied by absence.
+ *          Falls back to the dense form when the vector is not actually sparse,
+ *          so the sparse view can never be the longer of the two.
+ *
+ * @param label  Heading printed above the entries.
+ * @param vec    Vector to print.
+ * @param out    Sink (console and/or file).
+ * @param eps    Magnitudes at or below this count as zero.
+ */
+inline void print_sparse_vector(const std::string& label,
+                                const Eigen::VectorXd& vec,
+                                const PrintFn& out,
+                                double eps = 1e-12)
+{
+    const Eigen::Index n = vec.size();
+    Eigen::Index nnz = 0;
+    for (Eigen::Index i = 0; i < n; ++i)
+        if (std::abs(vec(i)) > eps) ++nnz;
+
+    std::ostringstream ss;
+    ss << "\n" << label << ": " << nnz << " of " << n << " entries nonzero\n";
+
+    if (nnz * 4 > n) {                      // dense enough: keep the plain dump
+        ss << vec.transpose() << "\n";
+        out(ss.str());
+        return;
+    }
+
+    constexpr int kPerLine = 5;
+    int on_line = 0;
+    ss << std::fixed << std::setprecision(6);
+    for (Eigen::Index i = 0; i < n; ++i) {
+        if (std::abs(vec(i)) <= eps) continue;
+        std::ostringstream cell;
+        cell << "[" << i << "] " << std::fixed << std::setprecision(6) << vec(i);
+        ss << "  " << std::left << std::setw(20) << cell.str();
+        if (++on_line == kPerLine) { ss << "\n"; on_line = 0; }
+    }
+    if (on_line != 0) ss << "\n";
+    out(ss.str());
+}
+
+/**
+ * @brief Print only the nonzero entries of a matrix, row by row.
+ *
+ * @details Same rationale as print_sparse_vector(): the Phi matrix is
+ *          (T x p), so each of its rows is as wide as the variable count.
+ *
+ * @param label  Heading printed above the rows.
+ * @param mat    Matrix to print.
+ * @param out    Sink (console and/or file).
+ * @param eps    Magnitudes at or below this count as zero.
+ */
+inline void print_sparse_matrix(const std::string& label,
+                                const Eigen::MatrixXd& mat,
+                                const PrintFn& out,
+                                double eps = 1e-12)
+{
+    const Eigen::Index rows = mat.rows(), cols = mat.cols();
+    const Eigen::Index total = rows * cols;
+    Eigen::Index nnz = 0;
+    for (Eigen::Index r = 0; r < rows; ++r)
+        for (Eigen::Index c = 0; c < cols; ++c)
+            if (std::abs(mat(r, c)) > eps) ++nnz;
+
+    std::ostringstream ss;
+    ss << "\n" << label << ": " << rows << " x " << cols << ", "
+       << nnz << " of " << total << " entries nonzero\n";
+
+    if (nnz * 4 > total) {                  // dense enough: keep the plain dump
+        ss << mat << "\n";
+        out(ss.str());
+        return;
+    }
+
+    for (Eigen::Index r = 0; r < rows; ++r) {
+        ss << "  row " << r << ":";
+        bool any = false;
+        for (Eigen::Index c = 0; c < cols; ++c) {
+            if (std::abs(mat(r, c)) <= eps) continue;
+            std::ostringstream cell;
+            cell << "[" << c << "] " << std::fixed << std::setprecision(4)
+                 << mat(r, c);
+            ss << "  " << cell.str();
+            any = true;
+        }
+        if (!any) ss << "  (all zero)";
+        ss << "\n";
+    }
+    out(ss.str());
+}
+
+
 inline void print_results(
     const std::vector<std::size_t>& selected_indices,
     const std::vector<std::size_t>& true_support,
@@ -265,18 +368,10 @@ inline void print_results(
         out(ss.str());
     }
 
-    {
-        std::ostringstream ss;
-        ss << "\nAdjusted Relative Occurrences (Phi_prime):\n"
-           << selector.getPhiPrime().transpose() << "\n";
-        out(ss.str());
-    }
+    print_sparse_vector("Adjusted Relative Occurrences (Phi_prime)",
+                        selector.getPhiPrime(), out);
 
-    {
-        std::ostringstream ss;
-        ss << "\nPhi Matrix (Phi):\n" << selector.getPhiMat() << "\n";
-        out(ss.str());
-    }
+    print_sparse_matrix("Phi Matrix (Phi)", selector.getPhiMat(), out);
 
     {
         std::ostringstream ss;
