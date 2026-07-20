@@ -722,7 +722,7 @@ inline void save_and_print_spca_mc_results(
         hdr << std::left << std::string(static_cast<std::size_t>(indent_w), ' ')
             << std::setw(metric_w) << "SNR(dB)";
         for (double snr : snr_values)
-            hdr << std::right << std::fixed << std::setprecision(2)
+            hdr << std::right << std::fixed << std::setprecision(1)
                 << std::setw(col_w) << snr;
         hdr << "\n" << std::string(sep_w, '-') << "\n";
         print_dual(hdr.str());

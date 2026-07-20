@@ -39,6 +39,26 @@ INDENT_W = 2
 METRIC_W = 23
 COL_W = 10
 
+def header_cell(x: float, suite: str, width: int = COL_W) -> str:
+    """Format one sweep value exactly as that suite's C++ renderer does.
+
+    trex and trex_spca print the axis with one decimal; trex_da prints
+    whole-number grid values (M, Q, linkage codes) bare and everything else
+    with two; the remaining suites use two throughout.
+    """
+    if suite == "trex_da" and float(x).is_integer() and abs(x) < 1e6:
+        return f"{int(x):>{width}d}"
+    dp = 1 if suite in ("trex", "trex_spca") else 2
+    return f"{x:>{width}.{dp}f}"
+
+
+def suite_of(path: Path) -> str:
+    for part in path.resolve().parts:
+        if part in ("trex", "trex_da", "trex_gvs", "trex_screening", "trex_spca"):
+            return part
+    return ""
+
+
 # CSV sweep column -> sweep label as printed by the C++ renderer.
 SWEEP_LABELS = {"snr": "SNR", "snr_db": "SNR(dB)", "rho": "Rho"}
 
@@ -92,10 +112,11 @@ def banner(txt_path: Path) -> str:
     return parts[0].rstrip("\n") + "\n" if parts else ""
 
 
-def render(head: str, sweep_label: str, xs, series, metrics, values) -> str:
+def render(head: str, sweep_label: str, xs, series, metrics, values,
+           suite: str = "") -> str:
     out = [head.rstrip("\n"), ""]
     hdr = " " * INDENT_W + sweep_label.ljust(METRIC_W)
-    hdr += "".join(f"{x:>{COL_W}.2f}" for x in xs)
+    hdr += "".join(header_cell(x, suite) for x in xs)
     out.append(hdr)
     out.append("-" * (INDENT_W + METRIC_W + COL_W * len(xs)))
     for s in series:
@@ -139,7 +160,7 @@ def main(argv: list[str]) -> int:
             continue
         txt.write_text(render(banner(txt),
                               SWEEP_LABELS.get(sweep_col, sweep_col),
-                              xs, series, metrics, values))
+                              xs, series, metrics, values, suite_of(c)))
         try:
             shown = txt.relative_to(here)
         except ValueError:

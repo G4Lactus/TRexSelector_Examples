@@ -759,9 +759,14 @@ inline void save_and_print_grid_results(
         std::stringstream th;
         th << std::left << std::string(static_cast<std::size_t>(indent_w), ' ')
            << std::setw(metric_w) << grid_label;
-        for (double v : grid_values)
-            th << std::right << std::fixed << std::setprecision(2)
-               << std::setw(col_w) << v;
+        for (double v : grid_values) {
+            // Whole-number grid values (M, Q, linkage codes) read better bare
+            if (v == std::floor(v) && std::abs(v) < 1e6)
+                th << std::right << std::setw(col_w) << static_cast<int>(v);
+            else
+                th << std::right << std::fixed << std::setprecision(2)
+                   << std::setw(col_w) << v;
+        }
         th << "\n" << std::string(sep_w, '-') << "\n";
         print_dual(th.str());
     }
