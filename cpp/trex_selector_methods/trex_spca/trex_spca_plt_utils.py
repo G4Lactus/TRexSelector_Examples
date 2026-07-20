@@ -54,12 +54,29 @@ METRICS = [("TPR", "TPR (true positive rate)", (0, 1.05)),
 # ---------------------------------------------------------------------------
 # Shared helpers (house conventions)
 # ---------------------------------------------------------------------------
+def legend_tfdr_lead(handles: list, labels: list, group_label: str = "Method"):
+    """Order legend entries as: tFDR reference first, then a group-header row,
+    then the method entries below it.
+
+    A legend *title* would sit at the very top and file the tFDR reference under
+    the group heading it does not belong to. Mirrors the helper of the same name
+    in the T-Rex+GVS and DA-TRex suites.
+    """
+    pairs = list(zip(handles, labels))
+    ref = [pr for pr in pairs if str(pr[1]).startswith("tFDR")]
+    methods = [pr for pr in pairs if pr not in ref]
+    ordered = list(ref)
+    if methods:
+        header = plt.Line2D([], [], linestyle="None", alpha=0.0)
+        ordered.append((header, f"{group_label}:"))
+        ordered.extend(methods)
+    return [h for h, _ in ordered], [l for _, l in ordered]
+
+
 def place_figure_legend(fig, handles, labels, group_label: str = "Method",
                         anchor_x: float = 0.845, fontsize: int = 9):
     """One figure-level legend outside the right panel, opaque white box."""
-    header = plt.Line2D([], [], linestyle="None", alpha=0.0)
-    handles = [header] + handles
-    labels = [f"{group_label}:"] + labels
+    handles, labels = legend_tfdr_lead(handles, labels, group_label)
     legend = fig.legend(
         handles, labels,
         loc="center left", bbox_to_anchor=(anchor_x, 0.5),
@@ -143,7 +160,7 @@ def plot_spca_sweep(df: pd.DataFrame, title: str, tfdr: float = DEFAULT_TFDR,
         if ylim:
             ax.set_ylim(*ylim)
         if metric == "FDR" and tfdr > 0:
-            ref = ax.axhline(tfdr, color="red", linestyle="--", linewidth=1.2)
+            ref = ax.axhline(tfdr, color="black", linestyle=":", linewidth=2.0)
             legend_handles.append(ref)
             legend_labels.append(f"tFDR = {tfdr:g}")
         ax.set_title(mlabel, fontsize=12, fontweight="bold")

@@ -305,7 +305,7 @@ def plot_method_bars(df: pd.DataFrame, param_col: str, title: str,
         if metric == "mean_TPP":
             ax.set_ylim(0, 1.05)
         if metric == "mean_FDP" and tfdr > 0:
-            ref = ax.axhline(tfdr, color="red", linestyle="--", linewidth=1.3)
+            ref = ax.axhline(tfdr, color="black", linestyle=":", linewidth=2.0)
             legend_handles.insert(0, ref)
             legend_labels.insert(0, f"tFDR = {tfdr:g}")
 
@@ -367,7 +367,7 @@ def plot_block_bench(df: pd.DataFrame, title: str,
             if ylim:
                 ax.set_ylim(*ylim)
             if metric == "mean_coord_fdp" and tfdr > 0:
-                ref = ax.axhline(tfdr, color="red", linestyle="--", linewidth=1.2)
+                ref = ax.axhline(tfdr, color="black", linestyle=":", linewidth=2.0)
                 if ri == 0:
                     legend_handles.insert(0, ref)
                     legend_labels.insert(0, f"tFDR = {tfdr:g}")
