@@ -128,7 +128,7 @@ variables enter each other's DA correction windows: below it, TPR collapses by c
 
 ## References
 
-- Machkour, J, and Muma, M. and Palomar, Daniel P., "FDR-Controlled Sparse Index Tracking with Autoregressive Stock
+- Machkour, J., Muma, M., & Palomar, D. P., "FDR-Controlled Sparse Index Tracking with Autoregressive Stock
   Dependency Models", European Signal Processing Conference (EUSIPCO), 2024, pp. 2662–2666, [DOI link](https://ieeexplore.ieee.org/document/10715329).
 
 ---

@@ -41,6 +41,11 @@ the CSV lives in simulation_results/data/ (the suite convention); otherwise
 they are written next to the CSV. Override with --outdir. (The grid and
 scalability modes require an explicit --outdir, since they are not tied to a
 single CSV's location.)
+
+All three modes accept ``--xscale {linear,sqrt,log}`` (default ``linear``,
+matching the rest of the suites): ``sqrt`` spreads a sweep grid that is dense
+near zero while keeping 0 on-axis, ``log`` restores the logarithmic axis with
+the log-spaced tick values from choose_ticks().
 """
 
 import argparse
@@ -55,9 +60,10 @@ import matplotlib
 matplotlib.use("Agg")  # headless / batch-safe: no display required
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from matplotlib.colors import ListedColormap
-from matplotlib.ticker import ScalarFormatter
+from matplotlib.ticker import AutoMinorLocator, MaxNLocator, ScalarFormatter
 
 # ---------------------------------------------------------------------
 # Defaults
@@ -250,11 +256,74 @@ def marker_stride(values: list[float]) -> int:
     return max(1, len(values) // 10)
 
 
+DEFAULT_XSCALE = "linear"
+# The demo-08 dashboard's x-axis is a problem size p spanning decades, not a
+# sweep grid, so it keeps a logarithmic default (see _scal_p_axis).
+SCAL_XSCALE = "log"
+XSCALES = ("linear", "sqrt", "log")
+
+
+def apply_sweep_xaxis(ax, values: list[float], xscale: str = DEFAULT_XSCALE,
+                      ticks: list[float] | None = None,
+                      force_ticks: bool = False) -> None:
+    """Configure a sweep axis' scale, ticks and limits.
+
+    ``linear`` (the default, matching the DA-TRex / Screen-TRex / T-Rex+GVS
+    suites) and ``sqrt`` take their major ticks from the locators rather than
+    from the swept values, so labels cannot collide however tightly the grid is
+    spaced, and both carry minor ticks with a faint minor x-grid. ``sqrt``
+    stretches the region near zero while keeping 0 on-axis. ``log`` is the
+    logarithmic axis this module used to hard-code, tick-marked at ``ticks``
+    (the log-spaced subset from choose_ticks()).
+
+    ``ticks`` is honoured on the log axis, and on every scale when
+    ``force_ticks`` is set -- used by the scalability p-axis, whose tick *labels*
+    carry the paired sample size and so must line up with fixed positions.
+
+    Mirrors ``_apply_sweep_xaxis`` of ``../trex_da/trex_da_plt_utils.py``.
+    """
+    lo, hi = min(values), max(values)
+    if xscale == "log":
+        ax.set_xscale("log")
+        if ticks is not None:
+            ax.set_xticks(ticks)
+        ax.xaxis.set_major_formatter(ScalarFormatter())
+        ax.set_xlim(lo * 0.82, hi * 1.18)
+        return
+
+    if xscale == "sqrt":
+        ax.set_xscale(
+            "function",
+            functions=(
+                lambda x: np.sqrt(np.maximum(x, 0.0)),
+                lambda x: np.square(x),
+            ),
+        )
+        span_sqrt = np.sqrt(hi) - np.sqrt(max(lo, 0.0))
+        pad = (span_sqrt * 0.04) ** 2 if span_sqrt > 0 else 0.5
+        ax.set_xlim(lo, hi + pad)
+    else:
+        span = hi - lo
+        pad = span * 0.04 if span > 0 else 0.5
+        ax.set_xlim(lo - pad, hi + pad)
+
+    if force_ticks and ticks is not None:
+        ax.set_xticks(ticks)
+    else:
+        ax.xaxis.set_major_locator(
+            MaxNLocator(nbins="auto", steps=[1, 2, 2.5, 5, 10])
+        )
+    ax.xaxis.set_minor_locator(AutoMinorLocator())
+    ax.xaxis.set_major_formatter(ScalarFormatter())
+    ax.grid(which="minor", axis="x", alpha=0.25, linewidth=0.5)
+
+
 def plot_fdr_tpr_vs_snr(
     df: pd.DataFrame,
     title: str,
     tfdr: float = DEFAULT_TFDR,
     legend_title: str = DEFAULT_LEGEND_TITLE,
+    xscale: str = DEFAULT_XSCALE,
 ) -> plt.Figure:
     """Pattern 1 — side-by-side FDR and TPR versus SNR panels.
 
@@ -318,10 +387,7 @@ def plot_fdr_tpr_vs_snr(
                 legend_handles.append(line)
                 legend_labels.append(row)
 
-        ax.set_xscale("log")
-        ax.set_xticks(xticks)
-        ax.xaxis.set_major_formatter(ScalarFormatter())
-        ax.set_xlim(min(snr_values) * 0.82, max(snr_values) * 1.18)
+        apply_sweep_xaxis(ax, snr_values, xscale, ticks=xticks)
         ax.set_xlabel("Signal-to-noise ratio (SNR)", fontsize=12)
         ax.set_ylabel(METRIC_LABELS[metric], fontsize=12)
         ax.set_title(metric, fontsize=14, fontweight="bold")
@@ -370,6 +436,7 @@ def plot_fdr_tpr_vs_snr_grouped(
     tfdr: float = DEFAULT_TFDR,
     legend_title: str = DEFAULT_LEGEND_TITLE,
     n_groups: int = 2,
+    xscale: str = DEFAULT_XSCALE,
 ) -> plt.Figure:
     """Pattern 2 — 2xN layout to de-clutter: rows = FDR/TPR, columns = row groups.
 
@@ -426,10 +493,7 @@ def plot_fdr_tpr_vs_snr_grouped(
                     markeredgewidth=0.7, linewidth=2.0, label=row,
                 )
 
-            ax.set_xscale("log")
-            ax.set_xticks(xticks)
-            ax.xaxis.set_major_formatter(ScalarFormatter())
-            ax.set_xlim(min(snr_values) * 0.82, max(snr_values) * 1.18)
+            apply_sweep_xaxis(ax, snr_values, xscale, ticks=xticks)
             ax.grid(
                 True, which="major", linestyle="--", linewidth=0.7, alpha=0.45
             )
@@ -470,6 +534,7 @@ def write_fdr_tpr_vs_snr_html(
     tfdr: float = DEFAULT_TFDR,
     legend_title: str = DEFAULT_LEGEND_TITLE,
     inline_js: bool = True,
+    xscale: str = DEFAULT_XSCALE,
 ) -> bool:
     """Pattern 3 — self-contained interactive HTML (FDR/TPR subplots, hover, toggles).
 
@@ -532,13 +597,19 @@ def write_fdr_tpr_vs_snr_html(
             col=1,
         )
 
+    # The html and the png/pdf of the same figure share an x-axis. Plotly has no
+    # sqrt axis, so it falls back to a linear one with minor ticks; the ticks
+    # come from plotly's autorange there, so near-neighbours cannot overlap.
+    if xscale == "log":
+        xaxis_kwargs: dict = dict(type="log", tickvals=choose_ticks(snr_values))
+    else:
+        xaxis_kwargs = dict(type="linear", minor=dict(ticklen=4, showgrid=True))
     for col in (1, 2):
         fig.update_xaxes(
-            type="log",
-            tickvals=choose_ticks(snr_values),
             title_text="Signal-to-noise ratio (SNR)",
             row=1,
             col=col,
+            **xaxis_kwargs,
         )
     fig.update_yaxes(title_text="False discovery rate", row=1, col=1)
     fig.update_yaxes(
@@ -592,6 +663,7 @@ def plot_comparison_grid(
     title: str,
     legend_title: str = DEFAULT_LEGEND_TITLE,
     tfdr: float = DEFAULT_TFDR,
+    xscale: str = DEFAULT_XSCALE,
 ) -> plt.Figure:
     """Pattern 4 — cross-solver comparison grid.
 
@@ -660,10 +732,7 @@ def plot_comparison_grid(
                     handles.append(line)
                     labels.append(row)
 
-            ax.set_xscale("log")
-            ax.set_xticks(xticks)
-            ax.xaxis.set_major_formatter(ScalarFormatter())
-            ax.set_xlim(min(all_snr) * 0.82, max(all_snr) * 1.18)
+            apply_sweep_xaxis(ax, all_snr, xscale, ticks=xticks)
             ax.grid(
                 True, which="major", linestyle="--", linewidth=0.7, alpha=0.45
             )
@@ -807,12 +876,21 @@ def _scal_scatter_snr(ax, df: pd.DataFrame, solver: str, metric: str) -> None:
         )
 
 
-def _scal_p_axis(ax, p_values: list, n_for_p: dict) -> None:
-    """Log x-axis in p, tick labels annotated with the paired sample size n."""
-    ax.set_xscale("log")
-    ax.set_xticks(p_values)
-    ax.xaxis.set_major_formatter(ScalarFormatter())
-    ax.set_xlim(min(p_values) / 1.6, max(p_values) * 1.6)
+def _scal_p_axis(ax, p_values: list, n_for_p: dict,
+                 xscale: str = SCAL_XSCALE) -> None:
+    """x-axis in p, tick labels annotated with the paired sample size n.
+
+    The ticks stay pinned to the measured p values on every scale (their labels
+    carry the paired n, so a locator-chosen position would be mislabelled).
+    Unlike the SNR sweeps this axis defaults to ``log``: p is a problem *size*
+    spanning decades (1e3 ... 1e5), so on a linear axis the low decades collapse
+    into each other and their two-line tick labels overlap. ``--xscale`` still
+    overrides it.
+    """
+    apply_sweep_xaxis(ax, p_values, xscale, ticks=p_values, force_ticks=True)
+    if xscale == "log":
+        # Roomier than the shared log limits: the p grid is sparse.
+        ax.set_xlim(min(p_values) / 1.6, max(p_values) * 1.6)
     ax.set_xticklabels(
         [f"{int(p):,}\n(n={n_for_p[int(p)]:,})" for p in p_values]
     )
@@ -820,7 +898,8 @@ def _scal_p_axis(ax, p_values: list, n_for_p: dict) -> None:
 
 
 def plot_scalability_dashboard(
-    df: pd.DataFrame, title: str, tfdr: float = DEFAULT_TFDR
+    df: pd.DataFrame, title: str, tfdr: float = DEFAULT_TFDR,
+    xscale: str = SCAL_XSCALE,
 ) -> plt.Figure:
     """Pattern 5 — demo-08 runtime / memory / quality scaling dashboard.
 
@@ -933,7 +1012,7 @@ def plot_scalability_dashboard(
                      fontsize=14, fontweight="bold")
 
     for ax in (ax_rt, ax_mem, ax_fdr, ax_tpr):
-        _scal_p_axis(ax, p_values, n_for_p)
+        _scal_p_axis(ax, p_values, n_for_p, xscale)
         ax.grid(True, which="both", linestyle="--", linewidth=0.7, alpha=0.4)
         ax.tick_params(axis="both", labelsize=10)
         leg = ax.legend(
@@ -1028,6 +1107,16 @@ def parse_args() -> argparse.Namespace:
         help="Number of row groups in the grouped figure (default: 2).",
     )
     parser.add_argument(
+        "--xscale",
+        choices=XSCALES,
+        default=DEFAULT_XSCALE,
+        help=(
+            f"X-axis scale (default: {DEFAULT_XSCALE!r}). 'sqrt' spreads a "
+            "sweep grid that is dense near zero; 'log' restores the "
+            "logarithmic SNR axis."
+        ),
+    )
+    parser.add_argument(
         "--no-grouped",
         action="store_true",
         help="Skip the grouped static figure (<stem>_grouped).",
@@ -1066,7 +1155,8 @@ def main_fdr_tpr() -> None:
 
     # 1. Combined overview (FDR | TPR).
     fig = plot_fdr_tpr_vs_snr(df, title, tfdr=args.tfdr,
-                              legend_title=args.legend_title)
+                              legend_title=args.legend_title,
+                              xscale=args.xscale)
     save_figure(fig, outdir, stem, args.formats)
     plt.close(fig)
 
@@ -1075,6 +1165,7 @@ def main_fdr_tpr() -> None:
         grouped_fig = plot_fdr_tpr_vs_snr_grouped(
             df, title, tfdr=args.tfdr,
             legend_title=args.legend_title, n_groups=args.groups,
+            xscale=args.xscale,
         )
         save_figure(grouped_fig, outdir, stem + "_grouped", args.formats)
         plt.close(grouped_fig)
@@ -1084,7 +1175,7 @@ def main_fdr_tpr() -> None:
         write_fdr_tpr_vs_snr_html(
             df, title, outdir / f"{stem}.html",
             tfdr=args.tfdr, legend_title=args.legend_title,
-            inline_js=not args.plotly_cdn,
+            inline_js=not args.plotly_cdn, xscale=args.xscale,
         )
 
 
@@ -1116,6 +1207,7 @@ def main_grid(argv: list) -> None:
     )
     parser.add_argument("--formats", nargs="+", default=["png", "pdf"])
     parser.add_argument("--tfdr", type=float, default=DEFAULT_TFDR)
+    parser.add_argument("--xscale", choices=XSCALES, default=DEFAULT_XSCALE)
     # generate_plots.sh forwards its "$@" to every plotter; ignore flags only
     # the default mode understands (--no-plotly, --no-grouped, ...).
     args, _ignored = parser.parse_known_args(argv)
@@ -1140,7 +1232,8 @@ def main_grid(argv: list) -> None:
         )
 
     fig = plot_comparison_grid(
-        frames, args.title, legend_title=args.legend_title, tfdr=args.tfdr
+        frames, args.title, legend_title=args.legend_title, tfdr=args.tfdr,
+        xscale=args.xscale,
     )
     save_figure(fig, args.outdir.resolve(), args.stem, args.formats)
     plt.close(fig)
@@ -1164,10 +1257,16 @@ def main_scalability(argv: list) -> None:
     parser.add_argument("--outdir", type=Path, required=True)
     parser.add_argument("--formats", nargs="+", default=["png", "pdf"])
     parser.add_argument("--tfdr", type=float, default=DEFAULT_TFDR)
+    parser.add_argument(
+        "--xscale", choices=XSCALES, default=SCAL_XSCALE,
+        help=(f"Scale of the problem-size (p) x-axis (default: "
+              f"{SCAL_XSCALE!r} -- p spans decades)."),
+    )
     args, _ignored = parser.parse_known_args(argv)
 
     df = read_scalability(args.csv_path.resolve())
-    fig = plot_scalability_dashboard(df, args.title, tfdr=args.tfdr)
+    fig = plot_scalability_dashboard(df, args.title, tfdr=args.tfdr,
+                                     xscale=args.xscale)
     save_figure(fig, args.outdir.resolve(), args.stem, args.formats)
     plt.close(fig)
 

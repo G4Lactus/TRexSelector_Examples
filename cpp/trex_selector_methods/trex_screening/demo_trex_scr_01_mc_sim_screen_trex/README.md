@@ -66,8 +66,7 @@ Two Screen-TRex thresholding rules [[1]](#references), both using `ScreenTRexMet
 - **Screen-TRex Bootstrap-CI** — builds a bootstrap confidence band around the estimated FDR curve
    (`R_boot = 1000` replicates) and picks its threshold from that band.
 
-Both report an **estimated FDR** alongside the realized FDR/TPR — the procedure's own internal assessment
- of how many of its selections are false. Comparing the two is a central purpose of this suite.
+Both report an **estimated FDR** alongside the realized FDR/TPR.
 
 ---
 

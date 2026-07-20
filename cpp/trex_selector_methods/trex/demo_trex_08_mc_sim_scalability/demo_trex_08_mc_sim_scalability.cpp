@@ -524,52 +524,53 @@ static void save_and_print_scalability_results(
     }
 
     // 3. Table dimensions
-    const std::size_t solver_width = 15;
-    const std::size_t metric_width = 10;
-    const std::size_t col_width    = 14;
+    //    Solver name on its own line, metric rows indented beneath it, so the
+    //    value columns stay aligned regardless of solver-name length.
+    const int indent_w = 2;
+    const int metric_w = 23;
+    const int col_w    = 14;
+    const std::size_t sep_w =
+        static_cast<std::size_t>(indent_w + metric_w)
+        + static_cast<std::size_t>(col_w) * scenarios.size() * S;
 
     // 4. Column header + dashed separator (one column per scenario x SNR,
     //    labelled "<scenario>/<snr>")
     {
         std::ostringstream hdr;
-        hdr << std::left  << std::setw(solver_width) << "Solver"
-            << std::left  << std::setw(metric_width) << "Metric"
-            << std::right;
+        hdr << std::left << std::string(static_cast<std::size_t>(indent_w), ' ')
+            << std::setw(metric_w) << "Scenario/SNR";
         for (const auto& sc : scenarios) {
             for (double snr : snr_values) {
                 std::ostringstream lbl;
                 lbl << sc.label << "/" << std::fixed << std::setprecision(1)
                     << snr;
-                hdr << std::setw(col_width) << lbl.str();
+                hdr << std::right << std::setw(col_w) << lbl.str();
             }
         }
-        hdr << "\n"
-            << std::string(solver_width + metric_width +
-                           col_width * scenarios.size() * S, '-') << "\n";
+        hdr << "\n" << std::string(sep_w, '-') << "\n";
         print_dual(hdr.str());
     }
 
     // 5. Data rows: per solver, one row per metric
     for (const auto& solver : solvers) {
         const auto& grid = results.at(solver.solver_name);
-        bool first_row = true;
+        print_dual("\n" + solver.solver_name + "\n");   // name on its own line
         for (const auto& spec : scalability_metrics()) {
             std::ostringstream row;
-            row << std::left  << std::setw(solver_width)
-                << (first_row ? solver.solver_name : "")
-                << std::left  << std::setw(metric_width) << spec.name
-                << std::right;
+            row << std::left
+                << std::string(static_cast<std::size_t>(indent_w), ' ')
+                << std::setw(metric_w) << spec.name;
             // Only the passed scenarios — on incremental saves `grid` also
             // holds default-initialized entries for scenarios not yet run
             for (std::size_t i = 0; i < scenarios.size() * S; ++i)
-                row << std::fixed << std::setprecision(spec.precision)
-                    << std::setw(col_width) << spec.get(grid[i]);
+                row << std::right << std::fixed
+                    << std::setprecision(spec.precision)
+                    << std::setw(col_w) << spec.get(grid[i]);
             row << "\n";
             print_dual(row.str());
-            first_row = false;
         }
-        print_dual("\n");
     }
+    print_dual("\n");
 
     // 6. Tidy long-format CSV (scenario, solver, n, p, num_mc, snr, metric, value)
     std::ofstream csv(folder + file_stem + ".csv");

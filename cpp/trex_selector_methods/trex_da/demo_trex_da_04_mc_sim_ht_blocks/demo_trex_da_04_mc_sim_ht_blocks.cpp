@@ -404,9 +404,10 @@ void demo_ht_block_mc_linkage_sweep()
             + "  nu=" + fmt_num(nu)
             + "  tFDR=" + fmt_num(tFDR) + "  noise=";
         title += scen_str;
+        title += "\n  Linkage codes: 1=Single  2=Complete  3=Average";
         save_and_print_grid_results(
             tag,
-            "Linkage (1=Single,2=Complete,3=Average)",
+            "Linkage",
             lnk_vals_d,
             num_MC,
             solvers,

@@ -239,7 +239,7 @@ open up mainly at *low* $\rho$ and *large* $Q$, where the correlation signal HAC
 - R legacy simulation for the white-padded block variant (extended with heavy tails in
   [Demo 05](../demo_trex_da_05_mc_sim_ht_blocks_plus_white/README.md)):
   `.../Results_trex_da_06_bt_ar1_pwhiteblock_sweeps.md`.
-- Machkour, J., Muma, M., and Palomar, D. P., "The Terminating-Random Experiments Selector: Fast
+- Machkour, J., Muma, M., & Palomar, D. P., "The Terminating-Random Experiments Selector: Fast
   High-Dimensional Variable Selection with False Discovery Rate Control," 2024.
 
 ---

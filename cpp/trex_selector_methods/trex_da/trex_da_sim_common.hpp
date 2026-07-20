@@ -743,57 +743,57 @@ inline void save_and_print_grid_results(
     hdr << std::string(78, '=') << "\n\n";
     print_dual(hdr.str());
 
-    // Table dimensions. The Solver column widens to fit the longest solver
-    // label (+2 padding) so variant-tagged names like "TREX-DA+AR1: TLARS"
-    // stay aligned; it never shrinks below the historical width of 16.
-    constexpr std::size_t mw = 8, cw = 10;
-    std::size_t sw = 16;
-    for (const auto& sv : solvers)
-        sw = std::max(sw, sv.name.size() + 2);
-    const auto ncols = grid_values.size();
+    // Table dimensions. The solver name gets its own line; metric rows are
+    // indented beneath it, so the value columns stay aligned no matter how
+    // long a name is.
+    const int indent_w = 2;    // leading indent of a metric row
+    const int metric_w = 23;   // left-aligned metric label
+    const int col_w    = 10;   // right-aligned values
+    const auto ncols   = grid_values.size();
+    const std::size_t sep_w =
+        static_cast<std::size_t>(indent_w + metric_w)
+        + static_cast<std::size_t>(col_w) * ncols;
 
-    // Column header
-    std::stringstream th;
-    th << std::left  << std::setw(sw) << "Solver"
-       << std::left  << std::setw(mw) << "Metric"
-       << std::right << std::setw(5)  << grid_label;
-    for (double v : grid_values) {
-        if (v == std::floor(v) && std::abs(v) < 1e6)
-            th << std::setw(cw) << static_cast<int>(v);
-        else
-            th << std::fixed << std::setprecision(2) << std::setw(cw) << v;
+    // Column header (sweep axis) + dashed separator
+    {
+        std::stringstream th;
+        th << std::left << std::string(static_cast<std::size_t>(indent_w), ' ')
+           << std::setw(metric_w) << grid_label;
+        for (double v : grid_values)
+            th << std::right << std::fixed << std::setprecision(2)
+               << std::setw(col_w) << v;
+        th << "\n" << std::string(sep_w, '-') << "\n";
+        print_dual(th.str());
     }
-    th << "\n" << std::string(sw + mw + 5 + cw * ncols, '-') << "\n";
-    print_dual(th.str());
 
     // Row printer
-    auto print_row = [&](const std::string& solver, const std::string& metric,
-                         const Eigen::VectorXd& data, bool first) {
+    auto print_row = [&](const std::string& metric,
+                         const Eigen::VectorXd& data) {
         std::stringstream row;
-        row << std::left  << std::setw(sw) << (first ? solver : "")
-            << std::left  << std::setw(mw) << metric
-            << std::setw(5) << ""
-            << std::right;
+        row << std::left << std::string(static_cast<std::size_t>(indent_w), ' ')
+            << std::setw(metric_w) << metric;
         for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(ncols); ++i)
-            row << std::fixed << std::setprecision(4) << std::setw(cw) << data(i);
+            row << std::right << std::fixed << std::setprecision(4)
+                << std::setw(col_w) << data(i);
         row << "\n";
         print_dual(row.str());
     };
 
     for (const auto& sv : solvers) {
         const auto& nm = sv.name;
-        print_row(nm, "FDR",    fdr_map.at(nm),    true);
-        print_row(nm, "sd_FDR", sd_fdr_map.at(nm), false);
-        print_row(nm, "TPR",    tpr_map.at(nm),     false);
-        print_row(nm, "sd_TPR", sd_tpr_map.at(nm),  false);
+        print_dual("\n" + nm + "\n");            // solver name on its own line
+        print_row("FDR",    fdr_map.at(nm));
+        print_row("sd_FDR", sd_fdr_map.at(nm));
+        print_row("TPR",    tpr_map.at(nm));
+        print_row("sd_TPR", sd_tpr_map.at(nm));
         if (avg_L_map.count(nm)) {
-            print_row(nm, "Avg L", avg_L_map.at(nm), false);
+            print_row("Avg L", avg_L_map.at(nm));
         }
         if (avg_T_map.count(nm)) {
-            print_row(nm, "Avg T", avg_T_map.at(nm), false);
+            print_row("Avg T", avg_T_map.at(nm));
         }
-        print_dual("\n");
     }
+    print_dual("\n");
 
     print_dual(std::string(78, '=') + "\n\n");
 

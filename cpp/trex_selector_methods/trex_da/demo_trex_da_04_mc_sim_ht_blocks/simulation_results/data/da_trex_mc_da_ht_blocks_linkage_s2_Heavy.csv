@@ -1,4 +1,4 @@
-solver,metric,Linkage_(1=Single,2=Complete,3=Average),value
+solver,metric,Linkage,value
 TREX-DA+BT: TLARS,FDR,1.000000,0.153500
 TREX-DA+BT: TLARS,sd_FDR,1.000000,0.233052
 TREX-DA+BT: TLARS,TPR,1.000000,0.673000

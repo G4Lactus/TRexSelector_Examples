@@ -31,6 +31,13 @@ Usage:
     trex_gvs_plt_utils.py <results.csv> [--outdir DIR] [--title T]
                           [--tfdr F] [--formats png pdf] [--param-label L]
                           [--vs snr|rho] [--panels V ...] [--stem S]
+                          [--xscale {linear,sqrt,log}]
+
+``--xscale`` sets the x-axis scale of the block-benchmark line plots (the
+heatmap and bar renderers are categorical and unaffected). The default is
+``linear`` with minor ticks, matching the rest of the suites; ``sqrt`` spreads
+a grid that is dense near zero while keeping 0 on-axis, and ``log`` restores a
+logarithmic axis.
 """
 from __future__ import annotations
 
@@ -43,6 +50,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
+from matplotlib.ticker import (  # noqa: E402
+    AutoMinorLocator, MaxNLocator, ScalarFormatter,
+)
 
 DEFAULT_TFDR = 0.1
 SOLVER_ORDER = ["TENET", "TENET_AUG", "TIENET_AUG"]
@@ -154,6 +164,45 @@ def default_plots_dir(csv_path: Path) -> Path:
     if csv_path.parent.name == "data":
         return csv_path.parent.parent / "plots"
     return csv_path.parent / "plots"
+
+
+def apply_sweep_xaxis(ax, values: list[float], xscale: str = "linear") -> None:
+    """Configure a line plot's x-axis scale, ticks and limits for a sweep grid.
+
+    ``linear`` (default) and ``sqrt`` both take their major ticks from the
+    locators rather than from the swept values, so labels cannot collide however
+    tightly the grid is spaced, and both carry minor ticks with a faint minor
+    x-grid. ``sqrt`` additionally stretches the region near zero (keeping 0
+    on-axis), which is useful when the grid clusters there. ``log`` keeps the
+    logarithmic axis this module used to hard-code for the SNR sweeps.
+
+    Mirrors ``../trex_screening/trex_scr_plt_utils.apply_linear_minor_xaxis``
+    and the DA-TRex suite's ``_apply_sweep_xaxis``.
+    """
+    lo, hi = min(values), max(values)
+    if xscale == "log":
+        ax.set_xscale("log")
+        ax.set_xlim(lo * 0.82, hi * 1.18)
+        return
+    if xscale == "sqrt":
+        ax.set_xscale(
+            "function",
+            functions=(
+                lambda x: np.sqrt(np.maximum(x, 0.0)),
+                lambda x: np.square(x),
+            ),
+        )
+        span_sqrt = np.sqrt(hi) - np.sqrt(max(lo, 0.0))
+        pad = (span_sqrt * 0.04) ** 2 if span_sqrt > 0 else 0.5
+        ax.set_xlim(lo, hi + pad)
+    else:
+        span = hi - lo
+        pad = span * 0.04 if span > 0 else 0.5
+        ax.set_xlim(lo - pad, hi + pad)
+    ax.xaxis.set_major_locator(MaxNLocator(nbins="auto", steps=[1, 2, 2.5, 5, 10]))
+    ax.xaxis.set_minor_locator(AutoMinorLocator())
+    ax.xaxis.set_major_formatter(ScalarFormatter())
+    ax.grid(which="minor", axis="x", alpha=0.25, linewidth=0.5)
 
 
 # ---------------------------------------------------------------------------
@@ -272,7 +321,8 @@ def plot_method_bars(df: pd.DataFrame, param_col: str, title: str,
 # ---------------------------------------------------------------------------
 def plot_block_bench(df: pd.DataFrame, title: str,
                      tfdr: float = DEFAULT_TFDR, vs: str = "snr",
-                     panels: list[float] | None = None) -> plt.Figure:
+                     panels: list[float] | None = None,
+                     xscale: str = "linear") -> plt.Figure:
     x_col = vs                              # x-axis quantity
     panel_col = "rho" if vs == "snr" else "snr"   # one panel per value
     panel_vals = sorted(df[panel_col].unique())
@@ -284,6 +334,9 @@ def plot_block_bench(df: pd.DataFrame, title: str,
                              f"in the CSV ({sorted(df[panel_col].unique())})")
     methods = list(dict.fromkeys(df["method"]))
     colors = plt.get_cmap("tab10").colors
+    # Shared across panels (sharex=True), so the axis is configured from the
+    # full swept grid rather than one panel's slice.
+    x_values = sorted(df[x_col].unique())
 
     fig, axes = plt.subplots(2, len(panel_vals),
                              figsize=(5.2 * len(panel_vals) + 2.0, 8.4),
@@ -309,8 +362,7 @@ def plot_block_bench(df: pd.DataFrame, title: str,
                 if mi == 0 and ri == 0:
                     legend_handles.append(line)
                     legend_labels.append(METHOD_LABELS.get(method, method))
-            if vs == "snr":
-                ax.set_xscale("log")
+            apply_sweep_xaxis(ax, x_values, xscale)
             ax.grid(alpha=0.3)
             if ylim:
                 ax.set_ylim(*ylim)
@@ -371,6 +423,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--panels", nargs="+", type=float, default=None,
                    help="Block benchmark only: restrict panels to these "
                         "values of the non-x quantity.")
+    p.add_argument("--xscale", choices=("linear", "sqrt", "log"),
+                   default="linear",
+                   help="Block benchmark only: x-axis scale (default: linear). "
+                        "'sqrt' spreads a grid that is dense near zero.")
     return p.parse_args()
 
 
@@ -397,7 +453,8 @@ def main() -> int:
         label = args.param_label or param_col
         fig = plot_method_bars(df, param_col, title, label, args.tfdr)
     else:  # block
-        fig = plot_block_bench(df, title, args.tfdr, args.vs, args.panels)
+        fig = plot_block_bench(df, title, args.tfdr, args.vs, args.panels,
+                               args.xscale)
 
     save_figure(fig, outdir, stem, args.formats)
     return 0

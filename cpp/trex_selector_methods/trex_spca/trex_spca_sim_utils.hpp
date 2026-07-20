@@ -707,44 +707,47 @@ inline void save_and_print_spca_mc_results(
     }
 
     // Table dimensions
-    const std::size_t method_width  = 22;
-    const std::size_t metric_width  = 8;
-    const std::size_t snr_col_width = 8;
-    const std::size_t col_width     = 10;
+    //    The method name gets its own line; metric rows are indented beneath
+    //    it, so the value columns stay aligned no matter how long a name is.
+    const int indent_w = 2;    // leading indent of a metric row
+    const int metric_w = 23;   // left-aligned metric label
+    const int col_w    = 10;   // right-aligned values
+    const std::size_t sep_w =
+        static_cast<std::size_t>(indent_w + metric_w)
+        + static_cast<std::size_t>(col_w) * snr_values.size();
 
     // Column header + dashed separator
     {
         std::ostringstream hdr;
-        hdr << std::left  << std::setw(method_width)  << "Method"
-            << std::left  << std::setw(metric_width)  << "Metric"
-            << std::right << std::setw(snr_col_width) << "SNR(dB)";
+        hdr << std::left << std::string(static_cast<std::size_t>(indent_w), ' ')
+            << std::setw(metric_w) << "SNR(dB)";
         for (double snr : snr_values)
-            hdr << std::fixed << std::setprecision(1) << std::setw(col_width) << snr;
-        hdr << "\n"
-            << std::string(method_width + metric_width + snr_col_width +
-                           col_width * snr_values.size(), '-') << "\n";
+            hdr << std::right << std::fixed << std::setprecision(2)
+                << std::setw(col_w) << snr;
+        hdr << "\n" << std::string(sep_w, '-') << "\n";
         print_dual(hdr.str());
     }
 
     // Data rows
-    auto print_row = [&](const std::string& mname, const std::string& metric,
-                         const Eigen::VectorXd& data, bool first_row) {
+    auto print_row = [&](const std::string& metric,
+                         const Eigen::VectorXd& data) {
         std::ostringstream row;
-        row << std::left  << std::setw(method_width)  << (first_row ? mname : "")
-            << std::left  << std::setw(metric_width)  << metric
-            << std::setw(snr_col_width) << "" << std::right;
+        row << std::left << std::string(static_cast<std::size_t>(indent_w), ' ')
+            << std::setw(metric_w) << metric;
         for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(snr_values.size()); ++i)
-            row << std::fixed << std::setprecision(4) << std::setw(col_width) << data(i);
+            row << std::right << std::fixed << std::setprecision(4)
+                << std::setw(col_w) << data(i);
         row << "\n";
         print_dual(row.str());
     };
 
     for (const auto& name : method_names) {
-        print_row(name, "FDR", fdr_map.at(name), true);
-        print_row(name, "TPR", tpr_map.at(name), false);
-        print_row(name, "PEV", pev_map.at(name), false);
-        print_dual("\n");
+        print_dual("\n" + name + "\n");          // method name on its own line
+        print_row("FDR", fdr_map.at(name));
+        print_row("TPR", tpr_map.at(name));
+        print_row("PEV", pev_map.at(name));
     }
+    print_dual("\n");
 
     // Tidy long-format CSV (method, metric, snr_db, value)
     std::ofstream csv(folder + file_stem + ".csv");

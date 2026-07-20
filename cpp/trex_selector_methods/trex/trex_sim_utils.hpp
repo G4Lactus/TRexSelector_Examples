@@ -352,40 +352,38 @@ inline void save_and_print_results(
 
     // 3. Setup Table Dimensions
     // -----------------------------------
-    const std::size_t solver_width = 15;
-    const std::size_t metric_width = 8;
-    const std::size_t snr_col_width = 5;
-    const std::size_t col_width = 10;
+    // Layout: solver name on its own line, metric rows indented beneath it.
+    const int indent_w = 2;
+    const int metric_w = 23;
+    const int col_w    = 10;
+    const std::size_t sep_w =
+        static_cast<std::size_t>(indent_w + metric_w)
+        + col_w * snr_values.size();
 
     // 4. Print Table Header
     // -----------------------------------
-    std::stringstream ss_header;
-
-    ss_header << std::left << std::setw(solver_width) << "Solver"
-              << std::left << std::setw(metric_width) << "Metric"
-              << std::right << std::setw(snr_col_width) << "SNR";
-
-    for (double snr : snr_values) {
-        ss_header << std::fixed << std::setprecision(1) << std::setw(col_width) << snr;
+    {
+        std::stringstream ss_header;
+        ss_header << std::left
+                  << std::string(static_cast<std::size_t>(indent_w), ' ')
+                  << std::setw(metric_w) << "SNR";
+        for (double snr : snr_values) {
+            ss_header << std::right << std::fixed << std::setprecision(2)
+                      << std::setw(col_w) << snr;
+        }
+        ss_header << "\n" << std::string(sep_w, '-') << "\n";
+        print_dual(ss_header.str());
     }
-    ss_header << "\n";
 
-    ss_header << std::string(solver_width + metric_width + snr_col_width +
-        col_width * snr_values.size(), '-') << "\n";
-    print_dual(ss_header.str());
-
-    auto print_metric_row = [&](const std::string& solver_name,
-        const std::string& metric_name, const Eigen::VectorXd& data, bool is_first_row) {
+    auto print_metric_row = [&](const std::string& metric_name,
+                                const Eigen::VectorXd& data) {
         std::stringstream ss_row;
-
-        ss_row << std::left << std::setw(solver_width) << (is_first_row ? solver_name : "")
-               << std::left << std::setw(metric_width) << metric_name
-               << std::setw(snr_col_width) << "";
-
-        ss_row << std::right;
+        ss_row << std::left
+               << std::string(static_cast<std::size_t>(indent_w), ' ')
+               << std::setw(metric_w) << metric_name;
         for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(snr_values.size()); ++i) {
-            ss_row << std::fixed << std::setprecision(4)
-                   << std::setw(col_width) << data(i);
+            ss_row << std::right << std::fixed << std::setprecision(4)
+                   << std::setw(col_w) << data(i);
         }
         ss_row << "\n";
         print_dual(ss_row.str());
@@ -394,29 +392,20 @@ inline void save_and_print_results(
     // 5. Print Data Rows
     // -----------------------------------
     for (const auto& solver : solvers_to_test) {
-        std::string name = solver.solver_name;
+        const std::string& name = solver.solver_name;
 
-        print_metric_row(name, "FDR",
-                        fdr_results_map.at(name),
-                        true);
-
-        print_metric_row(name,
-                         "TPR",
-                         tpr_results_map.at(name),
-                         false);
+        print_dual("\n" + name + "\n");          // solver name on its own line
+        print_metric_row("FDR", fdr_results_map.at(name));
+        print_metric_row("TPR", tpr_results_map.at(name));
 
         if (avg_L_results_map.count(name) > 0) {
-            print_metric_row(name, "Avg L",
-                avg_L_results_map.at(name), false);
+            print_metric_row("Avg L", avg_L_results_map.at(name));
         }
-
         if (avg_T_results_map.count(name) > 0) {
-            print_metric_row(name, "Avg T",
-                avg_T_results_map.at(name), false);
+            print_metric_row("Avg T", avg_T_results_map.at(name));
         }
-
-        print_dual("\n");
     }
+    print_dual("\n");
 
     // 6. Write tidy CSV (long/stacked format) for plotting
     // -----------------------------------
@@ -505,52 +494,51 @@ inline void save_and_print_mc_results(
         print_dual(ss.str());
     }
 
-    // 3. Table dimensions (label column grows to fit the longest solver name;
-    //    15 keeps the layout of demos whose names all fit the classic width)
-    std::size_t solver_width = 15;
-    for (const auto& name : solver_names)
-        solver_width = std::max(solver_width, name.size() + 2);
-    const std::size_t metric_width  = 8;
-    const std::size_t snr_col_width = 5;
-    const std::size_t col_width     = 10;
+    // 3. Table dimensions
+    //    The solver name gets its own line; metric rows are indented beneath
+    //    it, so the value columns stay aligned no matter how long a name is.
+    const int indent_w = 2;    // leading indent of a metric row
+    const int metric_w = 23;   // left-aligned metric label
+    const int col_w    = 10;   // right-aligned values
+    const std::size_t sep_w =
+        static_cast<std::size_t>(indent_w + metric_w)
+        + col_w * snr_values.size();
 
-    // 4. Column header + dashed separator
+    // 4. Column header (sweep axis) + dashed separator
     {
         std::ostringstream hdr;
-        hdr << std::left  << std::setw(solver_width)  << "Solver"
-            << std::left  << std::setw(metric_width)  << "Metric"
-            << std::right << std::setw(snr_col_width) << "SNR";
+        hdr << std::left << std::string(static_cast<std::size_t>(indent_w), ' ')
+            << std::setw(metric_w) << "SNR";
         for (double snr : snr_values)
-            hdr << std::fixed << std::setprecision(1) << std::setw(col_width) << snr;
-        hdr << "\n"
-            << std::string(solver_width + metric_width + snr_col_width +
-                           col_width * snr_values.size(), '-') << "\n";
+            hdr << std::right << std::fixed << std::setprecision(2)
+                << std::setw(col_w) << snr;
+        hdr << "\n" << std::string(sep_w, '-') << "\n";
         print_dual(hdr.str());
     }
 
     // 5. Data rows
-    auto print_row = [&](const std::string& sname, const std::string& metric,
-                         const Eigen::VectorXd& data, bool first_row) {
+    auto print_metric = [&](const std::string& metric,
+                            const Eigen::VectorXd& data) {
         std::ostringstream row;
-        row << std::left  << std::setw(solver_width)  << (first_row ? sname : "")
-            << std::left  << std::setw(metric_width)  << metric
-            << std::setw(snr_col_width) << "" << std::right;
+        row << std::left << std::string(static_cast<std::size_t>(indent_w), ' ')
+            << std::setw(metric_w) << metric;
         for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(snr_values.size()); ++i)
-            row << std::fixed << std::setprecision(4) << std::setw(col_width)
-                << data(i);
+            row << std::right << std::fixed << std::setprecision(4)
+                << std::setw(col_w) << data(i);
         row << "\n";
         print_dual(row.str());
     };
 
     for (const auto& name : solver_names) {
-        print_row(name, "FDR", fdr_results_map.at(name), true);
-        print_row(name, "TPR", tpr_results_map.at(name), false);
+        print_dual("\n" + name + "\n");          // solver name on its own line
+        print_metric("FDR", fdr_results_map.at(name));
+        print_metric("TPR", tpr_results_map.at(name));
         if (avg_L_results_map.count(name) > 0)
-            print_row(name, "Avg L", avg_L_results_map.at(name), false);
+            print_metric("Avg L", avg_L_results_map.at(name));
         if (avg_T_results_map.count(name) > 0)
-            print_row(name, "Avg T", avg_T_results_map.at(name), false);
-        print_dual("\n");
+            print_metric("Avg T", avg_T_results_map.at(name));
     }
+    print_dual("\n");
 
     // 6. Tidy long-format CSV (solver, metric, snr, value)
     std::ofstream csv(folder + file_stem + ".csv");

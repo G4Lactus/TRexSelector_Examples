@@ -24,6 +24,11 @@ Two CSV shapes are auto-detected from their columns:
 Usage:
     trex_scr_plt_utils.py <results.csv> [--outdir DIR] [--title T]
                           [--formats png pdf] [--stem S]
+                          [--xscale {linear,sqrt}]
+
+``--xscale sqrt`` switches the x-axis to a square-root scale, which spreads a
+sweep grid that is dense near zero while keeping 0 on-axis. The default stays
+``linear``.
 """
 from __future__ import annotations
 
@@ -34,6 +39,7 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
+import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 from matplotlib.ticker import (  # noqa: E402
     AutoMinorLocator, MaxNLocator, ScalarFormatter,
@@ -99,18 +105,37 @@ def _axis_label(sweep: str) -> str:
     return sweep
 
 
-def apply_linear_minor_xaxis(ax, values: list[float]) -> None:
-    """Linear x-axis with round-number major ticks and minor ticks between.
+def apply_linear_minor_xaxis(ax, values: list[float],
+                             xscale: str = "linear") -> None:
+    """Linear (default) or square-root x-axis, round-number ticks + minor ticks.
 
     Ticks come from the locators rather than from the swept values, so labels
     cannot collide however tightly the grid is spaced -- the SNR grids here
     contain 0.5 and 0.6, which overlap when placed at the values themselves
     (and worse on a log axis). Mirrors the "linear-minor" axis of the DA-TRex
     suite (``../trex_da/trex_da_plt_utils.py``).
+
+    With ``xscale="sqrt"`` the same locator/minor-tick treatment is applied on
+    top of a square-root function scale, which spreads a grid that clusters
+    near zero while keeping 0 on-axis. Padding is computed in sqrt space so the
+    ~4% margin is visually the same as on the linear axis.
     """
-    span = max(values) - min(values)
-    pad = span * 0.04 if span > 0 else 0.5
-    ax.set_xlim(min(values) - pad, max(values) + pad)
+    lo, hi = min(values), max(values)
+    if xscale == "sqrt":
+        ax.set_xscale(
+            "function",
+            functions=(
+                lambda x: np.sqrt(np.maximum(x, 0.0)),
+                lambda x: np.square(x),
+            ),
+        )
+        span_sqrt = np.sqrt(hi) - np.sqrt(max(lo, 0.0))
+        pad = (span_sqrt * 0.04) ** 2 if span_sqrt > 0 else 0.5
+        ax.set_xlim(lo, hi + pad)
+    else:
+        span = hi - lo
+        pad = span * 0.04 if span > 0 else 0.5
+        ax.set_xlim(lo - pad, hi + pad)
     ax.xaxis.set_major_locator(MaxNLocator(nbins="auto", steps=[1, 2, 2.5, 5, 10]))
     ax.xaxis.set_minor_locator(AutoMinorLocator())
     ax.xaxis.set_major_formatter(ScalarFormatter())
@@ -135,7 +160,8 @@ def _plot_series(ax, df, sweep, methods, colors, metric,
 # ---------------------------------------------------------------------------
 # Sweep figure (demos 01-03, 06): TPR + FDR/Est.FDR panels
 # ---------------------------------------------------------------------------
-def plot_sweep(df: pd.DataFrame, title: str) -> plt.Figure:
+def plot_sweep(df: pd.DataFrame, title: str,
+               xscale: str = "linear") -> plt.Figure:
     sweep = _sweep_column(df)
     xlabel = _axis_label(sweep)
     xs = sorted(df[sweep].unique())
@@ -160,7 +186,7 @@ def plot_sweep(df: pd.DataFrame, title: str) -> plt.Figure:
 
     for ax in axes:
         ax.grid(alpha=0.3)
-        apply_linear_minor_xaxis(ax, xs)
+        apply_linear_minor_xaxis(ax, xs, xscale)
         ax.set_xlabel(xlabel, fontsize=11)
 
     # Legend: method colors, then the linestyle key.
@@ -180,7 +206,8 @@ def plot_sweep(df: pd.DataFrame, title: str) -> plt.Figure:
 # ---------------------------------------------------------------------------
 # Biobank figure (demos 04-05): TPR + FDR + Usage panels
 # ---------------------------------------------------------------------------
-def plot_biobank(df: pd.DataFrame, title: str) -> plt.Figure:
+def plot_biobank(df: pd.DataFrame, title: str,
+                 xscale: str = "linear") -> plt.Figure:
     sweep = _sweep_column(df)
     xlabel = _axis_label(sweep)
     xs = sorted(df[sweep].unique())
@@ -219,7 +246,7 @@ def plot_biobank(df: pd.DataFrame, title: str) -> plt.Figure:
 
     for ax in axes:
         ax.grid(alpha=0.3)
-        apply_linear_minor_xaxis(ax, xs)
+        apply_linear_minor_xaxis(ax, xs, xscale)
         ax.set_xlabel(xlabel, fontsize=11)
 
     style_solid = plt.Line2D([], [], color="0.3", linestyle="-")
@@ -258,6 +285,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--formats", nargs="+", default=["png", "pdf"])
     p.add_argument("--stem", default=None,
                    help="Output filename stem (default: CSV stem).")
+    p.add_argument("--xscale", choices=("linear", "sqrt"), default="linear",
+                   help="X-axis scale (default: linear). 'sqrt' spreads a "
+                        "sweep grid that is dense near zero.")
     return p.parse_args()
 
 
@@ -276,7 +306,8 @@ def main() -> int:
     stem = args.stem or args.csv.stem
     title = args.title or args.csv.stem
 
-    fig = plot_biobank(df, title) if kind == "biobank" else plot_sweep(df, title)
+    fig = (plot_biobank(df, title, args.xscale) if kind == "biobank"
+           else plot_sweep(df, title, args.xscale))
     save_figure(fig, outdir, stem, args.formats)
     return 0
 
