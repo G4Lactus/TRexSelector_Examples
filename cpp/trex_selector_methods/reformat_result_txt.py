@@ -39,17 +39,20 @@ INDENT_W = 2
 METRIC_W = 23
 COL_W = 10
 
-def header_cell(x: float, suite: str, width: int = COL_W) -> str:
-    """Format one sweep value exactly as that suite's C++ renderer does.
+def header_cells(xs: list[float], suite: str, width: int = COL_W) -> str:
+    """Format the sweep axis exactly as that suite's C++ renderer does.
 
-    trex and trex_spca print the axis with one decimal; trex_da prints
-    whole-number grid values (M, Q, linkage codes) bare and everything else
-    with two; the remaining suites use two throughout.
+    trex_spca shows its dB axis with one decimal. trex_da prints a grid bare
+    when *every* value is integral (M, Q, linkage codes) and at two decimals
+    otherwise, so an axis never mixes "0" with "0.10". The remaining suites
+    use two decimals throughout.
     """
-    if suite == "trex_da" and float(x).is_integer() and abs(x) < 1e6:
-        return f"{int(x):>{width}d}"
-    dp = 1 if suite in ("trex", "trex_spca") else 2
-    return f"{x:>{width}.{dp}f}"
+    if suite == "trex_spca":
+        return "".join(f"{x:>{width}.1f}" for x in xs)
+    if suite == "trex_da" and all(float(x).is_integer() and abs(x) < 1e6
+                                  for x in xs):
+        return "".join(f"{int(x):>{width}d}" for x in xs)
+    return "".join(f"{x:>{width}.2f}" for x in xs)
 
 
 def suite_of(path: Path) -> str:
@@ -116,7 +119,7 @@ def render(head: str, sweep_label: str, xs, series, metrics, values,
            suite: str = "") -> str:
     out = [head.rstrip("\n"), ""]
     hdr = " " * INDENT_W + sweep_label.ljust(METRIC_W)
-    hdr += "".join(header_cell(x, suite) for x in xs)
+    hdr += header_cells(xs, suite)
     out.append(hdr)
     out.append("-" * (INDENT_W + METRIC_W + COL_W * len(xs)))
     for s in series:

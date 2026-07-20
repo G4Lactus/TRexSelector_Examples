@@ -759,9 +759,16 @@ inline void save_and_print_grid_results(
         std::stringstream th;
         th << std::left << std::string(static_cast<std::size_t>(indent_w), ' ')
            << std::setw(metric_w) << grid_label;
+        // Integer grids (M, Q, linkage codes) read better bare; any grid with
+        // a fractional value (SNR, Rho, tFDR) is shown uniformly at two
+        // decimals, so a single axis never mixes "0" with "0.10".
+        const bool integral_grid =
+            std::all_of(grid_values.begin(), grid_values.end(),
+                        [](double v) {
+                            return v == std::floor(v) && std::abs(v) < 1e6;
+                        });
         for (double v : grid_values) {
-            // Whole-number grid values (M, Q, linkage codes) read better bare
-            if (v == std::floor(v) && std::abs(v) < 1e6)
+            if (integral_grid)
                 th << std::right << std::setw(col_w) << static_cast<int>(v);
             else
                 th << std::right << std::fixed << std::setprecision(2)

@@ -463,7 +463,7 @@ inline void save_and_print_results(
                   << std::string(static_cast<std::size_t>(indent_w), ' ')
                   << std::setw(metric_w) << "SNR";
         for (double snr : snr_values) {
-            ss_header << std::right << std::fixed << std::setprecision(1)
+            ss_header << std::right << std::fixed << std::setprecision(2)
                       << std::setw(col_w) << snr;
         }
         ss_header << "\n" << std::string(sep_w, '-') << "\n";
@@ -605,7 +605,7 @@ inline void save_and_print_mc_results(
         hdr << std::left << std::string(static_cast<std::size_t>(indent_w), ' ')
             << std::setw(metric_w) << "SNR";
         for (double snr : snr_values)
-            hdr << std::right << std::fixed << std::setprecision(1)
+            hdr << std::right << std::fixed << std::setprecision(2)
                 << std::setw(col_w) << snr;
         hdr << "\n" << std::string(sep_w, '-') << "\n";
         print_dual(hdr.str());
