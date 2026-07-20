@@ -196,7 +196,7 @@ red line marks the $\mathrm{tFDR} = 0.1$ target.
    $\rho = 0.9$ for EN), which is exactly the point: the method still finds the right *blocks*, but no guarantee
    attaches to that number.
 
-TPR (top) and FDR (bottom) vs. SNR (log axis), one panel per $\rho \in \{0.35, 0.9\}$; note the different FDR
+TPR (top) and FDR (bottom) vs. SNR, one panel per $\rho \in \{0.35, 0.9\}$; note the different FDR
 axis scales.
 
 ![Block benchmark — INDIVIDUAL](simulation_results/plots/gvs_block_bench_individual.png)
