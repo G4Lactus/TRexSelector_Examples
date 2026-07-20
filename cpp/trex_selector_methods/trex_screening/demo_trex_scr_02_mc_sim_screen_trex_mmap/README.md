@@ -118,11 +118,11 @@ Figures (PNG + PDF) go to `simulation_results/plots/`, produced by `./generate_p
 - **Bootstrap-CI remains the conservative rule: lower FDR, clearly less power.** Its FDR stays at or below
    $0.050$ for $\mathrm{SNR} \ge 0.5$, roughly half the Ordinary rule's, paid for with TPR $0.840$ vs.
    $1.000$ at $\mathrm{SNR} = 5$ and a wide mid-sweep gap ($0.393$ vs. $0.826$ at $\mathrm{SNR} = 1$).
-- **The internal FDR estimate errs on the safe side here.** For $\mathrm{SNR} \ge 0.5$ it sits *above* the
+- **The internal FDR estimate is conservative here.** For $\mathrm{SNR} \ge 0.5$ it sits *above* the
    realized FDR for both rules (e.g. $0.114$ vs. $0.071$ for Ordinary at $\mathrm{SNR} = 1$), over-stating
    the error rate rather than hiding it. At the lowest SNR points it becomes unreliable in both directions.
 
-TPR (left) and FDR (right) vs. SNR (log axis), one line per thresholding rule; on the FDR panel the solid
+TPR (left) and FDR (right) vs. SNR, one line per thresholding rule; on the FDR panel the solid
 line is the realized FDR and the dashed line the procedure's own estimated FDR.
 
 ![Memory-mapped Screen-TRex on an i.i.d. design: TPR/FDR vs SNR](simulation_results/plots/scr_screen_trex_mmap_snr_n300_p1000.png)

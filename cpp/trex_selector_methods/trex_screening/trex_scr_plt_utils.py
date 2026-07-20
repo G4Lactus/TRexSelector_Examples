@@ -35,6 +35,9 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import pandas as pd  # noqa: E402
+from matplotlib.ticker import (  # noqa: E402
+    AutoMinorLocator, MaxNLocator, ScalarFormatter,
+)
 
 # Per-method marker cycle — overlapping curves stay distinguishable.
 METHOD_MARKERS = ["o", "s", "^", "D", "v", "P"]
@@ -87,13 +90,31 @@ def _sweep_column(df: pd.DataFrame) -> str:
     return extras[0]
 
 
-def _axis_props(sweep: str) -> tuple[str, bool]:
-    """Axis label + log-scale flag for the sweep variable."""
+def _axis_label(sweep: str) -> str:
+    """Human-readable axis label for the sweep variable."""
     if sweep.lower() == "snr":
-        return "SNR", True
+        return "SNR"
     if sweep.lower() in ("rho", "ρ"):
-        return r"$\rho$", False
-    return sweep, False
+        return r"$\rho$"
+    return sweep
+
+
+def apply_linear_minor_xaxis(ax, values: list[float]) -> None:
+    """Linear x-axis with round-number major ticks and minor ticks between.
+
+    Ticks come from the locators rather than from the swept values, so labels
+    cannot collide however tightly the grid is spaced -- the SNR grids here
+    contain 0.5 and 0.6, which overlap when placed at the values themselves
+    (and worse on a log axis). Mirrors the "linear-minor" axis of the DA-TRex
+    suite (``../trex_da/trex_da_plt_utils.py``).
+    """
+    span = max(values) - min(values)
+    pad = span * 0.04 if span > 0 else 0.5
+    ax.set_xlim(min(values) - pad, max(values) + pad)
+    ax.xaxis.set_major_locator(MaxNLocator(nbins="auto", steps=[1, 2, 2.5, 5, 10]))
+    ax.xaxis.set_minor_locator(AutoMinorLocator())
+    ax.xaxis.set_major_formatter(ScalarFormatter())
+    ax.grid(which="minor", axis="x", alpha=0.25, linewidth=0.5)
 
 
 def _plot_series(ax, df, sweep, methods, colors, metric,
@@ -116,7 +137,8 @@ def _plot_series(ax, df, sweep, methods, colors, metric,
 # ---------------------------------------------------------------------------
 def plot_sweep(df: pd.DataFrame, title: str) -> plt.Figure:
     sweep = _sweep_column(df)
-    xlabel, logx = _axis_props(sweep)
+    xlabel = _axis_label(sweep)
+    xs = sorted(df[sweep].unique())
     methods = list(dict.fromkeys(df["method"]))
     colors = plt.get_cmap("tab10").colors
 
@@ -137,9 +159,8 @@ def plot_sweep(df: pd.DataFrame, title: str) -> plt.Figure:
                  fontsize=12, fontweight="bold")
 
     for ax in axes:
-        if logx:
-            ax.set_xscale("log")
         ax.grid(alpha=0.3)
+        apply_linear_minor_xaxis(ax, xs)
         ax.set_xlabel(xlabel, fontsize=11)
 
     # Legend: method colors, then the linestyle key.
@@ -161,7 +182,8 @@ def plot_sweep(df: pd.DataFrame, title: str) -> plt.Figure:
 # ---------------------------------------------------------------------------
 def plot_biobank(df: pd.DataFrame, title: str) -> plt.Figure:
     sweep = _sweep_column(df)
-    xlabel, logx = _axis_props(sweep)
+    xlabel = _axis_label(sweep)
+    xs = sorted(df[sweep].unique())
     methods = list(dict.fromkeys(df["method"]))
     colors = plt.get_cmap("tab10").colors
 
@@ -196,9 +218,8 @@ def plot_biobank(df: pd.DataFrame, title: str) -> plt.Figure:
                  fontweight="bold")
 
     for ax in axes:
-        if logx:
-            ax.set_xscale("log")
         ax.grid(alpha=0.3)
+        apply_linear_minor_xaxis(ax, xs)
         ax.set_xlabel(xlabel, fontsize=11)
 
     style_solid = plt.Line2D([], [], color="0.3", linestyle="-")

@@ -97,9 +97,9 @@ All reported FDR and TPR values are **conditional on routing**: they average onl
 
 Written to `simulation_results/data/`:
 
-- `scr_biobank_inmem_snr_n300_p1000_s10_inmem.txt` / `.csv` — Part 1: Usage %, FDR, TPR, and estimated FDR
+- `scr_biobank_snr_n300_p1000_s10.txt` / `.csv` — Part 1: Usage %, FDR, TPR, and estimated FDR
    per method and SNR level.
-- `scr_biobank_inmem_multi_n300_p1000_q5_s5_inmem.txt` / `.csv` — Part 2: the same metrics for the
+- `scr_biobank_multi_n300_p1000_q5_s5.txt` / `.csv` — Part 2: the same metrics for the
    multi-phenotype study.
 
 Figures (PNG + PDF) go to `simulation_results/plots/`, produced by `./generate_plots.sh`.
@@ -109,7 +109,7 @@ Figures (PNG + PDF) go to `simulation_results/plots/`, produced by `./generate_p
 ## Running the Demo
 
 ```bash
-./build/release/bin/trex_selector_methods/trex_screening/demo_trex_scr_04_mc_sim_biobank_inmem/demo_trex_scr_04_mc_sim_biobank_inmem
+./build/release/bin/trex_selector_methods/trex_screening/demo_trex_scr_04_mc_sim_biobank/demo_trex_scr_04_mc_sim_biobank
 ./generate_plots.sh   # render the figures below from the saved CSVs
 ```
 
@@ -143,7 +143,7 @@ Figures (PNG + PDF) go to `simulation_results/plots/`, produced by `./generate_p
 TPR (conditional on routing), FDR (solid = realized, dashed = the procedure's own estimate, with the
 $[0.05, 0.15]$ routing window shaded), and per-method Usage % vs. SNR.
 
-![Biobank Screen-TRex, single phenotype: TPR/FDR/Usage vs SNR](simulation_results/plots/scr_biobank_inmem_snr_n300_p1000_s10_inmem.png)
+![Biobank Screen-TRex, single phenotype: TPR/FDR/Usage vs SNR](simulation_results/plots/scr_biobank_snr_n300_p1000_s10.png)
 
 ### Part 2 — Five Phenotypes Sharing One Design ($q = 5$, $s = 5$)
 
@@ -168,7 +168,7 @@ $[0.05, 0.15]$ routing window shaded), and per-method Usage % vs. SNR.
 TPR (conditional on routing), FDR (solid = realized, dashed = the procedure's own estimate, with the
 $[0.05, 0.15]$ routing window shaded), and per-method Usage % vs. SNR.
 
-![Biobank Screen-TRex, five phenotypes: TPR/FDR/Usage vs SNR](simulation_results/plots/scr_biobank_inmem_multi_n300_p1000_q5_s5_inmem.png)
+![Biobank Screen-TRex, five phenotypes: TPR/FDR/Usage vs SNR](simulation_results/plots/scr_biobank_multi_n300_p1000_q5_s5.png)
 
 ---
 

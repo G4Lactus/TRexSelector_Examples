@@ -15,8 +15,8 @@ add_demo_target(demo_trex_scr_03_mc_sim_correlated
     demo_trex_scr_03_mc_sim_correlated/demo_trex_scr_03_mc_sim_correlated.cpp
     T_REX_SELECTOR_LIBS
 )
-add_demo_target(demo_trex_scr_04_mc_sim_biobank_inmem
-    demo_trex_scr_04_mc_sim_biobank_inmem/demo_trex_scr_04_mc_sim_biobank_inmem.cpp
+add_demo_target(demo_trex_scr_04_mc_sim_biobank
+    demo_trex_scr_04_mc_sim_biobank/demo_trex_scr_04_mc_sim_biobank.cpp
     T_REX_SELECTOR_LIBS
 )
 add_demo_target(demo_trex_scr_05_mc_sim_biobank_mmap

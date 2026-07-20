@@ -9,7 +9,7 @@
  * @details Dummy matrices are stored on disk via Boost memory-mapped files
  *          (use_memory_mapping = true). This workflow is designed for biobank-scale
  *          problems where in-memory storage of D matrices is infeasible.
- *          See demo_trex_scr_04_mc_sim_biobank_inmem.cpp for the in-memory
+ *          See demo_trex_scr_04_mc_sim_biobank.cpp for the in-memory
  *          reference workflow.
  *
  *  Part 1 — Monte Carlo SNR sweep (single phenotype): per-method Usage %, FDR, TPR, Est. FDR.
@@ -114,7 +114,7 @@ void demo_MMap_Biobank_MonteCarlo(std::size_t num_MC)
         print_mc_done(snr, num_MC);
     }
 
-    // ── Normalize ──────────────────────────────────────────────────────────
+    // ── Normalise ──────────────────────────────────────────────────────────
     for (const auto& nm : method_names) {
         for (Eigen::Index i = 0; i < ns; ++i) {
             if (usage_map[nm](i) > 0.0) {
@@ -129,7 +129,7 @@ void demo_MMap_Biobank_MonteCarlo(std::size_t num_MC)
     // ── Build file stem and save results ───────────────────────────────────
     std::ostringstream stem;
     stem << "scr_biobank_mmap_snr_n" << n << "_p" << p
-         << "_s" << support_size << "_mmap";
+         << "_s" << support_size;
 
     save_and_print_biobank_mc_results(
         num_MC, stem.str(), snr_values, method_names,
@@ -241,7 +241,7 @@ void demo_MMap_Biobank_MultiplePhenotypesMC(std::size_t num_MC)
         print_mc_done(snr, num_MC);
     }
 
-    // ── Normalize over (q × num_MC) total phenotype screenings ────────────
+    // ── Normalise over (q × num_MC) total phenotype screenings ────────────
     const double total = static_cast<double>(q) * static_cast<double>(num_MC);
     for (const auto& nm : method_names) {
         for (Eigen::Index i = 0; i < ns; ++i) {
@@ -257,7 +257,7 @@ void demo_MMap_Biobank_MultiplePhenotypesMC(std::size_t num_MC)
     // ── Build file stem and save results ───────────────────────────────────
     std::ostringstream stem;
     stem << "scr_biobank_mmap_multi_n" << n << "_p" << p
-         << "_q" << q << "_s" << support_size << "_mmap";
+         << "_q" << q << "_s" << support_size;
 
     save_and_print_biobank_mc_results(
         num_MC, stem.str(), snr_values, method_names,

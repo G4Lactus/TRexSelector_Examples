@@ -131,7 +131,7 @@ Figures (PNG + PDF) go to `simulation_results/plots/`, produced by `./generate_p
    $\mathrm{SNR} = 0.1$–$0.2$ and then settles at $0.093$–$0.094$ for all three at $\mathrm{SNR} = 5$,
    sitting *above* the realized FDR once signal is present.
 
-TPR (left) and FDR (right) vs. SNR (log axis), one line per solver backend; on the FDR panel the solid line
+TPR (left) and FDR (right) vs. SNR, one line per solver backend; on the FDR panel the solid line
 is the realized FDR and the dashed line the procedure's own estimated FDR.
 
 ![Solver comparison under Ordinary screening: TPR/FDR vs SNR](simulation_results/plots/scr_solvers_snr_n300_p1000_s10.png)
@@ -157,7 +157,7 @@ is the realized FDR and the dashed line the procedure's own estimated FDR.
    mid SNR at a comparable error rate. Under Bootstrap-CI the backend choice moves the operating point more
    than the thresholding rule does — pick the solver first, the rule second.
 
-TPR (left) and FDR (right) vs. SNR (log axis), one line per solver × rule combination; on the FDR panel the
+TPR (left) and FDR (right) vs. SNR, one line per solver × rule combination; on the FDR panel the
 solid line is the realized FDR and the dashed line the procedure's own estimated FDR.
 
 ![Solver × thresholding rule: TPR/FDR vs SNR](simulation_results/plots/scr_solver_method_snr_n300_p1000_s10.png)

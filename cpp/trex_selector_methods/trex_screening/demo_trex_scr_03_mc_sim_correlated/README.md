@@ -149,7 +149,7 @@ Each file holds FDR, TPR, and estimated FDR per method and grid point. Figures (
    realized FDR closely and often exceeds it (Ordinary+DA-AR1: $0.125$ estimated vs. $0.072$ realized at
    $\mathrm{SNR} = 1$). This is the last part where that holds.
 
-TPR (left) and FDR (right) vs. SNR (log axis), one line per method; on the FDR panel the solid line is
+TPR (left) and FDR (right) vs. SNR, one line per method; on the FDR panel the solid line is
 the realized FDR and the dashed line the procedure's own estimated FDR.
 
 ![Screen-TRex on an AR(1) design: TPR/FDR vs SNR](simulation_results/plots/scr_ar1_snr_n300_p1000_rho0.50.png)
@@ -173,7 +173,7 @@ the realized FDR and the dashed line the procedure's own estimated FDR.
 - **The FDR estimate has already come apart.** It reports $0.020$–$0.120$ across the sweep while the
    realized FDR is $0.80$–$0.96$ — off by more than an order of magnitude, in the optimistic direction.
 
-TPR (left) and FDR (right) vs. SNR (log axis), one line per method; solid = realized FDR, dashed =
+TPR (left) and FDR (right) vs. SNR, one line per method; solid = realized FDR, dashed =
 estimated FDR.
 
 ![Screen-TRex on an equicorrelated design: TPR/FDR vs SNR](simulation_results/plots/scr_equi_snr_n300_p1000_rho0.40.png)

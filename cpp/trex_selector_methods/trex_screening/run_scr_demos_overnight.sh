@@ -36,7 +36,7 @@ demo_name() {
         01) echo "demo_trex_scr_01_mc_sim_screen_trex" ;;
         02) echo "demo_trex_scr_02_mc_sim_screen_trex_mmap" ;;
         03) echo "demo_trex_scr_03_mc_sim_correlated" ;;
-        04) echo "demo_trex_scr_04_mc_sim_biobank_inmem" ;;
+        04) echo "demo_trex_scr_04_mc_sim_biobank" ;;
         05) echo "demo_trex_scr_05_mc_sim_biobank_mmap" ;;
         06) echo "demo_trex_scr_06_mc_sim_solvers" ;;
         *)  echo "" ;;

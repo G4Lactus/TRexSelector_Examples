@@ -2,13 +2,13 @@
 
 ## Purpose
 
-Establish the **baseline behaviour of Screen-TRex** on the easiest possible design: independent Gaussian
- predictors with no correlation structure at all.
- Two thresholding rules are compared — the **Ordinary** majority-vote rule ($\Phi_j > 0.5$) and the
+The demo establishes the **baseline behaviour of Screen-TRex** [[1]](#references) on the easiest
+ possible design: independent Gaussian predictors with no correlation structure at all.
+Two thresholding rules are compared — the **Ordinary** majority-vote rule ($\Phi_j > 0.5$) and the
  **Bootstrap-CI** rule — over a signal-to-noise sweep.
- Everything the later demos add (correlation, dependency-aware corrections, biobank routing, solver
+Everything the later demos add (correlation, dependency-aware corrections, biobank routing, solver
  backends) is measured against the numbers established here.
- Screening returns a *candidate set*, and FDR/TPR are evaluated on the individual selected variables
+Screening returns a *candidate set*, and FDR/TPR are evaluated on the individual selected variables
  (see [What is actually measured](../README.md#what-is-actually-measured-in-these-demos)).
 
 ---
@@ -110,12 +110,12 @@ Figures (PNG + PDF) go to `simulation_results/plots/`, produced by `./generate_p
    $\mathrm{SNR} \ge 0.5$ (roughly half the Ordinary rule's), paid for with TPR $0.87$ vs. $1.00$ at
    $\mathrm{SNR} = 5$, and a much wider gap mid-sweep ($0.37$ vs. $0.83$ at $\mathrm{SNR} = 1$). Choose it
    when false discoveries are costlier than missed ones.
-- **The internal FDR estimate errs on the safe side here.** For $\mathrm{SNR} \ge 0.5$ it sits *above* the
+- **The internal FDR estimate is conservative here.** For $\mathrm{SNR} \ge 0.5$ it sits *above* the
    realized FDR for both rules (e.g. $0.115$ vs. $0.067$ for Ordinary at $\mathrm{SNR} = 1$) — it
    over-states the error rate rather than hiding it. At the lowest SNR points it becomes unreliable in both
    directions. Demo 03 shows this same estimate failing far more dramatically under correlation.
 
-TPR (left) and FDR (right) vs. SNR (log axis), one line per thresholding rule; on the FDR panel the solid
+TPR (left) and FDR (right) vs. SNR, one line per thresholding rule; on the FDR panel the solid
 line is the realized FDR and the dashed line the procedure's own estimated FDR.
 
 ![Screen-TRex on an i.i.d. design: TPR/FDR vs SNR](simulation_results/plots/scr_screen_trex_snr_n300_p1000.png)

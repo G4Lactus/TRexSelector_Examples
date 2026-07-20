@@ -1,8 +1,8 @@
 // ==============================================================================
-// demo_trex_scr_04_mc_sim_biobank_inmem.cpp
+// demo_trex_scr_04_mc_sim_biobank.cpp
 // ==============================================================================
 /**
- * @file demo_trex_scr_04_mc_sim_biobank_inmem.cpp
+ * @file demo_trex_scr_04_mc_sim_biobank.cpp
  *
  * @brief Biobank Screen-TRex Selector (Algorithm 1) — in-memory D-file variant.
  *
@@ -114,7 +114,7 @@ void demo_Biobank_MonteCarlo(std::size_t num_MC)
         print_mc_done(snr, num_MC);
     }
 
-    // ── Normalize ──────────────────────────────────────────────────────────
+    // ── Normalise ──────────────────────────────────────────────────────────
     for (const auto& nm : method_names) {
         for (Eigen::Index i = 0; i < ns; ++i) {
             if (usage_map[nm](i) > 0.0) {
@@ -128,8 +128,8 @@ void demo_Biobank_MonteCarlo(std::size_t num_MC)
 
     // ── Build file stem and save results ───────────────────────────────────
     std::ostringstream stem;
-    stem << "scr_biobank_inmem_snr_n" << n << "_p" << p
-         << "_s" << support_size << "_inmem";
+    stem << "scr_biobank_snr_n" << n << "_p" << p
+         << "_s" << support_size;
 
     save_and_print_biobank_mc_results(
         num_MC, stem.str(), snr_values, method_names,
@@ -241,7 +241,7 @@ void demo_Biobank_MultiplePhenotypesMC(std::size_t num_MC)
         print_mc_done(snr, num_MC);
     }
 
-    // ── Normalize over (q × num_MC) total phenotype screenings ────────────
+    // ── Normalise over (q × num_MC) total phenotype screenings ────────────
     const double total = static_cast<double>(q) * static_cast<double>(num_MC);
     for (const auto& nm : method_names) {
         for (Eigen::Index i = 0; i < ns; ++i) {
@@ -256,8 +256,8 @@ void demo_Biobank_MultiplePhenotypesMC(std::size_t num_MC)
 
     // ── Build file stem and save results ───────────────────────────────────
     std::ostringstream stem;
-    stem << "scr_biobank_inmem_multi_n" << n << "_p" << p
-         << "_q" << q << "_s" << support_size << "_inmem";
+    stem << "scr_biobank_multi_n" << n << "_p" << p
+         << "_q" << q << "_s" << support_size;
 
     save_and_print_biobank_mc_results(
         num_MC, stem.str(), snr_values, method_names,

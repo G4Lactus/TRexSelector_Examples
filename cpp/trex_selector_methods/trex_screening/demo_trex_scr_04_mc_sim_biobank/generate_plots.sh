@@ -36,8 +36,8 @@ fi
 for csv in "${csvs[@]}"; do
   stem="$(basename "$csv" .csv)"
   case "$stem" in
-    scr_biobank_inmem_multi_*) title='Biobank Screen-TRex (in-memory, 5 phenotypes): routing vs SNR' ;;
-    scr_biobank_inmem_snr_*)   title='Biobank Screen-TRex (in-memory): adaptive routing vs SNR' ;;
+    scr_biobank_multi_*) title='Biobank Screen-TRex (in-memory, 5 phenotypes): routing vs SNR' ;;
+    scr_biobank_snr_*)   title='Biobank Screen-TRex (in-memory): adaptive routing vs SNR' ;;
     *) title="$stem" ;;
   esac
   "$venv_python" "$plotter" "$csv" --title "$title" "$@"
