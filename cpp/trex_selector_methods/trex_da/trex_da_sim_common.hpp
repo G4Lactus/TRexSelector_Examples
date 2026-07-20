@@ -52,6 +52,7 @@
 #include <utils/eval_metrics/utils_eval_rates.hpp>
 
 // DGP generators
+#include "../demo_table_utils.hpp"
 #include "dgp_generators.hpp"
 
 
@@ -746,51 +747,60 @@ inline void save_and_print_grid_results(
     // Table dimensions. The solver name gets its own line; metric rows are
     // indented beneath it, so the value columns stay aligned no matter how
     // long a name is.
-    const int indent_w = 2;    // leading indent of a metric row
-    const int metric_w = 23;   // left-aligned metric label
-    const int col_w    = 10;   // right-aligned values
+    // A wide sweep grid is split into blocks that each fit the line budget.
+    const int indent_w = demo_tables::kIndentW;   // leading indent of a metric row
+    const int metric_w = demo_tables::kMetricW;   // left-aligned metric label
+    const int col_w    = 10;                      // right-aligned values
     const auto ncols   = grid_values.size();
-    const std::size_t sep_w =
-        static_cast<std::size_t>(indent_w + metric_w)
-        + static_cast<std::size_t>(col_w) * ncols;
+    const auto chunks  = demo_tables::column_chunks(ncols, col_w);
 
     // Column header (sweep axis) + dashed separator
-    {
+    auto print_header = [&](std::size_t lo, std::size_t hi) {
         std::stringstream th;
         th << std::left << std::string(static_cast<std::size_t>(indent_w), ' ')
            << std::setw(metric_w) << grid_label;
-        for (double v : grid_values)
+        for (std::size_t i = lo; i < hi; ++i)
             th << std::right << std::fixed << std::setprecision(2)
-               << std::setw(col_w) << v;
-        th << "\n" << std::string(sep_w, '-') << "\n";
+               << std::setw(col_w) << grid_values[i];
+        th << "\n"
+           << std::string(static_cast<std::size_t>(indent_w + metric_w)
+                          + static_cast<std::size_t>(col_w) * (hi - lo), '-')
+           << "\n";
         print_dual(th.str());
-    }
+    };
 
     // Row printer
     auto print_row = [&](const std::string& metric,
-                         const Eigen::VectorXd& data) {
+                         const Eigen::VectorXd& data,
+                         std::size_t lo, std::size_t hi) {
         std::stringstream row;
         row << std::left << std::string(static_cast<std::size_t>(indent_w), ' ')
             << std::setw(metric_w) << metric;
-        for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(ncols); ++i)
+        for (std::size_t i = lo; i < hi; ++i)
             row << std::right << std::fixed << std::setprecision(4)
-                << std::setw(col_w) << data(i);
+                << std::setw(col_w) << data(static_cast<Eigen::Index>(i));
         row << "\n";
         print_dual(row.str());
     };
 
-    for (const auto& sv : solvers) {
-        const auto& nm = sv.name;
-        print_dual("\n" + nm + "\n");            // solver name on its own line
-        print_row("FDR",    fdr_map.at(nm));
-        print_row("sd_FDR", sd_fdr_map.at(nm));
-        print_row("TPR",    tpr_map.at(nm));
-        print_row("sd_TPR", sd_tpr_map.at(nm));
-        if (avg_L_map.count(nm)) {
-            print_row("Avg L", avg_L_map.at(nm));
-        }
-        if (avg_T_map.count(nm)) {
-            print_row("Avg T", avg_T_map.at(nm));
+    for (std::size_t c = 0; c < chunks.size(); ++c) {
+        const auto [lo, hi] = chunks[c];
+        if (c > 0) print_dual("\n");
+        print_header(lo, hi);
+        for (const auto& sv : solvers) {
+            const auto& nm = sv.name;
+            // solver name on its own line
+            print_dual("\n" + demo_tables::series_heading(nm, c) + "\n");
+            print_row("FDR",    fdr_map.at(nm),    lo, hi);
+            print_row("sd_FDR", sd_fdr_map.at(nm), lo, hi);
+            print_row("TPR",    tpr_map.at(nm),    lo, hi);
+            print_row("sd_TPR", sd_tpr_map.at(nm), lo, hi);
+            if (avg_L_map.count(nm)) {
+                print_row("Avg L", avg_L_map.at(nm), lo, hi);
+            }
+            if (avg_T_map.count(nm)) {
+                print_row("Avg T", avg_T_map.at(nm), lo, hi);
+            }
         }
     }
     print_dual("\n");

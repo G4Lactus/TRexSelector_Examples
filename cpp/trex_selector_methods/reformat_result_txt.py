@@ -38,6 +38,9 @@ from pathlib import Path
 INDENT_W = 2
 METRIC_W = 23
 COL_W = 10
+# Mirrors demo_tables::kMaxLineWidth — a wide sweep is split into blocks so the
+# table never wraps at an arbitrary point (see ../demo_table_utils.hpp).
+MAX_LINE_W = 120
 
 # CSV sweep column -> sweep label as printed by the C++ renderer.
 SWEEP_LABELS = {"snr": "SNR", "snr_db": "SNR(dB)", "rho": "Rho"}
@@ -92,22 +95,32 @@ def banner(txt_path: Path) -> str:
     return parts[0].rstrip("\n") + "\n" if parts else ""
 
 
+def column_chunks(n_cols: int, col_w: int = COL_W):
+    """Half-open [begin, end) blocks that each fit MAX_LINE_W."""
+    per = max(1, (MAX_LINE_W - (INDENT_W + METRIC_W)) // col_w)
+    return [(b, min(b + per, n_cols)) for b in range(0, n_cols, per)] or [(0, 0)]
+
+
 def render(head: str, sweep_label: str, xs, series, metrics, values) -> str:
     out = [head.rstrip("\n"), ""]
-    hdr = " " * INDENT_W + sweep_label.ljust(METRIC_W)
-    hdr += "".join(f"{x:>{COL_W}.2f}" for x in xs)
-    out.append(hdr)
-    out.append("-" * (INDENT_W + METRIC_W + COL_W * len(xs)))
-    for s in series:
-        out.append("")
-        out.append(s)
-        for m in metrics:
-            if (s, m, xs[0]) not in values:
-                continue
-            label = METRIC_LABELS.get(m, m)
-            row = " " * INDENT_W + label.ljust(METRIC_W)
-            row += "".join(f"{values[(s, m, x)]:>{COL_W}.4f}" for x in xs)
-            out.append(row)
+    for c, (lo, hi) in enumerate(column_chunks(len(xs))):
+        block = xs[lo:hi]
+        if c:
+            out.append("")
+        hdr = " " * INDENT_W + sweep_label.ljust(METRIC_W)
+        hdr += "".join(f"{x:>{COL_W}.2f}" for x in block)
+        out.append(hdr)
+        out.append("-" * (INDENT_W + METRIC_W + COL_W * len(block)))
+        for s in series:
+            out.append("")
+            out.append(s if c == 0 else f"{s}  (continued)")
+            for m in metrics:
+                if (s, m, xs[0]) not in values:
+                    continue
+                label = METRIC_LABELS.get(m, m)
+                row = " " * INDENT_W + label.ljust(METRIC_W)
+                row += "".join(f"{values[(s, m, x)]:>{COL_W}.4f}" for x in block)
+                out.append(row)
     out.append("")
     return "\n".join(out) + "\n"
 

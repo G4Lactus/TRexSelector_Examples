@@ -64,6 +64,9 @@
 // Eigen includes
 #include <Eigen/Dense>
 
+// Shared demo table layout (indent/metric widths + column chunking)
+#include "../demo_table_utils.hpp"
+
 // OpenMP compatibility layer
 #include <utils/openmp/utils_openmp.hpp>
 
@@ -353,56 +356,62 @@ inline void save_and_print_results(
     // 3. Setup Table Dimensions
     // -----------------------------------
     // Layout: solver name on its own line, metric rows indented beneath it.
-    const int indent_w = 2;
-    const int metric_w = 23;
+    // A wide sweep grid is split into blocks that each fit the line budget.
+    const int indent_w = demo_tables::kIndentW;
+    const int metric_w = demo_tables::kMetricW;
     const int col_w    = 10;
-    const std::size_t sep_w =
-        static_cast<std::size_t>(indent_w + metric_w)
-        + col_w * snr_values.size();
+    const auto chunks  = demo_tables::column_chunks(snr_values.size(), col_w);
 
-    // 4. Print Table Header
+    // 4./5. One header + one set of metric rows per column block
     // -----------------------------------
-    {
+    auto print_header = [&](std::size_t lo, std::size_t hi) {
         std::stringstream ss_header;
         ss_header << std::left
                   << std::string(static_cast<std::size_t>(indent_w), ' ')
                   << std::setw(metric_w) << "SNR";
-        for (double snr : snr_values) {
+        for (std::size_t i = lo; i < hi; ++i) {
             ss_header << std::right << std::fixed << std::setprecision(2)
-                      << std::setw(col_w) << snr;
+                      << std::setw(col_w) << snr_values[i];
         }
-        ss_header << "\n" << std::string(sep_w, '-') << "\n";
+        ss_header << "\n"
+                  << std::string(static_cast<std::size_t>(indent_w + metric_w)
+                                 + static_cast<std::size_t>(col_w) * (hi - lo), '-')
+                  << "\n";
         print_dual(ss_header.str());
-    }
+    };
 
     auto print_metric_row = [&](const std::string& metric_name,
-                                const Eigen::VectorXd& data) {
+                                const Eigen::VectorXd& data,
+                                std::size_t lo, std::size_t hi) {
         std::stringstream ss_row;
         ss_row << std::left
                << std::string(static_cast<std::size_t>(indent_w), ' ')
                << std::setw(metric_w) << metric_name;
-        for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(snr_values.size()); ++i) {
+        for (std::size_t i = lo; i < hi; ++i) {
             ss_row << std::right << std::fixed << std::setprecision(4)
-                   << std::setw(col_w) << data(i);
+                   << std::setw(col_w) << data(static_cast<Eigen::Index>(i));
         }
         ss_row << "\n";
         print_dual(ss_row.str());
     };
 
-    // 5. Print Data Rows
-    // -----------------------------------
-    for (const auto& solver : solvers_to_test) {
-        const std::string& name = solver.solver_name;
+    for (std::size_t c = 0; c < chunks.size(); ++c) {
+        const auto [lo, hi] = chunks[c];
+        if (c > 0) print_dual("\n");
+        print_header(lo, hi);
+        for (const auto& solver : solvers_to_test) {
+            const std::string& name = solver.solver_name;
 
-        print_dual("\n" + name + "\n");          // solver name on its own line
-        print_metric_row("FDR", fdr_results_map.at(name));
-        print_metric_row("TPR", tpr_results_map.at(name));
+            print_dual("\n" + demo_tables::series_heading(name, c) + "\n");
+            print_metric_row("FDR", fdr_results_map.at(name), lo, hi);
+            print_metric_row("TPR", tpr_results_map.at(name), lo, hi);
 
-        if (avg_L_results_map.count(name) > 0) {
-            print_metric_row("Avg L", avg_L_results_map.at(name));
-        }
-        if (avg_T_results_map.count(name) > 0) {
-            print_metric_row("Avg T", avg_T_results_map.at(name));
+            if (avg_L_results_map.count(name) > 0) {
+                print_metric_row("Avg L", avg_L_results_map.at(name), lo, hi);
+            }
+            if (avg_T_results_map.count(name) > 0) {
+                print_metric_row("Avg T", avg_T_results_map.at(name), lo, hi);
+            }
         }
     }
     print_dual("\n");
@@ -497,46 +506,53 @@ inline void save_and_print_mc_results(
     // 3. Table dimensions
     //    The solver name gets its own line; metric rows are indented beneath
     //    it, so the value columns stay aligned no matter how long a name is.
-    const int indent_w = 2;    // leading indent of a metric row
-    const int metric_w = 23;   // left-aligned metric label
-    const int col_w    = 10;   // right-aligned values
-    const std::size_t sep_w =
-        static_cast<std::size_t>(indent_w + metric_w)
-        + col_w * snr_values.size();
+    //    A wide sweep grid is split into blocks that each fit the line budget.
+    const int indent_w = demo_tables::kIndentW;
+    const int metric_w = demo_tables::kMetricW;
+    const int col_w    = 10;
+    const auto chunks  = demo_tables::column_chunks(snr_values.size(), col_w);
 
-    // 4. Column header (sweep axis) + dashed separator
-    {
+    // 4./5. One header + one set of metric rows per column block
+    auto print_header = [&](std::size_t lo, std::size_t hi) {
         std::ostringstream hdr;
         hdr << std::left << std::string(static_cast<std::size_t>(indent_w), ' ')
             << std::setw(metric_w) << "SNR";
-        for (double snr : snr_values)
+        for (std::size_t i = lo; i < hi; ++i)
             hdr << std::right << std::fixed << std::setprecision(2)
-                << std::setw(col_w) << snr;
-        hdr << "\n" << std::string(sep_w, '-') << "\n";
+                << std::setw(col_w) << snr_values[i];
+        hdr << "\n"
+            << std::string(static_cast<std::size_t>(indent_w + metric_w)
+                           + static_cast<std::size_t>(col_w) * (hi - lo), '-')
+            << "\n";
         print_dual(hdr.str());
-    }
+    };
 
-    // 5. Data rows
     auto print_metric = [&](const std::string& metric,
-                            const Eigen::VectorXd& data) {
+                            const Eigen::VectorXd& data,
+                            std::size_t lo, std::size_t hi) {
         std::ostringstream row;
         row << std::left << std::string(static_cast<std::size_t>(indent_w), ' ')
             << std::setw(metric_w) << metric;
-        for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(snr_values.size()); ++i)
+        for (std::size_t i = lo; i < hi; ++i)
             row << std::right << std::fixed << std::setprecision(4)
-                << std::setw(col_w) << data(i);
+                << std::setw(col_w) << data(static_cast<Eigen::Index>(i));
         row << "\n";
         print_dual(row.str());
     };
 
-    for (const auto& name : solver_names) {
-        print_dual("\n" + name + "\n");          // solver name on its own line
-        print_metric("FDR", fdr_results_map.at(name));
-        print_metric("TPR", tpr_results_map.at(name));
-        if (avg_L_results_map.count(name) > 0)
-            print_metric("Avg L", avg_L_results_map.at(name));
-        if (avg_T_results_map.count(name) > 0)
-            print_metric("Avg T", avg_T_results_map.at(name));
+    for (std::size_t c = 0; c < chunks.size(); ++c) {
+        const auto [lo, hi] = chunks[c];
+        if (c > 0) print_dual("\n");
+        print_header(lo, hi);
+        for (const auto& name : solver_names) {
+            print_dual("\n" + demo_tables::series_heading(name, c) + "\n");
+            print_metric("FDR", fdr_results_map.at(name), lo, hi);
+            print_metric("TPR", tpr_results_map.at(name), lo, hi);
+            if (avg_L_results_map.count(name) > 0)
+                print_metric("Avg L", avg_L_results_map.at(name), lo, hi);
+            if (avg_T_results_map.count(name) > 0)
+                print_metric("Avg T", avg_T_results_map.at(name), lo, hi);
+        }
     }
     print_dual("\n");
 
