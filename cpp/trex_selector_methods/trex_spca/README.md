@@ -2,9 +2,10 @@
 
 ## Overview
 
-This folder contains C++ example programs for **T-Rex SPCA**, a sparse principal component analysis method
- built on the T-Rex+GVS elastic-net machinery (see [../trex_gvs/](../trex_gvs/README.md)) according to
- [[1,2]](#references).
+This folder introduces the sparse principal component version of the T-Rex selector, the **T-Rex SPCA** according
+ to [[1]](#references).
+A sparse principal component analysis method built on the T-Rex+GVS elastic-net machinery
+ (see [../trex_gvs/](../trex_gvs/README.md)) according to [[2]](#references).
 
 Instead of selecting sparse *variables* in a regression model, T-Rex SPCA selects sparse *loadings* for each
  principal component: the T-Rex+GVS selector is applied per component to control the false discovery rate of
@@ -72,23 +73,6 @@ Both the tables and the figures use this decibel axis directly; it is never conv
 **PEV** — the proportion of explained variance, computed cumulatively across all $M$ components via a QR
  decomposition of the estimated score matrix — is the quantity the sparsity is bought against. A method that
  selects fewer loadings explains less variance, so PEV is where the cost of FDR control becomes visible.
-
-### What is actually measured in these demos
-
-> **FDR and TPR are evaluated on the first principal component only.** Components 2 and 3 are excluded
-> deliberately: ordinary PCA's orthogonality constraint mixes their loading supports across the true factors,
-> so there is no unambiguous per-component ground truth beyond PC1. This is a scope limitation of the
-> evaluation, not of T-Rex SPCA. PEV does not suffer the same ambiguity and is therefore cumulative over all
-> $M$ components.
->
-> Note also that **ordinary PCA trivially attains $\mathrm{TPR} = 1$ and $\mathrm{FDR} \approx (p - p_1)/p$**
-> by retaining all $p$ loadings — a non-sparse reference point, not a competitor on these metrics. **Oracle
-> PCA**, told the true support cardinality $p_1$, bounds what any data-driven sparse method could achieve.
->
-> Every method is evaluated on the same **center-only** design matrix — mean subtraction, no column scaling —
-> which puts them on a common covariance-PCA footing. Column scaling must be avoided here: the factor
-> amplitudes live in the column variances, so z-scoring (correlation PCA) destroys the very signal that
-> distinguishes the factors.
 
 ---
 
@@ -183,14 +167,14 @@ accepted for parity with the other suites, but the axis stays in dB either way.
 
 ## References
 
-1. Machkour, J., Muma, M., & Palomar, D. P., "False Discovery Rate Control for Grouped Variable Selection
+1. Machkour, J., Breloy, A., Muma, M., Palomar, D. P., & Pascal, F., "Sparse PCA with False Discovery Rate Controlled
+   Variable Selection.", IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP), 2024,
+   pp. 9716–9720, IEEE.
+   [DOI-Link](https://doi.org/10.1109/ICASSP48485.2024.10448237)
+2. Machkour, J., Muma, M., & Palomar, D. P., "False Discovery Rate Control for Grouped Variable Selection
    in High-Dimensional Linear Models using the T-Knock Filter.", European Signal Processing Conference (EUSIPCO), 2022,
     pp. 892–896, EURASIP.
     [DOI-Link](https://doi.org/10.23919/EUSIPCO55093.2022.9909883)
-2. Machkour, J., Muma, M., & Palomar, D. P., "The Informed Elastic Net for Fast Grouped Variable Selection and
-   FDR Control in Genomics Research.", Workshop on Computational Advances in Multi-Sensor Adaptive Processing (CAMSAP),
-    2023, pp. 466–470, IEEE.
-    [DOI-Link](https://doi.org/10.1109/CAMSAP58249.2023.10403489)
 
 ---
 

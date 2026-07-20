@@ -2,15 +2,16 @@
 
 ## Purpose
 
-The demo compares **T-Rex SPCA** against two PCA baselines on a synthetic sparse three-factor model, over a
- signal-to-noise sweep in decibels.
+The demo compares **T-Rex SPCA** [[1]](#references) against two PCA baselines on a synthetic sparse
+ three-factor model, over a signal-to-noise sweep in decibels.
  Four solver/mode combinations are run — the elastic-net solver `TENET` vs. `TENET_AUG`, each with the
  `ActiveSet` and `Thresholded` loading-assembly modes — against **ordinary PCA** (no sparsity) and
  **oracle-thresholded PCA** (told the true support size).
  The question is whether the T-Rex+GVS machinery controls the false discovery rate of the estimated loading
  support, and what that control costs in explained variance.
- FDR and TPR are evaluated on **PC1's loading support only** (see
- [What is actually measured](../README.md#what-is-actually-measured-in-these-demos)).
+ FDR and TPR are evaluated on **PC1's loading support only**: ordinary PCA's orthogonality constraint mixes
+ the supports of components 2 and 3 across the true factors, so there is no unambiguous per-component ground
+ truth beyond PC1. PEV does not suffer that ambiguity and is cumulative over all $M$ components.
 
 ---
 
@@ -63,10 +64,10 @@ Note that only the **data** is seeded deterministically. Each trial's dummies ar
 | --- | --- | --- | --- |
 | **OrdPCA** | none — all $p$ loadings retained | — | — |
 | **OraclePCA** | top-$p_1$ by magnitude, true support size known | — | — |
-| **TRexSPCA-EN-Act** | T-Rex+GVS selection [[1]](#references) | `ActiveSet` | `TENET` |
-| **TRexSPCA-ENaug-Act** | T-Rex+GVS selection [[1]](#references) | `ActiveSet` | `TENET_AUG` |
-| **TRexSPCA-EN-Thr** | T-Rex+GVS selection [[1]](#references) | `Thresholded` | `TENET` |
-| **TRexSPCA-ENaug-Thr** | T-Rex+GVS selection [[1]](#references) | `Thresholded` | `TENET_AUG` |
+| **TRexSPCA-EN-Act** | T-Rex+GVS selection [[2]](#references) | `ActiveSet` | `TENET` |
+| **TRexSPCA-ENaug-Act** | T-Rex+GVS selection [[2]](#references) | `ActiveSet` | `TENET_AUG` |
+| **TRexSPCA-EN-Thr** | T-Rex+GVS selection [[2]](#references) | `Thresholded` | `TENET` |
+| **TRexSPCA-ENaug-Thr** | T-Rex+GVS selection [[2]](#references) | `Thresholded` | `TENET_AUG` |
 
 The two modes differ in how the loadings are rebuilt once the support is chosen: `ActiveSet` keeps the
  selector's ridge coefficients, while `Thresholded` re-solves the ordinary PCA problem restricted to the
@@ -133,14 +134,14 @@ decibels, one line per method.
 
 ## References
 
-1. Machkour, J., Muma, M., & Palomar, D. P., "False Discovery Rate Control for Grouped Variable Selection
+1. Machkour, J., Breloy, A., Muma, M., Palomar, D. P., & Pascal, F., "Sparse PCA with False Discovery Rate Controlled
+   Variable Selection.", IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP), 2024,
+   pp. 9716–9720, IEEE.
+   [DOI-Link](https://doi.org/10.1109/ICASSP48485.2024.10448237)
+2. Machkour, J., Muma, M., & Palomar, D. P., "False Discovery Rate Control for Grouped Variable Selection
    in High-Dimensional Linear Models using the T-Knock Filter.", European Signal Processing Conference (EUSIPCO), 2022,
     pp. 892–896, EURASIP.
     [DOI-Link](https://doi.org/10.23919/EUSIPCO55093.2022.9909883)
-2. Machkour, J., Muma, M., & Palomar, D. P., "The Informed Elastic Net for Fast Grouped Variable Selection and
-   FDR Control in Genomics Research.", Workshop on Computational Advances in Multi-Sensor Adaptive Processing (CAMSAP),
-    2023, pp. 466–470, IEEE.
-    [DOI-Link](https://doi.org/10.1109/CAMSAP58249.2023.10403489)
 
 ---
 
