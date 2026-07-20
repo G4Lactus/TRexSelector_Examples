@@ -1,123 +1,147 @@
-# Demo 01: T-Rex SPCA Monte Carlo Simulation
+# Demo 01: T-Rex SPCA on a Sparse Factor Model
 
 ## Purpose
 
-Compare **T-Rex SPCA** (4 solver/mode combinations) against **ordinary PCA** and **oracle-thresholded PCA** on a synthetic sparse 3-factor model, evaluating PC1 loading-support recovery (FDR/TPR) and cumulative explained variance (PEV).
+The demo compares **T-Rex SPCA** against two PCA baselines on a synthetic sparse three-factor model, over a
+ signal-to-noise sweep in decibels.
+ Four solver/mode combinations are run — the elastic-net solver `TENET` vs. `TENET_AUG`, each with the
+ `ActiveSet` and `Thresholded` loading-assembly modes — against **ordinary PCA** (no sparsity) and
+ **oracle-thresholded PCA** (told the true support size).
+ The question is whether the T-Rex+GVS machinery controls the false discovery rate of the estimated loading
+ support, and what that control costs in explained variance.
+ FDR and TPR are evaluated on **PC1's loading support only** (see
+ [What is actually measured](../README.md#what-is-actually-measured-in-these-demos)).
 
 ---
 
 ## Data Generation Parameters (`DataGenerator::generate_sparse_factor_model`)
 
+We consider a sparse $M$-factor model:
+
 $$
-\boldsymbol{X} = \boldsymbol{Z}\boldsymbol{V}^\top + \boldsymbol{E}.
+\boldsymbol{X} = \boldsymbol{Z}\boldsymbol{V}^\top + \boldsymbol{E}
 $$
 
-- $\boldsymbol{Z}$ ($n \times M$): factor columns $\mathcal{N}(0, \sigma_m^2)$ with $\sigma_m \in \{5, 3, 1\}$ for $m=0,1,2$.
-- $\boldsymbol{V}$ ($p \times M$): each column has exactly `p1` nonzero entries (value $0.9$), drawn without replacement from a shared candidate pool of size `overlap_pool_size` — factor supports can partially overlap.
-- $\boldsymbol{E}$: i.i.d. Gaussian, scaled to hit a target SNR in dB.
-- $n=50$, $p=100$, $p_1=5$, $M=3$, `overlap_pool_size=30`.
+- $\boldsymbol{X} \in \mathbb{R}^{n \times p}$ is the observed data matrix.
+- $\boldsymbol{Z} \in \mathbb{R}^{n \times M}$ holds the latent factor scores, column $m$ drawn
+   $\mathcal{N}(0, \sigma_m^2)$ with $\sigma_m \in \{5, 3, 1\}$ — the factors are deliberately unequal in
+   amplitude.
+- $\boldsymbol{V} \in \mathbb{R}^{p \times M}$ is the sparse loading matrix: each column carries exactly
+   $p_1$ nonzero entries of value $0.9$.
+- $\boldsymbol{E}$ is i.i.d. Gaussian noise, scaled to hit the target SNR in dB.
+- $n = 50$, $p = 100$, $p_1 = 5$, $M = 3$.
+- The $p_1$ active indices of each factor are drawn without replacement from a **shared pool** of
+   `overlap_pool_size` $= 30$ candidates, so factor supports may partially coincide.
 
-All methods share one **center-only** $\boldsymbol{X}$ (see `center_columns()`: mean subtraction, no column scaling). This puts OrdPCA, OraclePCA, and TRexSPCA on a common covariance-PCA footing, matching the legacy R reference. The column scales must **not** be normalized — the factor amplitude signal lives in the column variances, and z-scoring destroys it (see the History note below).
+All methods see the same **center-only** $\boldsymbol{X}$ — mean subtraction, no column scaling. That keeps
+ ordinary PCA, oracle PCA and T-Rex SPCA on a common covariance-PCA footing. The column scales must *not* be
+ normalized here: the factor amplitudes $\sigma_m$ live in the column variances, and z-scoring would destroy
+ exactly the signal the factors are distinguished by.
 
 ---
 
 ## Control Parameters
 
+```text
+tFDR = 0.10           # Target FDR for the per-component selector
+lambda_2 = -1         # < 0 selects the ridge penalty by k-fold CV (0 = none, > 0 = fixed)
+scaling = L2          # Per-component selector scaling mode
+MC = 200              # Monte Carlo repetitions per grid point
+base_seed = 42        # Trial mc draws its data from base_seed + mc * 1000
 ```
-tFDR = 0.10
-lambda_2 = -1        # < 0 triggers k-fold CV for ridge-penalty selection (0 = no ridge, > 0 = fixed)
-num_MC = 200          # as set in main(), see caveat below
-base_seed = 42        # seeds the per-trial DATA DGP deterministically (trial mc uses base_seed + mc*1000)
-```
+
+Note that only the **data** is seeded deterministically. Each trial's dummies are drawn from hardware entropy
+ (selector seed $-1$) by design, which is what makes the Monte Carlo FDR estimate valid — so a re-run
+ reproduces the committed numbers only to within Monte Carlo noise ($\approx \pm 0.01$ at 200 trials), not
+ exactly.
 
 ---
 
 ## Methods Compared
 
 | Method | Sparsity mechanism | `SPCAMode` | `ENSolverType` |
-|---|---|---|---|
-| **OrdPCA** | None (all $p$ loadings retained) | — | — |
-| **OraclePCA** | Top-$p_1$ by magnitude (true support size known) | — | — |
-| **TRexSPCA-EN-Act** | T-Rex+GVS selection | `ActiveSet` | `TENET` |
-| **TRexSPCA-ENaug-Act** | T-Rex+GVS selection | `ActiveSet` | `TENET_AUG` |
-| **TRexSPCA-EN-Thr** | T-Rex+GVS selection | `Thresholded` | `TENET` |
-| **TRexSPCA-ENaug-Thr** | T-Rex+GVS selection | `Thresholded` | `TENET_AUG` |
+| --- | --- | --- | --- |
+| **OrdPCA** | none — all $p$ loadings retained | — | — |
+| **OraclePCA** | top-$p_1$ by magnitude, true support size known | — | — |
+| **TRexSPCA-EN-Act** | T-Rex+GVS selection [[1]](#references) | `ActiveSet` | `TENET` |
+| **TRexSPCA-ENaug-Act** | T-Rex+GVS selection [[1]](#references) | `ActiveSet` | `TENET_AUG` |
+| **TRexSPCA-EN-Thr** | T-Rex+GVS selection [[1]](#references) | `Thresholded` | `TENET` |
+| **TRexSPCA-ENaug-Thr** | T-Rex+GVS selection [[1]](#references) | `Thresholded` | `TENET_AUG` |
 
-All four T-Rex SPCA variants run their per-component selector with the default `ScalingMode::L2` (matching the legacy `lm_dummy.R` column centering + L2 normalization).
-
----
-
-## Metrics
-
-- **FDR / TPR** — evaluated strictly on **PC1's** loading support only; PCs 2–3 are excluded because ordinary PCA's orthogonality constraint mixes their supports across the true factors, making a per-component ground-truth comparison ambiguous beyond PC1.
-- **PEV** — cumulative percentage of explained variance across all $M$ components, via QR decomposition of the estimated score matrix.
+The two modes differ in how the loadings are rebuilt once the support is chosen: `ActiveSet` keeps the
+ selector's ridge coefficients, while `Thresholded` re-solves the ordinary PCA problem restricted to the
+ selected support.
 
 ---
 
-## ⚠️ Configuration notes
+## The Sweep
 
-`main()` sets `cfg.num_MC = 200` and the full legacy CRAN reference grid `snr_values = {-10, -7, -5, -3, 0, 3, 5, 7, 10}` dB. The committed output (`simulation_results/`) matches this configuration, the center-only pipeline, and the fixed library (see the history notes below).
-
-**History note (two bugs, both fixed 2026-07-08):**
-
-1. *Demo z-scoring*: during an earlier debugging round the pipeline briefly gained a shared z-score standardization; that converts the covariance PCA into a correlation PCA, destroys the factor amplitude signal, and pushed the measured T-Rex FDR to $\approx 0.52$ (OraclePCA TPR to $\approx 0.87$) at $-10$ dB. `validation_trex_spca_06_handrolled_comparison` isolated the cause and the pipeline is back to center-only.
-2. *Library dummy normalization* (TRexSelector `5fceed3`): the GVS selector exactly unit-normalized every drawn cluster-MVN dummy column, erasing the random norm fluctuation that is part of the dummy null distribution and inflating the realized FDR from $\approx 0.10$ to $\approx 0.13$ while the FDP estimate still looked controlled. Root-caused via `validation_trex_spca_07_matrix_dump` (replaying the CRAN reference calibration on the selector's internal matrices reproduced its selections exactly, proving the calibration port correct and localizing the gap in the dummies) plus a 2×2 factorial with CRAN's own calibration functions. Dummies now enter the solver as drawn (center-only).
-
-Trial-for-trial reproduction is intentionally impossible: each trial's **data** is drawn from a deterministic seed (`base_seed + mc*1000`), so the sequence of design matrices is fixed by `base_seed`, but the per-trial dummies use hardware entropy (selector seed $-1$) by design — required for a valid Monte Carlo FDR estimate. Re-runs reproduce the committed table to within MC noise ($\approx \pm 0.01$ at 200 trials).
+A single **SNR sweep in decibels** over
+$\mathrm{SNR} \in \{-10, -7, -5, -3, 0, 3, 5, 7, 10\}$ dB, 200 MC trials per point. The axis is plotted and
+tabulated in dB throughout; it is never converted back to a linear ratio.
 
 ---
 
 ## Output Files
 
-Written to `simulation_results/` (already populated):
+Written to `simulation_results/data/`:
 
-- `demo_trex_spca_01_mc_sim.txt` — human-readable table (methods × FDR/TPR/PEV × SNR column(s)).
-- `demo_trex_spca_01_mc_sim.csv` — tidy long format: `method, metric, snr_db, value`.
+- `demo_trex_spca_01_mc_sim.txt` / `.csv` — FDR, TPR and PEV per method and SNR level.
+
+Figures (PNG + PDF) go to `simulation_results/plots/`, produced by `./generate_plots.sh`.
 
 ---
 
 ## Running the Demo
 
 ```bash
-./build/debug/bin/trex_selector_methods/trex_spca/demo_trex_spca_01_mc_sim/demo_trex_spca_01_mc_sim
+./build/release/bin/trex_selector_methods/trex_spca/demo_trex_spca_01_mc_sim/demo_trex_spca_01_mc_sim
+./generate_plots.sh   # render the figure below from the saved CSV
 ```
 
 ---
 
-## Real Results (9-point SNR sweep, num_MC = 200, as committed)
+## Simulation Results
 
-T-Rex SPCA FDR across the grid (all four variants; TPR $= 1.0$ everywhere except $-10$ dB, where TPR $\approx 0.995$–$0.997$):
+- **All four T-Rex SPCA variants hold the FDR at or below the $\mathrm{tFDR} = 0.10$ target across the whole
+   sweep**, with realized values between $0.05$ and $0.10$ — highest at the hardest point ($-10$ dB) and
+   settling around $0.06$–$0.08$ from $-7$ dB upward. TPR is $1.000$ everywhere except $-10$ dB, where it is
+   $0.994$–$0.996$.
+- **OrdPCA's FDR of $0.95$ is not a defeat, it is arithmetic**: retaining all $p = 100$ loadings against a
+   true support of $p_1 = 5$ makes 95 of every 100 selections false by construction. It is a non-sparse
+   reference line, not a competitor.
+- **OraclePCA is the ceiling**, with FDR $\approx 0$ and TPR $\approx 1$ — it is handed the true support
+   size. The gap between it and the T-Rex variants is the price of *estimating* the support rather than
+   knowing it, and on this design that price is small.
+- **The PEV panel shows what the sparsity costs.** Ordinary PCA explains the most variance at every SNR
+   ($0.20 \to 0.92$ across the grid) because it uses all loadings; the T-Rex variants trail it and converge
+   toward the oracle, reaching $\approx 0.74$ at $+10$ dB. The `Thresholded` mode is consistently the better
+   of the two modes here (e.g. $0.128$ vs. $0.117$ at $-10$ dB) because re-solving on the selected support
+   recovers more variance than the active-set ridge coefficients.
+- **`TENET` and `TENET_AUG` are the same estimator on this problem.** Given identical dummy seeds they
+   produce bit-identical selections; the EN-vs-ENaug differences in the table are Monte Carlo dummy noise.
+   The standard error of a 200-trial mean FDR is $\approx \pm 0.009$, an order of magnitude larger than the
+   row-to-row differences — and the sign of those differences flips between modes and SNR points, which is
+   what noise looks like.
 
-| SNR (dB) | −10 | −7 | −5 | −3 | 0 | 3 | 5 | 7 | 10 |
-|---|---|---|---|---|---|---|---|---|---|
-| TRexSPCA-EN-Act | 0.094 | 0.062 | 0.053 | 0.067 | 0.069 | 0.062 | 0.084 | 0.072 | 0.069 |
-| TRexSPCA-ENaug-Act | 0.103 | 0.063 | 0.064 | 0.062 | 0.070 | 0.064 | 0.075 | 0.067 | 0.069 |
-| TRexSPCA-EN-Thr | 0.100 | 0.064 | 0.054 | 0.062 | 0.064 | 0.061 | 0.080 | 0.065 | 0.069 |
-| TRexSPCA-ENaug-Thr | 0.094 | 0.059 | 0.061 | 0.062 | 0.071 | 0.069 | 0.075 | 0.065 | 0.070 |
+TPR (left), FDR (middle, with the $\mathrm{tFDR} = 0.10$ target as a dashed line) and PEV (right) vs. SNR in
+decibels, one line per method.
 
-The hardest point in full ($-10$ dB):
-
-| Method | FDR | TPR | PEV |
-|---|---|---|---|
-| OrdPCA | 0.9500 | 1.0000 | 0.2021 |
-| OraclePCA | 0.0060 | 0.9940 | 0.1241 |
-| TRexSPCA-EN-Act | 0.0939 | 0.9960 | 0.1174 |
-| TRexSPCA-ENaug-Act | 0.1033 | 0.9950 | 0.1177 |
-| TRexSPCA-EN-Thr | 0.1001 | 0.9950 | 0.1280 |
-| TRexSPCA-ENaug-Thr | 0.0935 | 0.9970 | 0.1287 |
-
-This matches the legacy CRAN R reference across the grid (legacy: FDR $0.100$ at $-10$ dB, $\approx 0.058$ at $-7$/$-5$ dB, TPR $\approx 1.0$). See `simulation_results/` for the full committed table (PEV rows included) and the tidy CSV.
-
----
-
-## Interpretation
-
-- **OrdPCA**'s $\mathrm{FDR}\approx0.95$ and $\mathrm{TPR}=1.0$ are trivial artifacts of retaining all $p=100$ loadings (true support is $p_1=5$) — not a genuine comparison point, only a non-sparse reference.
-- **OraclePCA** achieves (near-)perfect PC1 recovery everywhere (it is told the true support size); its PEV column is the reference for how much variance the true sparse signal explains, independent of any estimation procedure.
-- All four **T-Rex SPCA** variants keep the realized FDR at or below the $\mathrm{tFDR}=0.10$ target across the whole grid with TPR $\approx 1.0$ — FDR control holds, matching the legacy CRAN implementation after the two 2026-07-08 fixes (see Configuration notes).
-- **TENET and TENET_AUG are the same estimator on this problem**: run with identical per-trial dummy seeds they produce bit-identical selections (verified 100/100 trials via `validation_trex_spca_07_matrix_dump`). The EN-vs-ENaug differences visible in the table are pure Monte Carlo dummy noise — each method row draws fresh hardware-entropy dummies, and the standard error of a 200-trial mean FDR is $\approx \pm 0.009$, an order of magnitude larger than the observed row differences. Note the sign even flips between modes and SNR points.
-- The **Thresholded** variants' higher PEV (e.g. $0.128$ vs. $0.117$ at $-10$ dB, converging toward OraclePCA's $0.89$ at $+10$ dB) is the one systematic mode difference: they rebuild loadings from the full ordinary-PCA solution on the selected support, which preserves more explained variance than the active-set ridge coefficients.
+![T-Rex SPCA: TPR/FDR/PEV vs SNR (dB)](simulation_results/plots/demo_trex_spca_01_mc_sim.png)
 
 ---
 
-**Last updated**: 2026-07-08
+## References
+
+1. Machkour, J., Muma, M., & Palomar, D. P., "False Discovery Rate Control for Grouped Variable Selection
+   in High-Dimensional Linear Models using the T-Knock Filter.", European Signal Processing Conference (EUSIPCO), 2022,
+    pp. 892–896, EURASIP.
+    [DOI-Link](https://doi.org/10.23919/EUSIPCO55093.2022.9909883)
+2. Machkour, J., Muma, M., & Palomar, D. P., "The Informed Elastic Net for Fast Grouped Variable Selection and
+   FDR Control in Genomics Research.", Workshop on Computational Advances in Multi-Sensor Adaptive Processing (CAMSAP),
+    2023, pp. 466–470, IEEE.
+    [DOI-Link](https://doi.org/10.1109/CAMSAP58249.2023.10403489)
+
+---
+
+**Last updated**: 2026-07-20

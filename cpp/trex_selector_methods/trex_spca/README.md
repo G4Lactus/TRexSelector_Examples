@@ -2,83 +2,107 @@
 
 ## Overview
 
-This folder contains C++ example programs for **T-Rex SPCA**, a sparse principal component analysis method built on top of **T-Rex+GVS** (see [../trex_gvs/](../trex_gvs/README.md)). Instead of selecting sparse *variables* in a regression model, T-Rex SPCA selects sparse *loadings* for each principal component, applying the T-Rex+GVS elastic-net machinery per component to control the false discovery rate of the estimated loading support.
+This folder contains C++ example programs for **T-Rex SPCA**, a sparse principal component analysis method
+ built on the T-Rex+GVS elastic-net machinery (see [../trex_gvs/](../trex_gvs/README.md)) according to
+ [[1,2]](#references).
 
-The single demo in this folder compares T-Rex SPCA against two PCA baselines on a synthetic sparse-factor-model dataset.
+Instead of selecting sparse *variables* in a regression model, T-Rex SPCA selects sparse *loadings* for each
+ principal component: the T-Rex+GVS selector is applied per component to control the false discovery rate of
+ the estimated loading support. The result is a PCA whose components are supported on a small,
+ FDR-controlled set of variables rather than on all $p$ of them.
+
+The demo in this folder is designed to help users understand:
+
+1. whether the FDR of the estimated loading support is actually held at the target,
+2. what that control costs in explained variance, measured against ordinary PCA and an oracle that is told
+    the true support size,
+3. how the elastic-net solver (`TENET` vs. `TENET_AUG`) and the loading-assembly mode (`ActiveSet` vs.
+    `Thresholded`) affect the outcome.
 
 ---
 
 ## What this folder covers
 
-- A **sparse M-factor data-generating process** $X = ZV^\top + E$, where the loading matrix $V$ has exactly `p1` nonzero entries per factor, drawn from a shared overlap pool so factor supports can partially coincide.
-- Two **T-Rex SPCA** solver/mode combinations (elastic-net solver `TENET` vs. `TENET_AUG`; loading-assembly mode `ActiveSet` vs. `Thresholded`) benchmarked against **ordinary PCA** (no sparsity) and **oracle-thresholded PCA** (knows the true support size).
+- A **sparse $M$-factor data-generating process** where each column of the loading matrix has exactly $p_1$
+   nonzero entries drawn from a shared overlap pool, so factor supports can partially coincide.
+- Two **T-Rex SPCA** solver variants crossed with two loading-assembly modes, benchmarked against **ordinary
+   PCA** (no sparsity) and **oracle-thresholded PCA** (knows the true support size).
+- A sweep over the signal-to-noise ratio **in decibels**, the scale this suite reports on throughout.
 
 ---
 
-## Statistical model and notation
+## Statistical model and targets
 
-$$
+### The factor model
+
+```math
 \boldsymbol{X} = \boldsymbol{Z}\boldsymbol{V}^\top + \boldsymbol{E},
-$$
+\qquad
+\boldsymbol{Z}_{\cdot,m} \sim \mathcal{N}(\boldsymbol{0}, \sigma_m^2 \boldsymbol{I}_n).
+```
 
+### Notation
+
+- $n$: number of observations, $p$: number of variables, $M$: number of latent factors.
 - $\boldsymbol{X} \in \mathbb{R}^{n \times p}$: centered observation matrix.
-- $\boldsymbol{Z} \in \mathbb{R}^{n \times M}$: true latent factor scores, column $m$ drawn $\mathcal{N}(0, \sigma_m^2)$ with decreasing factor strength $\sigma_m \in \{5, 3, 1\}$ (falling back to $1$ for $M > 3$).
-- $\boldsymbol{V} \in \mathbb{R}^{p \times M}$: true sparse loading matrix; each column has exactly `p1` nonzero entries (value $0.9$), drawn without replacement from a shared candidate pool of size `overlap_pool_size` — so different factors' active sets can overlap.
-- $\boldsymbol{E} \in \mathbb{R}^{n \times p}$: i.i.d. Gaussian noise, scaled so that the realized signal-to-noise ratio matches a target value **in decibels**,
-  $$
-  \mathrm{SNR}_{\mathrm{dB}} = 10 \log_{10}\!\left(\frac{\mathrm{Var}(\boldsymbol{Z}\boldsymbol{V}^\top)}{\mathrm{Var}(\boldsymbol{E})}\right).
-  $$
+- $\boldsymbol{V} \in \mathbb{R}^{p \times M}$: sparse loading matrix; each column carries exactly $p_1$
+   nonzero entries of value $0.9$, drawn without replacement from a shared candidate pool of size
+   `overlap_pool_size`.
+- $\sigma_m$: amplitude of factor $m$, decreasing over $\{5, 3, 1\}$ (falling back to $1$ for $M > 3$), so
+   the components are ordered by strength.
+- $\mathcal{S}_1$: PC1's true active loading support; $\widehat{\mathcal{S}}_1$ its estimated counterpart.
+- $\boldsymbol{E}$: i.i.d. Gaussian noise, scaled to hit the target SNR.
 
-All methods are evaluated on the same $\boldsymbol{X}$ after a shared **center-only** preprocessing step (mean subtraction, no column scaling — a covariance-PCA footing), so that OrdPCA, OraclePCA, and T-Rex SPCA are compared on equal preprocessing. The column scales must **not** be normalized: in this factor model the amplitude signal lives in the column variances, and z-scoring the columns (correlation PCA) destroys it — measured effect at $-10$ dB: T-Rex SPCA FDR degrades from $\approx 0.13$ to $\approx 0.52$ and OraclePCA TPR from $\approx 0.99$ to $\approx 0.87$ (see `validation_trex_spca_06_handrolled_comparison`).
+### Signal-to-noise ratio in decibels
+
+```math
+\mathrm{SNR}_{\mathrm{dB}} = 10 \log_{10}\!\left(\frac{\mathrm{Var}(\boldsymbol{Z}\boldsymbol{V}^\top)}{\mathrm{Var}(\boldsymbol{E})}\right).
+```
+
+Both the tables and the figures use this decibel axis directly; it is never converted back to a linear ratio.
+
+### False discovery rate, true positive rate, explained variance
+
+```math
+\mathrm{FDR} = \mathbb{E}\left[\frac{|\widehat{\mathcal{S}}_1 \setminus \mathcal{S}_1|}{\max\{1, |\widehat{\mathcal{S}}_1|\}}\right],
+\qquad
+\mathrm{TPR} = \mathbb{E}\left[\frac{|\mathcal{S}_1 \cap \widehat{\mathcal{S}}_1|}{\max\{1, |\mathcal{S}_1|\}}\right].
+```
+
+**PEV** — the proportion of explained variance, computed cumulatively across all $M$ components via a QR
+ decomposition of the estimated score matrix — is the quantity the sparsity is bought against. A method that
+ selects fewer loadings explains less variance, so PEV is where the cost of FDR control becomes visible.
+
+### What is actually measured in these demos
+
+> **FDR and TPR are evaluated on the first principal component only.** Components 2 and 3 are excluded
+> deliberately: ordinary PCA's orthogonality constraint mixes their loading supports across the true factors,
+> so there is no unambiguous per-component ground truth beyond PC1. This is a scope limitation of the
+> evaluation, not of T-Rex SPCA. PEV does not suffer the same ambiguity and is therefore cumulative over all
+> $M$ components.
+>
+> Note also that **ordinary PCA trivially attains $\mathrm{TPR} = 1$ and $\mathrm{FDR} \approx (p - p_1)/p$**
+> by retaining all $p$ loadings — a non-sparse reference point, not a competitor on these metrics. **Oracle
+> PCA**, told the true support cardinality $p_1$, bounds what any data-driven sparse method could achieve.
+>
+> Every method is evaluated on the same **center-only** design matrix — mean subtraction, no column scaling —
+> which puts them on a common covariance-PCA footing. Column scaling must be avoided here: the factor
+> amplitudes live in the column variances, so z-scoring (correlation PCA) destroys the very signal that
+> distinguishes the factors.
 
 ---
 
 ## T-Rex SPCA specific concepts
 
-- **`SPCAMode`** — how the sparse loading vector for each principal component is assembled from the underlying T-Rex+GVS selection:
-  - `ActiveSet`: use only the T-Rex+GVS *selected* variables' loadings.
-  - `Thresholded`: assemble loadings from the full ordinary-PCA solution, thresholded down to the T-Rex+GVS-selected support.
-- **`ENSolverType`** — the elastic-net solver driving each per-component T-Rex+GVS selection: `TENET` (Gram-based) or `TENET_AUG` (augmented-LASSO formulation); see [../trex_gvs/README.md](../trex_gvs/README.md) for the shared elastic-net background.
-- **PC1-only FDR/TPR** — FDR and TPR are evaluated **strictly on the first principal component's loading support**. PCs 2 and 3 are intentionally excluded from these metrics because ordinary PCA's orthogonality constraint mixes their loading supports across the true factors, making a per-component "true support" comparison ambiguous beyond PC1. This is a deliberate scope limitation of the evaluation, not a limitation of T-Rex SPCA itself.
-- **Cumulative PEV** — percentage of explained variance is instead evaluated cumulatively across **all** $M$ components (via a QR decomposition of the estimated score matrix), since this metric does not suffer from the same per-component ambiguity.
-
----
-
-## Statistical targets
-
-$$
-\mathrm{FDR}
-=
-\mathbb{E}
-\left[
-\frac{|\widehat{\mathcal{S}}_1 \setminus \mathcal{S}_1|}
-{\max\{1, |\widehat{\mathcal{S}}_1|\}}
-\right],
-\qquad
-\mathrm{TPR}
-=
-\mathbb{E}
-\left[
-\frac{|\mathcal{S}_1 \cap \widehat{\mathcal{S}}_1|}
-{\max\{1, |\mathcal{S}_1|\}}
-\right],
-$$
-
-where $\mathcal{S}_1$ is PC1's true active loading support and $\widehat{\mathcal{S}}_1$ its estimated counterpart. **Ordinary PCA** trivially achieves $\mathrm{TPR}=1$ and $\mathrm{FDR}\approx(p-p_1)/p$ since it retains all $p$ loadings — it is a non-sparse reference point, not a genuine competitor on these two metrics. **Oracle PCA** (knows the true support cardinality $p_1$) provides an upper bound on what any data-driven sparse method could achieve.
-
----
-
-## Start here
-
-There is currently one demo: **`demo_trex_spca_01_mc_sim/`**, comparing all methods via a Monte Carlo simulation over a 9-point SNR sweep ($\{-10,\dots,10\}$ dB). See its local [README.md](demo_trex_spca_01_mc_sim/README.md) for the full parameter breakdown and the real committed result numbers.
-
----
-
-## Demo descriptions
-
-| # | Name | Purpose | Setting | Main parameters |
-|---|------|---------|---------|-----------------|
-| **01** | MC Sim | Compare T-Rex SPCA (2 solvers × 2 modes) against OrdPCA/OraclePCA | Sparse 3-factor model, $n=50$, $p=100$ | $p_1=5$, `overlap_pool_size=30`, tFDR=0.10, 9-point SNR sweep $\{-10,\dots,10\}$ dB, num_MC=200 |
+- **`SPCAMode`** — how the sparse loading vector is assembled once a support has been selected:
+  - `ActiveSet`: use only the T-Rex+GVS selected variables' loadings,
+  - `Thresholded`: assemble loadings from the full ordinary-PCA solution, restricted to the selected support.
+- **`ENSolverType`** — the elastic-net solver driving each per-component selection: `TENET` (Gram-based) or
+   `TENET_AUG` (augmented-LASSO formulation); see [../trex_gvs/](../trex_gvs/README.md) for the shared
+   elastic-net background.
+- **`lambda_2`** — the ridge penalty: a negative value selects it by $k$-fold cross-validation, $0$ disables
+   the ridge term, and a positive value fixes it.
+- **`tFDR`** — the target FDR handed to the per-component T-Rex selector.
 
 ---
 
@@ -88,76 +112,86 @@ There is currently one demo: **`demo_trex_spca_01_mc_sim/`**, comparing all meth
 trex_spca/
   ├── README.md
   ├── CMakeLists.txt
-  ├── trex_spca_sim_utils.hpp
+  ├── trex_spca_sim_utils.hpp          # DGP, MC loop, table + CSV output
+  ├── trex_spca_plt_utils.py           # shared plotting module (dB sweep figures)
+  │
   └── demo_trex_spca_01_mc_sim/
-      ├── demo_trex_spca_01_mc_sim.cpp
-      ├── README.md
+      ├── demo_trex_spca_01_mc_sim.cpp # the demo source
+      ├── README.md                    # scenario description and results
+      ├── generate_plots.sh            # renders this demo's figure from its CSV
       └── simulation_results/
-          ├── demo_trex_spca_01_mc_sim.txt
-          └── demo_trex_spca_01_mc_sim.csv
+          ├── data/                    # .txt summary + .csv table
+          └── plots/                   # .png + .pdf figures
 ```
 
----
-
-## Example results
-
-This demo has **real committed output** — the full 9-point SNR sweep at `num_MC = 200`, produced by the center-only pipeline and the fixed library (TRexSelector `5fceed3`). The hardest point ($-10$ dB):
-
-| Method | FDR | TPR | PEV |
-|---|---|---|---|
-| OrdPCA | 0.9500 | 1.0000 | 0.2021 |
-| OraclePCA | 0.0060 | 0.9940 | 0.1241 |
-| TRexSPCA-EN-Act | 0.0939 | 0.9960 | 0.1174 |
-| TRexSPCA-ENaug-Act | 0.1033 | 0.9950 | 0.1177 |
-| TRexSPCA-EN-Thr | 0.1001 | 0.9950 | 0.1280 |
-| TRexSPCA-ENaug-Thr | 0.0935 | 0.9970 | 0.1287 |
-
-Across the rest of the grid the four T-Rex variants hold FDR $\approx 0.05$–$0.08$ with TPR $= 1.0$ (see the demo README and `simulation_results/` for the full table).
-
-### Interpretation
-
-- **OrdPCA**'s FDR $\approx 0.95$ is the expected trivial artifact of selecting all $p=100$ loadings (true support is only $p_1=5$) — not a meaningful comparison point.
-- **OraclePCA** achieves (near-)perfect recovery (it is told the true support size); its PEV is a useful reference for "how much variance the true sparse signal explains" independent of any selection procedure.
-- All four **T-Rex SPCA** variants keep the realized FDR at or below the $\mathrm{tFDR}=0.10$ target across the whole SNR grid with TPR $\approx 1.0$ — FDR control holds, matching the legacy CRAN R reference. (The formerly documented "residual C++-vs-R gap" of $\approx 0.03$ was root-caused to the library's per-column normalization of the drawn MVN dummies and fixed upstream, TRexSelector `5fceed3`; see the demo README's history notes and `validation_trex_spca_07_matrix_dump`.)
-- The four T-Rex variants are statistically indistinguishable: TENET and TENET_AUG are the same estimator on this problem (bit-identical selections under identical dummy seeds, verified 100/100 trials), and the visible row differences are Monte Carlo dummy noise (SE $\approx \pm 0.009$ per 200-trial mean). The Thresholded variants' systematically higher PEV is the one real mode difference.
-
-> **History note (two bugs, both fixed 2026-07-08)**: (1) during an earlier debugging round the demo pipeline briefly gained a shared z-score column standardization; that converts the covariance PCA into a correlation PCA, destroys the factor amplitude signal, and pushed the measured FDR to $\approx 0.52$ — `validation_trex_spca_06_handrolled_comparison` isolated it and the pipeline is back to center-only. (2) The library's GVS selector exactly unit-normalized every drawn MVN dummy column, erasing the norm fluctuation that is part of the dummy null distribution and inflating the FDR from $\approx 0.10$ to $\approx 0.13$; root-caused via `validation_trex_spca_07_matrix_dump` and fixed upstream (TRexSelector `5fceed3`). Trial-for-trial reproduction remains intentionally impossible: each trial's **data** is drawn from a deterministic seed (`base_seed + mc*1000`), but the per-trial dummies use hardware entropy (selector seed $-1$), as required for a valid Monte Carlo FDR estimate; re-runs reproduce the table to within MC noise ($\approx \pm 0.01$ at 200 trials). See the demo's own [README.md](demo_trex_spca_01_mc_sim/README.md) for detail.
+Correctness probes for the individual pipeline stages — TENET vs. TENET_AUG equivalence, scaling
+ comparisons, step-by-step C++/R diffs, and a dump of the GVS selector's internal calibration matrices —
+ live in the library's test suite under
+ `TRexSelector/cpp/tests/validation/trex_selector_methods/trex_spca/`, built via its `build_diagnostics`
+ target. The R and Python counterparts of this demo run the identical simulation and can be used to
+ cross-check the numbers.
 
 ---
 
 ## Building the demo
 
+From the C++ workspace root:
+
 ```bash
 cd TRexSelector_Examples/cpp
-cmake -S . -B build/debug -DCMAKE_BUILD_TYPE=Debug \
+cmake -S . -B build/release -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_PREFIX_PATH="<path-to-TRexSelector>/cpp/install"
-cmake --build build/debug
+cmake --build build/release
+```
+
+The executable mirrors the source tree under the `bin/` directory:
+
+```txt
+build/release/bin/trex_selector_methods/trex_spca/<demo_folder>/<demo_name>
 ```
 
 ---
 
-## Running the demo
+## Running a demo
 
 ```bash
-./build/debug/bin/trex_selector_methods/trex_spca/demo_trex_spca_01_mc_sim/demo_trex_spca_01_mc_sim
+./build/release/bin/trex_selector_methods/trex_spca/demo_trex_spca_01_mc_sim/demo_trex_spca_01_mc_sim
 ```
 
----
+The demo writes a human-readable `.txt` summary and a tidy `.csv` table into its local
+`simulation_results/data/` folder.
 
-## Notes for new users
+Note that only the data is seeded deterministically; each trial's dummies are drawn from hardware entropy by
+ design, which is what makes the Monte Carlo FDR estimate valid. A re-run therefore reproduces the reported
+ behaviour to within Monte Carlo noise rather than exactly.
 
-- Start with `demo_trex_spca_01_mc_sim/` — it is currently the only demo in this folder.
-- Read the PC1-only FDR/TPR rationale above before interpreting results — this is a deliberate evaluation-scope choice, not a bug.
-- Cross-check numbers against the language counterparts: `R/trex_selector_methods/trex_spca/demo_trex_spca_01_mc_sim/` and `Python/trex_selector_methods/trex_spca/demo_trex_spca_01_mc_sim/` run the identical simulation. The R cross-check probes (`demo_trex_spca_02.R` rdump generator, `lambda2_probe.R` / `lambda2_foldmatch.R` for the ridge-penalty selection step, and the two dummy-variance probes) now live under `R/trex_selector_methods/validation/trex_spca/`.
-- For deeper correctness checks of individual pipeline stages, six validation programs moved to the TRexSelector library test suite under `TRexSelector/cpp/tests/validation/trex_selector_methods/trex_spca/`: `validation_trex_spca_02_solver_comparison.cpp` (TENET vs. TENET_AUG equivalence), `validation_trex_spca_03_scaling_comparison.cpp` (unit-L2 vs. z-score scaling), `validation_trex_spca_04_rdump_pipeline.cpp` (step-by-step C++/R diff), `validation_trex_spca_05_lambda2_foldmatch.cpp` (identical-fold CV curve comparison), `validation_trex_spca_06_handrolled_comparison.cpp` (hand-rolled legacy-R-recipe pipeline vs. the `TRexSPCA` class on identical centered data), and `validation_trex_spca_07_matrix_dump.cpp` (dumps the GVS selector's internal Phi/FDP calibration matrices per trial so the CRAN reference calibration can be replayed on them — the probe that localized the 2026-07-08 dummy-normalization fix). A seventh probe, `validation_trex_spca_01_lambda2_probe` (λ₂ CV vs. R `cv.glmnet`), was **not migrated**: it depended on removed CV API (`ridge_cv_glmnet` / `elastic_net_cv_gaussian`); its committed outputs `lambda2_probe_X.csv` / `lambda2_probe_y.csv` are retained beside program 05 (its downstream consumer). Build them with the library's `build_diagnostics` target; the binaries land in `TRexSelector/cpp/build/debug/bin/` and write to source-side `validation_results/`. `validation_trex_spca_04_rdump_pipeline` and `_07_matrix_dump` read an external R-dump folder (~12 MB, not committed to the library) — regenerate it in this examples package under `R/trex_selector_methods/validation/trex_spca/rdump[10]/` and pass it via `--dir <path>` (other flags: `--n`, `--seed`, `--use-r-lambda2`, `--zscore`, `--no-stagnation`, `--tenet-aug-lars`).
+### Figures
+
+The demo folder has a `generate_plots.sh` that renders its figure from the saved CSV into
+`simulation_results/plots/` using the shared `trex_spca_plt_utils.py` and the repo-root `.venv`
+(matplotlib + pandas + numpy):
+
+```bash
+cd demo_trex_spca_01_mc_sim
+./generate_plots.sh
+```
+
+The figure shows TPR, FDR (against the tFDR target) and PEV over the decibel sweep axis. `--xscale` is
+accepted for parity with the other suites, but the axis stays in dB either way.
 
 ---
 
 ## References
 
-- See [../README.md](../README.md) for the category overview of all T-Rex selector variants.
-- See [../trex_gvs/README.md](../trex_gvs/README.md) for the shared T-Rex+GVS elastic-net background (`ENSolverType`, `LambdaSelectionMethod`).
+1. Machkour, J., Muma, M., & Palomar, D. P., "False Discovery Rate Control for Grouped Variable Selection
+   in High-Dimensional Linear Models using the T-Knock Filter.", European Signal Processing Conference (EUSIPCO), 2022,
+    pp. 892–896, EURASIP.
+    [DOI-Link](https://doi.org/10.23919/EUSIPCO55093.2022.9909883)
+2. Machkour, J., Muma, M., & Palomar, D. P., "The Informed Elastic Net for Fast Grouped Variable Selection and
+   FDR Control in Genomics Research.", Workshop on Computational Advances in Multi-Sensor Adaptive Processing (CAMSAP),
+    2023, pp. 466–470, IEEE.
+    [DOI-Link](https://doi.org/10.1109/CAMSAP58249.2023.10403489)
 
 ---
 
-**Last updated**: 2026-07-08
+**Last updated**: 2026-07-20
