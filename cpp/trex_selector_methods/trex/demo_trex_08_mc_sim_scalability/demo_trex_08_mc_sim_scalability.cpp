@@ -73,7 +73,6 @@
 #include <utils/memmap/memory_mapped_matrix.hpp>
 
 // Demo utilities
-#include "../../demo_table_utils.hpp"
 #include "trex_sim_utils.hpp"
 using namespace trex_sim;
 
@@ -526,56 +525,49 @@ static void save_and_print_scalability_results(
 
     // 3. Table dimensions
     //    Solver name on its own line, metric rows indented beneath it, so the
-    //    value columns stay aligned regardless of solver-name length. The
-    //    flattened scenario x SNR axis is split into blocks that each fit the
-    //    line budget.
-    const int indent_w = demo_tables::kIndentW;
-    const int metric_w = demo_tables::kMetricW;
+    //    value columns stay aligned regardless of solver-name length.
+    const int indent_w = 2;
+    const int metric_w = 23;
     const int col_w    = 14;
-    const std::size_t n_cols = scenarios.size() * S;
-    const auto chunks  = demo_tables::column_chunks(n_cols, col_w);
+    const std::size_t sep_w =
+        static_cast<std::size_t>(indent_w + metric_w)
+        + static_cast<std::size_t>(col_w) * scenarios.size() * S;
 
-    // 4./5. One header + one set of metric rows per column block. Columns are
-    //       the flattened scenario x SNR pairs, labelled "<scenario>/<snr>".
-    auto print_header = [&](std::size_t lo, std::size_t hi) {
+    // 4. Column header + dashed separator (one column per scenario x SNR,
+    //    labelled "<scenario>/<snr>")
+    {
         std::ostringstream hdr;
         hdr << std::left << std::string(static_cast<std::size_t>(indent_w), ' ')
             << std::setw(metric_w) << "Scenario/SNR";
-        for (std::size_t i = lo; i < hi; ++i) {
-            std::ostringstream lbl;
-            lbl << scenarios[i / S].label << "/" << std::fixed
-                << std::setprecision(1) << snr_values[i % S];
-            hdr << std::right << std::setw(col_w) << lbl.str();
-        }
-        hdr << "\n"
-            << std::string(static_cast<std::size_t>(indent_w + metric_w)
-                           + static_cast<std::size_t>(col_w) * (hi - lo), '-')
-            << "\n";
-        print_dual(hdr.str());
-    };
-
-    for (std::size_t c = 0; c < chunks.size(); ++c) {
-        const auto [lo, hi] = chunks[c];
-        if (c > 0) print_dual("\n");
-        print_header(lo, hi);
-        for (const auto& solver : solvers) {
-            const auto& grid = results.at(solver.solver_name);
-            print_dual("\n" + demo_tables::series_heading(solver.solver_name, c)
-                       + "\n");                     // name on its own line
-            for (const auto& spec : scalability_metrics()) {
-                std::ostringstream row;
-                row << std::left
-                    << std::string(static_cast<std::size_t>(indent_w), ' ')
-                    << std::setw(metric_w) << spec.name;
-                // Only the passed scenarios — on incremental saves `grid` also
-                // holds default-initialized entries for scenarios not yet run
-                for (std::size_t i = lo; i < hi; ++i)
-                    row << std::right << std::fixed
-                        << std::setprecision(spec.precision)
-                        << std::setw(col_w) << spec.get(grid[i]);
-                row << "\n";
-                print_dual(row.str());
+        for (const auto& sc : scenarios) {
+            for (double snr : snr_values) {
+                std::ostringstream lbl;
+                lbl << sc.label << "/" << std::fixed << std::setprecision(1)
+                    << snr;
+                hdr << std::right << std::setw(col_w) << lbl.str();
             }
+        }
+        hdr << "\n" << std::string(sep_w, '-') << "\n";
+        print_dual(hdr.str());
+    }
+
+    // 5. Data rows: per solver, one row per metric
+    for (const auto& solver : solvers) {
+        const auto& grid = results.at(solver.solver_name);
+        print_dual("\n" + solver.solver_name + "\n");   // name on its own line
+        for (const auto& spec : scalability_metrics()) {
+            std::ostringstream row;
+            row << std::left
+                << std::string(static_cast<std::size_t>(indent_w), ' ')
+                << std::setw(metric_w) << spec.name;
+            // Only the passed scenarios — on incremental saves `grid` also
+            // holds default-initialized entries for scenarios not yet run
+            for (std::size_t i = 0; i < scenarios.size() * S; ++i)
+                row << std::right << std::fixed
+                    << std::setprecision(spec.precision)
+                    << std::setw(col_w) << spec.get(grid[i]);
+            row << "\n";
+            print_dual(row.str());
         }
     }
     print_dual("\n");

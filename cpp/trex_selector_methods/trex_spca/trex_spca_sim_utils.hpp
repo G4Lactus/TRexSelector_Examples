@@ -69,9 +69,6 @@
 #include <trex_selector_methods/trex_gvs/trex_gvs.hpp>
 #include <vector>
 
-// Demo includes
-#include "../demo_table_utils.hpp"
-
 // Eigen includes
 #include <Eigen/Dense>
 
@@ -712,52 +709,43 @@ inline void save_and_print_spca_mc_results(
     // Table dimensions
     //    The method name gets its own line; metric rows are indented beneath
     //    it, so the value columns stay aligned no matter how long a name is.
-    //    A wide sweep grid is split into blocks that each fit the line budget.
-    const int indent_w = demo_tables::kIndentW;   // leading indent of a metric row
-    const int metric_w = demo_tables::kMetricW;   // left-aligned metric label
-    const int col_w    = 10;                      // right-aligned values
-    const auto chunks  = demo_tables::column_chunks(snr_values.size(), col_w);
+    const int indent_w = 2;    // leading indent of a metric row
+    const int metric_w = 23;   // left-aligned metric label
+    const int col_w    = 10;   // right-aligned values
+    const std::size_t sep_w =
+        static_cast<std::size_t>(indent_w + metric_w)
+        + static_cast<std::size_t>(col_w) * snr_values.size();
 
     // Column header + dashed separator
-    auto print_header = [&](std::size_t lo, std::size_t hi) {
+    {
         std::ostringstream hdr;
         hdr << std::left << std::string(static_cast<std::size_t>(indent_w), ' ')
             << std::setw(metric_w) << "SNR(dB)";
-        for (std::size_t i = lo; i < hi; ++i)
+        for (double snr : snr_values)
             hdr << std::right << std::fixed << std::setprecision(2)
-                << std::setw(col_w) << snr_values[i];
-        hdr << "\n"
-            << std::string(static_cast<std::size_t>(indent_w + metric_w)
-                           + static_cast<std::size_t>(col_w) * (hi - lo), '-')
-            << "\n";
+                << std::setw(col_w) << snr;
+        hdr << "\n" << std::string(sep_w, '-') << "\n";
         print_dual(hdr.str());
-    };
+    }
 
     // Data rows
     auto print_row = [&](const std::string& metric,
-                         const Eigen::VectorXd& data,
-                         std::size_t lo, std::size_t hi) {
+                         const Eigen::VectorXd& data) {
         std::ostringstream row;
         row << std::left << std::string(static_cast<std::size_t>(indent_w), ' ')
             << std::setw(metric_w) << metric;
-        for (std::size_t i = lo; i < hi; ++i)
+        for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(snr_values.size()); ++i)
             row << std::right << std::fixed << std::setprecision(4)
-                << std::setw(col_w) << data(static_cast<Eigen::Index>(i));
+                << std::setw(col_w) << data(i);
         row << "\n";
         print_dual(row.str());
     };
 
-    for (std::size_t c = 0; c < chunks.size(); ++c) {
-        const auto [lo, hi] = chunks[c];
-        if (c > 0) print_dual("\n");
-        print_header(lo, hi);
-        for (const auto& name : method_names) {
-            // method name on its own line
-            print_dual("\n" + demo_tables::series_heading(name, c) + "\n");
-            print_row("FDR", fdr_map.at(name), lo, hi);
-            print_row("TPR", tpr_map.at(name), lo, hi);
-            print_row("PEV", pev_map.at(name), lo, hi);
-        }
+    for (const auto& name : method_names) {
+        print_dual("\n" + name + "\n");          // method name on its own line
+        print_row("FDR", fdr_map.at(name));
+        print_row("TPR", tpr_map.at(name));
+        print_row("PEV", pev_map.at(name));
     }
     print_dual("\n");
 
