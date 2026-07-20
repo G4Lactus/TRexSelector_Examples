@@ -2,8 +2,8 @@
 
 ## Purpose
 
-Ask whether the **choice of T-Rex solver backend** changes screening performance, or whether it is merely a
- speed knob.
+The demo asks whether the **choice of T-Rex solver backend** changes screening performance, or whether it
+ is merely a speed knob.
  The same i.i.d. Gaussian design as [Demo 01](../demo_trex_scr_01_mc_sim_screen_trex/README.md) is used, so
  the numbers here are directly comparable to the baseline established there.
  Three backends are swept over SNR — **TLARS** (terminating LARS), **TAFS** with $\rho = 0.3$ (terminating

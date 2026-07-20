@@ -61,7 +61,7 @@ use_memory_mapping = true    # Dummy matrices stored on disk (Boost memory-mappe
 MC = 200                     # Monte Carlo repetitions per grid point
 ```
 
-The only difference from demo 04 is `use_memory_mapping = true`. The window $\lbrack 0.05, 0.15 \rbrack$ is the routing
+The only difference from demo 04 is `use_memory_mapping = true`. The window $\lbrack 0.05, 0.15\rbrack$ is the routing
  criterion: a screening result is *accepted* only if the procedure's own estimated FDR lands inside it.
 
 ---
