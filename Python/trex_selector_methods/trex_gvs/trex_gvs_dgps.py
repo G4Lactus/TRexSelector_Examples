@@ -6,14 +6,14 @@
 # (mirrors cpp trex_gvs_dgps.hpp and R trex_gvs_dgps.R). One section per scenario;
 # every demo imports this single module.
 #
-#   Section 01 — Hastie equicorrelated groups        -> demo_trex_gvs_01
-#   Section 02 — Scattered-grouped                    -> demo_trex_gvs_02
-#   Section 03 — Mixed blocks (unequal, trap)         -> demo_trex_gvs_03
-#   Section 04 — Negative traps                       -> demo_trex_gvs_04
-#   Section 05 — Heavy-tailed (t3) equi blocks        -> demo_trex_gvs_05
-#   Section 06 — AR(1) blocks                         -> demo_trex_gvs_06
-#   Section 07 — ARMA mixed-structure blocks          -> demo_trex_gvs_07
-#   Section 08 — Block-equicorrelated benchmark       -> demo_trex_gvs_08
+#   Section 01 — Hastie equicorrelated groups   -> demo_trex_gvs_01_mc_sim_hastie_en_blocks
+#   Section 02 — Scattered-grouped              -> demo_trex_gvs_02_mc_sim_scattered_blocks
+#   Section 03 — Mixed blocks (unequal, trap)   -> demo_trex_gvs_03_mc_sim_mixed_blocks
+#   Section 04 — Negative traps                 -> demo_trex_gvs_04_mc_sim_neg_traps
+#   Section 05 — Heavy-tailed (t3) equi blocks  -> demo_trex_gvs_05_mc_sim_t3_blocks
+#   Section 06 — AR(1) blocks                   -> demo_trex_gvs_06_mc_sim_ar1_blocks
+#   Section 07 — ARMA mixed-structure blocks    -> demo_trex_gvs_07_mc_sim_arma_blocks
+#   Section 08 — Block-equicorrelated benchmark -> demo_trex_gvs_08_mc_sim_block_bench
 #
 # All noise is SNR-calibrated: sigma_y = sqrt(var(signal) / snr), with the n-1
 # (ddof=1) sample-variance denominator to match the R ports and the C++
