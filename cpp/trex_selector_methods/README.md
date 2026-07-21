@@ -16,7 +16,7 @@ Each variant addresses a different variable-selection scenario — the classical
 | **Dependency-Aware T-Rex (DA-TRex)** | [trex_da/](trex_da/README.md) | Variable selection under correlated/dependent design structures: AR(1) Toeplitz, equicorrelated, banded nearest-neighbor, and hierarchical block-covariance designs |
 | **Grouped Variable Selection (T-Rex+GVS)** | [trex_gvs/](trex_gvs/README.md) | Group-structured selection via elastic-net-based and HAC-clustering-based grouping (EN, EN-AUG, IEN) across equicorrelated, scattered, and block-covariance patterns |
 | **Screening (Screen-TRex)** | [trex_screening/](trex_screening/README.md) | Ultra-high-dimensional pre-screening ahead of T-Rex selection, with in-memory, memory-mapped, and biobank-scale variants |
-| **Sparse PCA (T-Rex SPCA)** | [trex_spca/](trex_spca/README.md) | Sparse PCA via T-Rex+GVS applied to loading matrices, benchmarked against ordinary PCA and oracle-thresholded baselines |
+| **Sparse PCA (T-Rex SPCA)** | [trex_spca/](trex_spca/README.md) | Sparse PCA via per-component T-Rex+GVS selection on plug-in PCs, benchmarked against ordinary PCA and oracle-thresholded baselines: Fig.-2/Fig.-3-style support-recovery and Definition-1 PEV studies, plus mechanism studies of the plug-in construction (plug-in vs. oracle response, union-support FDR per PC) |
 | **Validation** | [validation/](validation/README.md) | Cross-checks of C++ selector variants against R reference outputs (currently covers `trex`, `trex_da`, `trex_gvs`, and `trex_spca`) |
 
 ---
@@ -67,6 +67,7 @@ For each variant's demo lineup and required parameters, see the corresponding su
 trex_selector_methods/
   ├── README.md
   ├── CMakeLists.txt
+  ├── reformat_result_txt.py    # re-render saved .txt tables from CSVs (maintenance)
   ├── trex/
   ├── trex_screening/
   ├── trex_da/
@@ -77,4 +78,4 @@ trex_selector_methods/
 
 ---
 
-**Last updated**: 2026-07-04
+**Last updated**: 2026-07-21
