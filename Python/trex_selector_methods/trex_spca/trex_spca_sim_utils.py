@@ -13,15 +13,23 @@
 #     center_columns()                — column centering (covariance-PCA footing)
 #
 #   Evaluation:
-#     evaluate_spca()                 — PC1 TPR/FDR + cumulative PEV (QR-adjusted)
+#     evaluate_spca()                 — PC1 TPR/FDR + the three cumulative-PEV
+#                                       readings (total-variance, Definition 1,
+#                                       and the method's own Sig+Mix part)
 #
-#   MC loop functions (parallel via multiprocessing spawn):
+#   MC loop functions (parallel via ProcessPoolExecutor):
 #     run_mc_trials_trex_spca()       — MC loop for T-Rex SPCA
 #     run_mc_trials_pca()             — MC loop for the ordinary PCA baseline
 #     run_mc_trials_oracle_pca()      — MC loop for oracle thresholded PCA
 #
 #   Output:
-#     save_and_print_spca_mc_results() — table (console + .txt) + tidy .csv
+#     save_and_print_spca_sweep_results() — generic sweep table (console + .txt)
+#                                           + tidy .csv (pandas), with the axis
+#                                           header printed at a per-sweep-column
+#                                           precision (mirrors the cpp helper)
+#     save_and_print_spca_mc_results()    — SNR-sweep convenience wrapper
+#                                           (CSV column "snr_db", header
+#                                           "SNR(dB)", one decimal)
 #
 # Reproducibility pattern (mirrors cpp):
 #   - Each trial's DATA is drawn from a deterministic seed
@@ -33,19 +41,25 @@
 # Support indices are 0-based (Python convention).
 # ==============================================================================
 
-import multiprocessing
 import os
+from concurrent.futures import ProcessPoolExecutor
 
 import numpy as np
-import trex_selector_neo.trex_selector_methods as ts
+import pandas as pd
+
+import trex_selector_neo as tsn
 from trex_selector_neo.ml_methods import PCA
 
 N_CORES = min(6, os.cpu_count() or 1)
 
-_SPCA_MODE = {"ActiveSet": ts.SPCAMode.ActiveSet,
-              "Thresholded": ts.SPCAMode.Thresholded}
-_EN_SOLVER = {"TENET": ts.ENSolverType.TENET,
-              "TENET_AUG": ts.ENSolverType.TENET_AUG}
+# String -> enum maps: only plain strings cross the process boundary; workers
+# resolve them to trex_selector_neo enums on their side.
+_SPCA_MODE = {"ActiveSet": tsn.SPCAMode.ActiveSet,
+              "Thresholded": tsn.SPCAMode.Thresholded}
+_EN_SOLVER = {"TENET": tsn.ENSolverType.TENET,
+              "TENET_AUG": tsn.ENSolverType.TENET_AUG}
+_SCALING = {"L2": tsn.ScalingMode.L2,
+            "ZSCORE": tsn.ScalingMode.ZSCORE}
 
 
 # ==============================================================================
@@ -105,9 +119,9 @@ def center_columns(X):
     """Center columns (mean subtraction only, NO scaling).
 
     Covariance-PCA footing shared by every method, matching the legacy R
-    reference pipeline and TRexSPCA's internal convention. Column scales carry
-    the factor amplitude signal and must not be normalized (z-scoring destroys
-    it — see cpp validation_trex_spca_06_handrolled_comparison).
+    reference pipeline and the selector's internal convention. Column scales
+    carry the factor amplitude signal and must not be normalized (z-scoring
+    destroys it — see cpp validation_trex_spca_06_handrolled_comparison).
     """
     return X - X.mean(axis=0)
 
@@ -122,85 +136,143 @@ def evaluate_spca(X, V_est, Z_est, V_true):
     TPR / FDR are evaluated strictly on the FIRST principal component (PC1):
     PCA's orthogonality constraint mixes the loading supports of PCs 2+ across
     the true factors, making per-component support recovery metrics ambiguous
-    beyond the first PC. Cumulative PEV is computed via QR decomposition of
-    Z_est across all M components.
+    beyond the first PC. An empty true support yields TPR = 0.0 (legacy R
+    reference convention).
 
-    Returns dict(tpr, fdr, pev).
+    The cumulative adjusted EV follows Zou/Hastie/Tibshirani: a QR
+    decomposition of Z_est removes the variance correlated components would
+    double-count, so the diagonal of R carries each component's incremental
+    contribution. It is reported under THREE normalizations (mirrors the cpp
+    evaluate_spca; see the suite README for the full account):
+
+      pev        — divided by the total variance of X (bounded by 1).
+      pev_sig    — Definition 1 of the reference paper: divided by the
+                   Signal + Mixed EV OF THE DATA, i.e. the variance carried by
+                   the true active variables (union of the factor supports),
+                   ||X_A||_F^2 / (n-1) — FIXED per dataset and SHARED by all
+                   methods. Deliberately uncapped: a method that spends
+                   loadings on null variables accumulates variance the
+                   denominator does not contain and climbs past 1. Denominator
+                   convention validated against the published Fig. 3 by the
+                   legacy R reference (demo_trex_spca_03_fig3.R, mode
+                   "active"); it is NOT the method's own Signal + Mixed EV —
+                   that self-normalized reading is structurally >= 1 for
+                   null-capturing methods and inverts the SNR trend.
+      pev_sigmix — the method's OWN Signal + Mixed part (raw EV minus the Null
+                   EV of its loadings, split by variable) over the same shared
+                   denominator; read for OrdPCA it is the paper's
+                   "Ordinary PCA (Sig + Mix)" reference curve.
+
+    V_true may have FEWER columns than V_est/Z_est: sweeping the extracted PC
+    count past the number of true factors is how Fig. 3(a) of the reference
+    paper is built — the extra components are null by definition.
+
+    Returns dict(tpr, fdr, pev, pev_sig, pev_sigmix).
     """
     n = X.shape[0]
-    M = V_est.shape[1]
 
-    # 1. TPR / FDR strictly on PC1
+    # -----------------------------------------------------------------
+    # 1. TPR / FDR strictly on the FIRST component
+    # -----------------------------------------------------------------
     true_supp_pc1 = set(np.flatnonzero(V_true[:, 0] != 0.0))
     est_supp_pc1 = set(np.flatnonzero(np.abs(V_est[:, 0]) > 1e-12))
 
     tp = len(true_supp_pc1 & est_supp_pc1)
-    tpr = 1.0 if not true_supp_pc1 else tp / len(true_supp_pc1)
-    fdr = 0.0 if not est_supp_pc1 else (len(est_supp_pc1) - tp) / len(est_supp_pc1)
+    tpr = 0.0 if not true_supp_pc1 else tp / len(true_supp_pc1)
+    fdr = (0.0 if not est_supp_pc1
+           else (len(est_supp_pc1) - tp) / len(est_supp_pc1))
 
-    # 2. Cumulative PEV across ALL components (QR of Z_est)
+    # -----------------------------------------------------------------
+    # 2. Cumulative adjusted EV across ALL components (QR of Z_est)
+    # -----------------------------------------------------------------
     R = np.linalg.qr(Z_est, mode="r")
+    cum_ev = (np.diag(R) ** 2).sum() / (n - 1)
+
+    # 2a. PEV, normalized by the TOTAL variance of X (bounded by 1)
     total_var = (X ** 2).sum() / (n - 1)
-    cum_ev = (np.diag(R)[:M] ** 2).sum() / (n - 1)
     pev = cum_ev / total_var if total_var > 0.0 else 0.0
 
-    return dict(tpr=tpr, fdr=fdr, pev=pev)
+    # 2b. PEV, normalized by the data's SIGNAL + MIXED EV (Definition 1).
+    # Membership of A is per VARIABLE (row of V_true): active when it belongs
+    # to the true support of at least one factor.
+    row_active = (V_true != 0.0).any(axis=1)
+    sig_mixed_ev = (X[:, row_active] ** 2).sum() / (n - 1)
+    pev_sig = cum_ev / sig_mixed_ev if sig_mixed_ev > 0.0 else 0.0
+
+    # 2c. The method's own Signal + Mixed share over the same denominator:
+    # split V_est by variable into active and null rows and remove the Null EV
+    # from its raw (unadjusted) EV.
+    V_null = V_est.copy()
+    V_null[row_active, :] = 0.0
+    raw_ev = ((X @ V_est) ** 2).sum() / (n - 1)
+    null_ev = ((X @ V_null) ** 2).sum() / (n - 1)
+    pev_sigmix = ((raw_ev - null_ev) / sig_mixed_ev
+                  if sig_mixed_ev > 0.0 else 0.0)
+
+    return dict(tpr=tpr, fdr=fdr, pev=pev, pev_sig=pev_sig,
+                pev_sigmix=pev_sigmix)
 
 
 # ==============================================================================
-# Per-trial workers (top-level, importable by multiprocessing spawn workers)
+# Per-trial workers (top-level, importable by ProcessPoolExecutor spawn workers)
 # ==============================================================================
 
 def _trial_trex_spca(task):
-    seed, dgp_kwargs, tFDR, mode, lambda_2, en_solver = task
+    (seed, dgp_kwargs, tFDR, mode, lambda_2, en_solver, scaling_mode,
+     num_components) = task
     dat = generate_sparse_factor_model(seed=seed, **dgp_kwargs)
     X = center_columns(dat["X"])
-    M = dat["V"].shape[1]
 
-    ctrl = ts.TRexSPCAControlParameter()
+    ctrl = tsn.TRexSPCAControlParameter()
     ctrl.mode = _SPCA_MODE[mode]
     ctrl.en_solver = _EN_SOLVER[en_solver]
-    ctrl.gvs_ctrl.lambda2_method = ts.LambdaSelectionMethod.CV_1SE_CCD
+    # The base control parameters live under gvs_ctrl.trex_ctrl (GVS
+    # sub-selector) — TRexSPCAControlParameter has no top-level trex_ctrl.
+    ctrl.gvs_ctrl.trex_ctrl.scaling_mode = _SCALING[scaling_mode]
+    ctrl.gvs_ctrl.lambda2_method = tsn.LambdaSelectionMethod.CV_1SE_CCD
     ctrl.gvs_ctrl.lambda_2 = lambda_2  # < 0: auto via CV; 0: no ridge; > 0: fixed
 
-    # Selector seed -1: hardware entropy per trial (dummies independent across
-    # trials). The selector maps X zero-copy — pass a Fortran-ordered copy.
-    sel = ts.TRexSPCASelector(np.asfortranarray(X), M, tFDR, ctrl, -1, False)
-    sel.select()
-    res = sel.getResult()
+    # 0 means "extract as many components as there are true factors"; a
+    # positive value decouples the two (Fig. 3(a) sweeps the PC count).
+    n_comp = num_components if num_components > 0 else dat["V"].shape[1]
 
-    m = evaluate_spca(X, np.asarray(res.V), np.asarray(res.Z), dat["V"])
-    return m["tpr"], m["fdr"], m["pev"]
+    # Selector seed -1: hardware entropy per trial (dummies independent across
+    # trials). The wrapper maps X zero-copy — hand it a Fortran-ordered copy.
+    sel = tsn.TRexSPCASelector(np.asfortranarray(X), spca_ctrl=ctrl, seed=-1)
+    sel.select(n_comp, tFDR)
+
+    m = evaluate_spca(X, np.asarray(sel.V), np.asarray(sel.Z), dat["V"])
+    return m["tpr"], m["fdr"], m["pev"], m["pev_sig"], m["pev_sigmix"]
 
 
 def _trial_pca(task):
-    seed, dgp_kwargs = task
+    seed, dgp_kwargs, num_components = task
     dat = generate_sparse_factor_model(seed=seed, **dgp_kwargs)
     X = center_columns(dat["X"])
-    M = dat["V"].shape[1]
+    n_comp = num_components if num_components > 0 else dat["V"].shape[1]
 
     # X is already centered -> center=False, normalize=False (covariance PCA).
     pca = PCA(center=False, normalize=False)
-    res = pca.fit(np.asfortranarray(X), M)
+    res = pca.fit(np.asfortranarray(X), n_comp)
 
     m = evaluate_spca(X, np.asarray(res.V), np.asarray(res.Z), dat["V"])
-    return m["tpr"], m["fdr"], m["pev"]
+    return m["tpr"], m["fdr"], m["pev"], m["pev_sig"], m["pev_sigmix"]
 
 
 def _trial_oracle_pca(task):
-    seed, dgp_kwargs, p1 = task
+    seed, dgp_kwargs, p1, num_components = task
     dat = generate_sparse_factor_model(seed=seed, **dgp_kwargs)
     X = center_columns(dat["X"])
     p = X.shape[1]
-    M = dat["V"].shape[1]
+    n_comp = num_components if num_components > 0 else dat["V"].shape[1]
 
     pca = PCA(center=False, normalize=False)
-    ord_res = pca.fit(np.asfortranarray(X), M)
+    ord_res = pca.fit(np.asfortranarray(X), n_comp)
     V_ord = np.asarray(ord_res.V)
 
     # Keep top p1 entries per loading vector, then normalize
-    V_oracle = np.zeros((p, M))
-    for comp in range(M):
+    V_oracle = np.zeros((p, n_comp))
+    for comp in range(n_comp):
         v_m = V_ord[:, comp]
         thresh = np.sort(np.abs(v_m))[p - p1]
         keep = np.abs(v_m) >= thresh
@@ -209,7 +281,7 @@ def _trial_oracle_pca(task):
     Z_oracle = X @ V_oracle
 
     m = evaluate_spca(X, V_oracle, Z_oracle, dat["V"])
-    return m["tpr"], m["fdr"], m["pev"]
+    return m["tpr"], m["fdr"], m["pev"], m["pev_sig"], m["pev_sigmix"]
 
 
 # ==============================================================================
@@ -219,17 +291,17 @@ def _trial_oracle_pca(task):
 def _run_mc(worker, tasks, label, n_cores):
     print(f"  {label} — Running {len(tasks)} MC trials ...", flush=True)
     if n_cores > 1:
-        with multiprocessing.get_context("spawn").Pool(n_cores) as pool:
-            res = pool.map(worker, tasks)
+        with ProcessPoolExecutor(max_workers=n_cores) as executor:
+            res = list(executor.map(worker, tasks))
     else:
         res = [worker(t) for t in tasks]
 
-    tpr = np.array([r[0] for r in res])
-    fdr = np.array([r[1] for r in res])
-    pev = np.array([r[2] for r in res])
-    out = dict(avg_tpr=tpr.mean(), avg_fdr=fdr.mean(), avg_pev=pev.mean(),
-               sd_tpr=tpr.std(ddof=1) if len(tpr) > 1 else 0.0,
-               sd_fdr=fdr.std(ddof=1) if len(fdr) > 1 else 0.0)
+    arr = np.asarray(res)  # (num_MC, 5): tpr, fdr, pev, pev_sig, pev_sigmix
+    out = dict(avg_tpr=arr[:, 0].mean(), avg_fdr=arr[:, 1].mean(),
+               avg_pev=arr[:, 2].mean(), avg_pev_sig=arr[:, 3].mean(),
+               avg_pev_sigmix=arr[:, 4].mean(),
+               sd_tpr=arr[:, 0].std(ddof=1) if len(arr) > 1 else 0.0,
+               sd_fdr=arr[:, 1].std(ddof=1) if len(arr) > 1 else 0.0)
     print(f"  {label} — done. TPR={out['avg_tpr']:.3f}  FDR={out['avg_fdr']:.3f}\n",
           flush=True)
     return out
@@ -241,41 +313,47 @@ def _run_mc(worker, tasks, label, n_cores):
 
 def run_mc_trials_trex_spca(num_MC, progress_label, dgp_kwargs, tFDR, mode,
                             base_seed_offset, lambda_2=-1.0, en_solver="TENET",
+                            scaling_mode="L2", num_components=0,
                             n_cores=N_CORES):
     """Run num_MC parallel T-Rex SPCA trials.
 
     Per trial: the DGP draws data from seed base_seed_offset + mc*1000; the
     pipeline centers X once (covariance PCA); this same X is shared by the
     selector and by evaluate_spca(). mode is "ActiveSet" or "Thresholded";
-    en_solver is "TENET" or "TENET_AUG". Returns dict(avg_tpr, avg_fdr,
-    avg_pev, sd_tpr, sd_fdr).
+    en_solver is "TENET" or "TENET_AUG"; scaling_mode is "L2" or "ZSCORE"
+    (per-PC selector column scaling); num_components > 0 extracts that many
+    PCs instead of the number of true factors. Returns dict(avg_tpr, avg_fdr,
+    avg_pev, avg_pev_sig, avg_pev_sigmix, sd_tpr, sd_fdr).
     """
     tasks = [(base_seed_offset + mc * 1000, dgp_kwargs, tFDR, mode,
-              lambda_2, en_solver) for mc in range(num_MC)]
+              lambda_2, en_solver, scaling_mode, num_components)
+             for mc in range(num_MC)]
     return _run_mc(_trial_trex_spca, tasks, progress_label, n_cores)
 
 
 def run_mc_trials_pca(num_MC, progress_label, dgp_kwargs, base_seed_offset,
-                      n_cores=N_CORES):
+                      num_components=0, n_cores=N_CORES):
     """Run num_MC parallel ordinary PCA trials.
 
     Ordinary PCA retains all p loadings per component (no sparsity), so
-    FDR ~ (p - p1) / p and TPR = 1 regardless of SNR; the metric of interest
-    is the cumulative PEV.
+    FDR ~ (p - p1) / p and TPR = 1 regardless of SNR; the metrics of interest
+    are the cumulative-PEV readings.
     """
-    tasks = [(base_seed_offset + mc * 1000, dgp_kwargs) for mc in range(num_MC)]
+    tasks = [(base_seed_offset + mc * 1000, dgp_kwargs, num_components)
+             for mc in range(num_MC)]
     return _run_mc(_trial_pca, tasks, progress_label, n_cores)
 
 
 def run_mc_trials_oracle_pca(num_MC, progress_label, dgp_kwargs, p1,
-                             base_seed_offset, n_cores=N_CORES):
+                             base_seed_offset, num_components=0,
+                             n_cores=N_CORES):
     """Run num_MC parallel oracle-thresholded PCA trials.
 
     Oracle PCA keeps exactly the top p1 entries (by absolute value) of each
     ordinary-PCA loading vector — it knows the true support cardinality. This
     bounds what any data-driven thresholding method can achieve.
     """
-    tasks = [(base_seed_offset + mc * 1000, dgp_kwargs, p1)
+    tasks = [(base_seed_offset + mc * 1000, dgp_kwargs, p1, num_components)
              for mc in range(num_MC)]
     return _run_mc(_trial_oracle_pca, tasks, progress_label, n_cores)
 
@@ -284,15 +362,28 @@ def run_mc_trials_oracle_pca(num_MC, progress_label, dgp_kwargs, p1,
 # Output
 # ==============================================================================
 
-def save_and_print_spca_mc_results(out_dir, file_stem, num_MC, snr_values,
-                                   method_names, fdr_map, tpr_map, pev_map):
-    """Print MC-averaged results as an aligned table (console + .txt) and
-    write a tidy long-format CSV (method, metric, snr_db, value).
+def save_and_print_spca_sweep_results(out_dir, file_stem, num_MC, sweep_col,
+                                      sweep_header, sweep_precision,
+                                      axis_values, method_names, fdr_map,
+                                      tpr_map, pev_map, pev_sig_map,
+                                      pev_sigmix_map,
+                                      include_support_metrics=True):
+    """Print MC-averaged sweep results as an aligned table (console + .txt) and
+    write a tidy long-format CSV (method, metric, <sweep_col>, value).
 
-    fdr_map / tpr_map / pev_map are dicts: method name -> list of values over
-    the SNR grid.
+    Mirrors cpp save_and_print_spca_sweep_results: the method name gets its own
+    line with the metric rows indented beneath it, and the axis header row is
+    printed at the per-sweep-column precision `sweep_precision`. When
+    `include_support_metrics` is False the displayed table carries only the
+    cumulative-PEV rows; FDR and TPR stay in the tidy CSV either way — they
+    are the data record.
+
+    fdr_map / tpr_map / pev_map / pev_sig_map / pev_sigmix_map are dicts:
+    method name -> list of values over the sweep grid.
     """
     os.makedirs(out_dir, exist_ok=True)
+
+    indent_w, metric_w, col_w = 2, 23, 10
 
     lines = []
     lines.append("")
@@ -301,18 +392,26 @@ def save_and_print_spca_mc_results(out_dir, file_stem, num_MC, snr_values,
     lines.append("=" * 70)
     lines.append("")
 
-    hdr = f"{'Method':<22}{'Metric':<8}{'SNR(dB)':>8}"
-    hdr += "".join(f"{snr:>10.1f}" for snr in snr_values)
+    hdr = " " * indent_w + f"{sweep_header:<{metric_w}}"
+    hdr += "".join(f"{v:>{col_w}.{sweep_precision}f}" for v in axis_values)
     lines.append(hdr)
-    lines.append("-" * (38 + 10 * len(snr_values)))
+    lines.append("-" * (indent_w + metric_w + col_w * len(axis_values)))
+
+    def row(metric, values):
+        r = " " * indent_w + f"{metric:<{metric_w}}"
+        r += "".join(f"{v:>{col_w}.4f}" for v in values)
+        return r
 
     for name in method_names:
-        for metric, mmap in (("FDR", fdr_map), ("TPR", tpr_map), ("PEV", pev_map)):
-            first = metric == "FDR"
-            row = f"{name if first else '':<22}{metric:<8}{'':>8}"
-            row += "".join(f"{v:>10.4f}" for v in mmap[name])
-            lines.append(row)
         lines.append("")
+        lines.append(name)                      # method name on its own line
+        if include_support_metrics:
+            lines.append(row("FDR", fdr_map[name]))
+            lines.append(row("TPR", tpr_map[name]))
+        lines.append(row("PEV (total var)", pev_map[name]))
+        lines.append(row("PEV (Definition 1)", pev_sig_map[name]))
+        lines.append(row("PEV (sig+mix part)", pev_sigmix_map[name]))
+    lines.append("")
 
     text = "\n".join(lines) + "\n"
     print(text, end="", flush=True)
@@ -320,13 +419,31 @@ def save_and_print_spca_mc_results(out_dir, file_stem, num_MC, snr_values,
     with open(txt_path, "w") as f:
         f.write(text)
 
+    # Tidy long-format CSV (method, metric, <sweep_col>, value); the axis is
+    # written at fixed 6-decimal precision, matching the cpp CSVs.
+    rows = []
+    for name in method_names:
+        for i, v in enumerate(axis_values):
+            axis_str = f"{v:.6f}"
+            for metric, mmap in (("FDR", fdr_map), ("TPR", tpr_map),
+                                 ("PEV", pev_map), ("PEVsig", pev_sig_map),
+                                 ("PEVsigmix", pev_sigmix_map)):
+                rows.append({"method": name, "metric": metric,
+                             sweep_col: axis_str, "value": mmap[name][i]})
     csv_path = os.path.join(out_dir, file_stem + ".csv")
-    with open(csv_path, "w") as f:
-        f.write("method,metric,snr_db,value\n")
-        for name in method_names:
-            for i, snr in enumerate(snr_values):
-                f.write(f"{name},FDR,{snr:.6f},{fdr_map[name][i]:.6f}\n")
-                f.write(f"{name},TPR,{snr:.6f},{tpr_map[name][i]:.6f}\n")
-                f.write(f"{name},PEV,{snr:.6f},{pev_map[name][i]:.6f}\n")
+    pd.DataFrame(rows).to_csv(csv_path, index=False, float_format="%.6f")
     print(f"[Info] CSV results saved to:             {csv_path}")
     print(f"[Info] Results successfully saved to: {txt_path}\n")
+
+
+def save_and_print_spca_mc_results(out_dir, file_stem, num_MC, snr_values,
+                                   method_names, fdr_map, tpr_map, pev_map,
+                                   pev_sig_map, pev_sigmix_map):
+    """SNR-sweep convenience wrapper around save_and_print_spca_sweep_results.
+
+    Fixes the sweep axis to the decibel SNR grid this suite reports on by
+    default: CSV column "snr_db", table header "SNR(dB)", one decimal.
+    """
+    save_and_print_spca_sweep_results(
+        out_dir, file_stem, num_MC, "snr_db", "SNR(dB)", 1, snr_values,
+        method_names, fdr_map, tpr_map, pev_map, pev_sig_map, pev_sigmix_map)
