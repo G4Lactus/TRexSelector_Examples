@@ -2,39 +2,44 @@
 # trex_scr_common.py
 # ==============================================================================
 #
-# Shared infrastructure for the Screen-TRex Python demonstration suite.
+# Shared Monte Carlo infrastructure for the Screen-TRex Python demo suite.
 #
-# Mirrors the C++ demo-internal header
-#   cpp/trex_selector_methods/trex_screening/demo_trex_scr_common.hpp
-# and the Sections 1-4 of the R helper
-#   R/trex_selector_methods/trex_screening/trex_scr_sim_utils.R
+# Mirrors the C++ demo-internal headers
+#   cpp/trex_selector_methods/trex_screening/trex_screening_dgps.hpp
+#   cpp/trex_selector_methods/trex_screening/trex_screening_simulation_utils.hpp
 #
 # Provides:
 #   Section 1 - data-generating processes (i.i.d., AR(1), equi, block-equi),
-#   Section 2 - Screen-TRex control-parameter factories,
-#   Section 3 - single-run result printer,
-#   Section 4 - Monte Carlo runner + dual TXT/CSV table output.
+#   Section 2 - Screen-TRex control-parameter factories (flat + object),
+#   Section 3 - ProcessPoolExecutor worker + parallel MC runner,
+#   Section 4 - dual console/TXT table + tidy pandas CSV output.
 #
 # Support sets and selected indices are 0-BASED throughout (matching the C++
 # sources; the R suite is 1-based). The C++ demos draw with std::mt19937 and
 # this suite uses NumPy's Generator, so seeds are mirrored as *labels* only:
 # results are statistically comparable to the C++/R reference, not bit-identical.
+#
+# Parallelism follows the suite convention (see Python/README.md): trials run in
+# a concurrent.futures.ProcessPoolExecutor. Workers are module-level functions
+# and receive only picklable flat dicts; the trex_selector_neo enums/controls
+# are rebuilt inside each worker, never sent across a process boundary. On macOS
+# the spawn start method copies sys.path, so the sys.path insert below lets
+# spawned workers import this module and its siblings.
 # ==============================================================================
 
 import os
+import sys
+from concurrent.futures import ProcessPoolExecutor
 
 import numpy as np
-import trex_selector_neo as ts
+import pandas as pd
+
+import trex_selector_neo as tsn
 from trex_selector_neo.utils import compute_fdp, compute_tpp
 
-_SOLVER = {"TLARS": ts.SolverTypeForTRex.TLARS,
-           "TAFS":  ts.SolverTypeForTRex.TAFS,
-           "TOMP":  ts.SolverTypeForTRex.TOMP}
-
-_SCREEN_METHOD = {"TREX":               ts.ScreenTRexMethod.TREX,
-                  "TREX_DA_AR1":        ts.ScreenTRexMethod.TREX_DA_AR1,
-                  "TREX_DA_EQUI":       ts.ScreenTRexMethod.TREX_DA_EQUI,
-                  "TREX_DA_BLOCK_EQUI": ts.ScreenTRexMethod.TREX_DA_BLOCK_EQUI}
+_THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+if _THIS_DIR not in sys.path:
+    sys.path.insert(0, _THIS_DIR)
 
 
 # ==============================================================================
@@ -42,7 +47,7 @@ _SCREEN_METHOD = {"TREX":               ts.ScreenTRexMethod.TREX,
 # ==============================================================================
 
 def make_beta(p, p1, beta_val):
-    """Evenly-spaced sparse beta vector (mirrors make_beta() in cpp demo 03).
+    """Evenly-spaced sparse beta vector (mirrors make_beta() in the cpp DGPs).
 
     Active indices are placed at round(i * p / (p1 + 2)) for i = 1..p1 (0-based).
     """
@@ -74,7 +79,7 @@ def _standardise_cols(X):
 
 
 def dgp_iid_snr(n, p, true_support, coefs, snr, seed):
-    """i.i.d. Gaussian DGP (mirrors datagen::SyntheticData in demos 01/02/06).
+    """i.i.d. Gaussian DGP (mirrors make_iid_dgp / datagen::SyntheticData).
 
     X ~ N(0, 1) i.i.d.; y = X beta + eps with SNR-calibrated noise.
     Returns dict(X, y, true_support) with a sorted 0-based support.
@@ -88,7 +93,7 @@ def dgp_iid_snr(n, p, true_support, coefs, snr, seed):
 
 
 def dgp_ar1(n, p, p1, rho, snr, beta_val, seed):
-    """AR(1) column-correlated DGP (mirrors dgp_ar1 in cpp demo 03)."""
+    """AR(1) column-correlated DGP (mirrors make_ar1_dgp)."""
     rng = np.random.default_rng(seed)
     innov_sd = np.sqrt(1 - rho ** 2)
     X = np.zeros((n, p))
@@ -102,7 +107,7 @@ def dgp_ar1(n, p, p1, rho, snr, beta_val, seed):
 
 
 def dgp_equi(n, p, p1, rho, snr, beta_val, seed):
-    """Equicorrelated DGP (mirrors dgp_equi in cpp demo 03).
+    """Equicorrelated DGP (mirrors make_equi_dgp).
 
     x_j = sqrt(rho) * f + sqrt(1 - rho) * w_j, one shared factor f per row.
     """
@@ -118,7 +123,7 @@ def dgp_equi(n, p, p1, rho, snr, beta_val, seed):
 
 
 def dgp_block_equi(n, p, p1, rho, n_blocks, snr, beta_val, seed):
-    """Block-equicorrelated DGP (mirrors dgp_block_equi in cpp demo 03).
+    """Block-equicorrelated DGP (mirrors make_block_equi_dgp).
 
     Contiguous blocks, each with its own shared factor.
     """
@@ -144,109 +149,173 @@ def dgp_block_equi(n, p, p1, rho, n_blocks, snr, beta_val, seed):
 # ==============================================================================
 # Section 2 - Control-parameter factories
 # ==============================================================================
+#
+# Solver names and screening methods are resolved to trex_selector_neo enums by
+# name via getattr, so the flat arg dicts stay picklable across the process
+# boundary and the enums are only ever built inside a worker.
+#
 
-def make_scr_trex_ctrl(solver="TLARS", use_memory_mapping=False, **overrides):
-    """Default TRexControlParameter for Screen-TRex (mirrors make_scr_trex_ctrl).
 
-    K = 20, max_dummy_multiplier = 10, use_max_T_stop = True, STANDARD L-loop,
-    Normal dummy distribution. Extra keyword overrides are applied to the
-    control (rho_afs is routed to solver_params; tloop_stagnation_stop and
-    tloop_max_stagnant_steps set the stagnation stop used by TAFS/TOMP).
+def _build_trex_ctrl(d):
+    """Build a tsn.TRexControlParameter from a flat, picklable dict.
+
+    Mirrors make_trex_control() / make_trex_control_mmap() / make_trex_ctrl_for()
+    in the cpp simulation utils. Rebuilt inside worker processes.
     """
-    ctrl = ts.TRexControlParameter()
-    ctrl.K = int(overrides.pop("K", 20))
-    ctrl.max_dummy_multiplier = int(overrides.pop("max_dummy_multiplier", 10))
-    ctrl.use_max_T_stop = bool(overrides.pop("use_max_T_stop", True))
-    ctrl.lloop_strategy = ts.LLoopStrategy.STANDARD
-    ctrl.dummy_distribution = ts.DummyDistribution.normal()
-    ctrl.solver_type = _SOLVER[solver]
-    ctrl.use_memory_mapping = bool(use_memory_mapping)
-    ctrl.tloop_stagnation_stop = bool(overrides.pop("tloop_stagnation_stop", False))
-    ctrl.tloop_max_stagnant_steps = int(overrides.pop("tloop_max_stagnant_steps", 10))
-    if "rho_afs" in overrides:
-        ctrl.solver_params.rho_afs = float(overrides.pop("rho_afs"))
-    if overrides:
-        raise TypeError(f"unexpected control overrides: {sorted(overrides)}")
+    ctrl = tsn.TRexControlParameter()
+    ctrl.K = int(d.get("K", 20))
+    ctrl.lloop_strategy = tsn.LLoopStrategy.STANDARD
+    ctrl.dummy_distribution = tsn.DummyDistribution.normal()
+    ctrl.solver_type = getattr(tsn.SolverTypeForTRex, d.get("solver", "TLARS"))
+    ctrl.use_memory_mapping = bool(d.get("use_memory_mapping", False))
+    ctrl.tloop_stagnation_stop = bool(d.get("tloop_stagnation_stop", False))
+    ctrl.tloop_max_stagnant_steps = int(d.get("tloop_max_stagnant_steps", 10))
+    if d.get("rho_afs") is not None:
+        ctrl.solver_params.rho_afs = float(d["rho_afs"])
     return ctrl
 
 
-def make_screen_ctrl(trex_method="TREX", bootstrap=False, R_boot=1000,
-                     ci_grid_step=0.001):
-    """Default ScreenTRexControlParameter (mirrors make_screen_control())."""
-    sc = ts.ScreenTRexControlParameter()
-    sc.trex_method = _SCREEN_METHOD[trex_method]
-    sc.use_bootstrap_CI = bool(bootstrap)
-    sc.R_boot = int(R_boot)
-    sc.ci_grid_step = float(ci_grid_step)
+def _build_screen_ctrl(d):
+    """Build a tsn.ScreenTRexControlParameter from a flat dict.
+
+    Mirrors make_screen_control(): trex_method / use_bootstrap_CI / R_boot /
+    ci_grid_step / rho_thr_DA / n_blocks. Rebuilt inside worker processes.
+    """
+    sc = tsn.ScreenTRexControlParameter()
+    sc.trex_method = getattr(tsn.ScreenTRexMethod, d.get("trex_method", "TREX"))
+    sc.use_bootstrap_CI = bool(d.get("bootstrap", False))
+    sc.R_boot = int(d.get("R_boot", 1000))
+    sc.ci_grid_step = float(d.get("ci_grid_step", 0.001))
+    sc.rho_thr_DA = float(d.get("rho_thr_DA", 0.02))
+    sc.n_blocks = int(d.get("screen_n_blocks", 5))
     return sc
 
 
 def default_scr_methods():
-    """Ordinary-vs-Bootstrap method descriptors (mirrors default_methods())."""
+    """Ordinary-vs-Bootstrap method descriptors (mirrors default_methods()).
+
+    Names match the cpp display strings.
+    """
     return [
-        {"name": "Screen-TRex Ordinary",  "trex_method": "TREX", "bootstrap": False},
-        {"name": "Screen-TRex Bootstrap", "trex_method": "TREX", "bootstrap": True},
+        {"name": "Screen-TRex Ordinary: TLARS",     "trex_method": "TREX", "bootstrap": False},
+        {"name": "Screen-TRex Bootstrap-CI: TLARS", "trex_method": "TREX", "bootstrap": True},
     ]
 
 
 # ==============================================================================
-# Section 3 - Single-run result printer
+# Section 3 - ProcessPoolExecutor worker + parallel MC runner
 # ==============================================================================
 
-def print_scr_result(sel, res, true_support):
-    """Print a single Screen-TRex selection block (mirrors print_screen_result)."""
-    selected = np.sort(sel.selected_indices).tolist()
-    true_support = sorted(int(i) for i in true_support)
-    print(f"\n  Estimated FDR:  {res.estimated_FDR:.4f}")
-    if abs(res.estimated_correlation) > 0:
-        print(f"  Estimated rho:  {res.estimated_correlation:.4f}")
-    if res.used_bootstrap:
-        print("  Bootstrap:      yes")
-        print(f"  Conf. level:    {res.confidence_level:.4f}")
-    print(f"  Selected ({len(selected)}):  {' '.join(map(str, selected))}")
-    fdp = compute_fdp(selected, true_support)
-    tpp = compute_tpp(selected, true_support)
-    print(f"  FDP: {fdp:.4f}  |  TPP: {tpp:.4f}")
-    print(f"  True support:   {' '.join(map(str, true_support))}\n")
-    return {"fdp": fdp, "tpp": tpp}
+def _build_screen_data(args):
+    """Generate one Monte Carlo dataset from a flat args dict (inside a worker).
 
-
-# ==============================================================================
-# Section 4 - Monte Carlo runner + table output
-# ==============================================================================
-
-def run_mc_screen(num_MC, label, make_data, trex_ctrl, screen_args, base_seed):
-    """Run num_MC Screen-TRex trials for one grid point (mirrors run_mc_screen).
-
-    make_data(seed) -> dict(X, y, true_support); the selector uses seed = -1
-    (hardware entropy per trial, matching the C++ MC loop). Returns
-    dict(avg_fdr, avg_tpr, avg_est_fdr).
+    Supports the four DGP kinds used across the suite. For the i.i.d. DGP the
+    active support and (optionally) coefficients are drawn from RNG streams
+    offset from the trial seed (by 500000 / 600000), matching the cpp make_iid_dgp
+    isolation of support/coefficient draws from the design/noise draws.
     """
-    fdp = np.empty(num_MC)
-    tpp = np.empty(num_MC)
-    est = np.empty(num_MC)
-    for mc in range(num_MC):
-        dat = make_data(base_seed + mc)
-        sc = make_screen_ctrl(trex_method=screen_args["trex_method"],
-                              bootstrap=screen_args["bootstrap"],
-                              R_boot=screen_args.get("R_boot", 1000))
-        sel = ts.TRexScreeningSelector(dat["X"], dat["y"], screen_control=sc,
-                                       trex_control=trex_ctrl, seed=-1, verbose=False)
-        res = sel.select()
-        selected = list(sel.selected_indices)
-        tsup = dat["true_support"].tolist()
-        fdp[mc] = compute_fdp(selected, tsup)
-        tpp[mc] = compute_tpp(selected, tsup)
-        est[mc] = res.estimated_FDR
-    avg = (float(fdp.mean()), float(tpp.mean()), float(est.mean()))
-    print(f"  {label} -- done.  TPR={avg[1]:.4f}  FDR={avg[0]:.4f}  Est.FDR={avg[2]:.4f}")
-    return {"avg_fdr": avg[0], "avg_tpr": avg[1], "avg_est_fdr": avg[2]}
+    kind = args["dgp_kind"]
+    n, p = args["n"], args["p"]
+    snr = args["snr"]
+    seed = args["trial_seed"]
+
+    if kind == "iid":
+        support_size = args["support_size"]
+        support = args.get("fixed_support")
+        if support is None:
+            rng_sup = np.random.default_rng(seed + 500000)          # isolated support RNG
+            support = rng_sup.choice(p, size=support_size, replace=False)
+        else:
+            support = np.asarray(support)
+        if args.get("rnd_coef", False):
+            rng_coef = np.random.default_rng(seed + 600000)         # isolated coefficient RNG
+            coefs = rng_coef.standard_normal(len(support))
+        else:
+            coefs = np.full(len(support), 1.0)
+        return dgp_iid_snr(n, p, support, coefs, snr, seed)
+
+    p1, rho, beta_val = args["p1"], args["rho"], args["beta_val"]
+    if kind == "ar1":
+        return dgp_ar1(n, p, p1, rho, snr, beta_val, seed)
+    if kind == "equi":
+        return dgp_equi(n, p, p1, rho, snr, beta_val, seed)
+    if kind == "block_equi":
+        return dgp_block_equi(n, p, p1, rho, args["dgp_n_blocks"], snr, beta_val, seed)
+    raise ValueError(f"unknown dgp_kind: {kind!r}")
 
 
-def _fmt_row(name, metric, vec, name_w=31, metric_w=10, sweep_w=10, col_w=10):
-    s = f"{name:<{name_w}}{metric:<{metric_w}}{'':<{sweep_w}}"
-    s += "".join(f"{v:>{col_w}.4f}" for v in vec)
-    return s
+def _screen_trial_worker(args):
+    """Top-level ProcessPoolExecutor worker: one Screen-TRex Monte Carlo trial.
+
+    Must remain module-level so pickle can resolve it as
+    ('trex_scr_common', '_screen_trial_worker'). Builds its own data and controls,
+    runs the selector with seed = -1 (hardware entropy per trial, as in the cpp
+    MC loop), and returns picklable per-trial metrics.
+    """
+    import trex_selector_neo as _tsn
+    from trex_selector_neo.utils import compute_fdp as _fdp, compute_tpp as _tpp
+
+    dat = _build_screen_data(args)
+    trex_ctrl = _build_trex_ctrl(args)
+    screen_ctrl = _build_screen_ctrl(args)
+
+    sel = _tsn.TRexScreeningSelector(
+        dat["X"], dat["y"], screen_control=screen_ctrl,
+        trex_control=trex_ctrl, seed=-1, verbose=False)
+    res = sel.select()
+
+    selected = list(sel.selected_indices)
+    tsup = list(dat["true_support"])
+    return {"fdp": _fdp(selected, tsup),
+            "tpp": _tpp(selected, tsup),
+            "est": float(res.estimated_FDR)}
+
+
+def run_mc_screen(num_MC, label, dgp_args, trex_args, screen_args,
+                  base_seed, max_workers):
+    """Run num_MC Screen-TRex trials for one grid point in parallel.
+
+    Mirrors run_mc_trials_screen_trex(): trial mc uses seed base_seed + mc; each
+    trial runs an independent selector with seed = -1. Returns
+    dict(avg_fdr, avg_tpr, avg_est_fdr, sd_fdr, sd_tpr).
+
+    dgp_args / trex_args / screen_args are flat, picklable dicts merged (with the
+    per-trial seed) into the worker arg dict.
+    """
+    args_list = [
+        {**dgp_args, **trex_args, **screen_args, "trial_seed": base_seed + mc}
+        for mc in range(num_MC)
+    ]
+
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        results = list(executor.map(_screen_trial_worker, args_list))
+
+    fdp = np.array([r["fdp"] for r in results])
+    tpp = np.array([r["tpp"] for r in results])
+    est = np.array([r["est"] for r in results])
+    out = {
+        "avg_fdr": float(fdp.mean()),
+        "avg_tpr": float(tpp.mean()),
+        "avg_est_fdr": float(est.mean()),
+        "sd_fdr": float(fdp.std(ddof=1)) if num_MC > 1 else 0.0,
+        "sd_tpr": float(tpp.std(ddof=1)) if num_MC > 1 else 0.0,
+    }
+    print(f"  {label} - done.  TPR={out['avg_tpr']:.4f}  "
+          f"FDR={out['avg_fdr']:.4f}  Est.FDR={out['avg_est_fdr']:.4f}")
+    return out
+
+
+# ==============================================================================
+# Section 4 - Dual console/TXT table + tidy pandas CSV output
+# ==============================================================================
+#
+# Layout mirrors save_and_print_mc_results() in trex_screening_simulation_utils.hpp:
+# the method name gets its own line, metric rows are indented beneath it, sweep
+# values are right-aligned so the columns stay put regardless of name length.
+#
+_INDENT_W = 2
+_METRIC_W = 23
+_COL_W = 10
 
 
 def save_and_print_scr_mc(num_MC, out_dir, file_stem, x_values, method_names,
@@ -254,7 +323,7 @@ def save_and_print_scr_mc(num_MC, out_dir, file_stem, x_values, method_names,
     """Save + print a sweep-variable MC table (mirrors save_and_print_mc_results).
 
     Writes a human-readable TXT table (also echoed to console) and a tidy
-    long-format CSV (method, metric, <sweep_label>, value) into out_dir.
+    long-format CSV (method, metric, <sweep_label>, value) into out_dir via pandas.
     """
     os.makedirs(out_dir, exist_ok=True)
     lines = []
@@ -264,16 +333,24 @@ def save_and_print_scr_mc(num_MC, out_dir, file_stem, x_values, method_names,
     lines.append("=" * 70)
     lines.append("")
 
-    hdr = f"{'Method':<31}{'Metric':<10}{sweep_label:<10}"
-    hdr += "".join(f"{x:>10.2f}" for x in x_values)
+    hdr = " " * _INDENT_W + f"{sweep_label:<{_METRIC_W}}"
+    hdr += "".join(f"{x:>{_COL_W}.2f}" for x in x_values)
     lines.append(hdr)
-    lines.append("-" * len(hdr))
+    sep_w = _INDENT_W + _METRIC_W + _COL_W * len(x_values)
+    lines.append("-" * sep_w)
+
+    def _metric_row(label, vec):
+        s = " " * _INDENT_W + f"{label:<{_METRIC_W}}"
+        s += "".join(f"{v:>{_COL_W}.4f}" for v in vec)
+        return s
 
     for nm in method_names:
-        lines.append(_fmt_row(nm, "FDR",      fdr_map[nm]))
-        lines.append(_fmt_row("", "TPR",      tpr_map[nm]))
-        lines.append(_fmt_row("", "Est. FDR", est_fdr_map[nm]))
         lines.append("")
+        lines.append(nm)                       # method name on its own line
+        lines.append(_metric_row("FDR",      fdr_map[nm]))
+        lines.append(_metric_row("TPR",      tpr_map[nm]))
+        lines.append(_metric_row("Est. FDR", est_fdr_map[nm]))
+    lines.append("")
 
     print("\n".join(lines))
     txt_path = os.path.join(out_dir, file_stem + ".txt")
@@ -281,14 +358,14 @@ def save_and_print_scr_mc(num_MC, out_dir, file_stem, x_values, method_names,
         fh.write("\n".join(lines) + "\n")
     print(f"[Info] TXT results saved to: {txt_path}")
 
+    rows = []
+    for nm in method_names:
+        for i, x in enumerate(x_values):
+            rows.append({"method": nm, "metric": "FDR",      sweep_label: x, "value": fdr_map[nm][i]})
+            rows.append({"method": nm, "metric": "TPR",      sweep_label: x, "value": tpr_map[nm][i]})
+            rows.append({"method": nm, "metric": "Est. FDR", sweep_label: x, "value": est_fdr_map[nm][i]})
     csv_path = os.path.join(out_dir, file_stem + ".csv")
-    with open(csv_path, "w") as fh:
-        fh.write(f"method,metric,{sweep_label},value\n")
-        for nm in method_names:
-            for i, x in enumerate(x_values):
-                fh.write(f"{nm},FDR,{x},{fdr_map[nm][i]:.6f}\n")
-                fh.write(f"{nm},TPR,{x},{tpr_map[nm][i]:.6f}\n")
-                fh.write(f"{nm},Est. FDR,{x},{est_fdr_map[nm][i]:.6f}\n")
+    pd.DataFrame(rows).to_csv(csv_path, index=False)
     print(f"[Info] CSV results saved to: {csv_path}\n")
 
 # ==============================================================================
