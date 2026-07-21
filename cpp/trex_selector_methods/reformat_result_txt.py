@@ -39,14 +39,27 @@ INDENT_W = 2
 METRIC_W = 23
 COL_W = 10
 
-def header_cells(xs: list[float], suite: str, width: int = COL_W) -> str:
+# Sweep columns whose axis is printed with a precision of its own, overriding
+# the per-suite default below. Counts are bare integers; a target FDR needs two
+# decimals to keep 0.01 distinct from 0.05.
+SWEEP_PRECISION = {"n_pcs": 0, "p1": 0, "tfdr": 2}
+
+
+def header_cells(xs: list[float], suite: str, width: int = COL_W,
+                 sweep_col: str = "") -> str:
     """Format the sweep axis exactly as that suite's C++ renderer does.
 
-    trex_spca shows its dB axis with one decimal. trex_da prints a grid bare
-    when *every* value is integral (M, Q, linkage codes) and at two decimals
-    otherwise, so an axis never mixes "0" with "0.10". The remaining suites
-    use two decimals throughout.
+    A sweep column listed in SWEEP_PRECISION dictates its own precision. Failing
+    that, trex_spca shows its dB axis with one decimal; trex_da prints a grid
+    bare when *every* value is integral (M, Q, linkage codes) and at two
+    decimals otherwise, so an axis never mixes "0" with "0.10"; the remaining
+    suites use two decimals throughout.
     """
+    if sweep_col in SWEEP_PRECISION:
+        prec = SWEEP_PRECISION[sweep_col]
+        if prec == 0:
+            return "".join(f"{int(round(x)):>{width}d}" for x in xs)
+        return "".join(f"{x:>{width}.{prec}f}" for x in xs)
     if suite == "trex_spca":
         return "".join(f"{x:>{width}.1f}" for x in xs)
     if suite == "trex_da" and all(float(x).is_integer() and abs(x) < 1e6
@@ -63,15 +76,26 @@ def suite_of(path: Path) -> str:
 
 
 # CSV sweep column -> sweep label as printed by the C++ renderer.
-SWEEP_LABELS = {"snr": "SNR", "snr_db": "SNR(dB)", "rho": "Rho"}
+SWEEP_LABELS = {"snr": "SNR", "snr_db": "SNR(dB)", "rho": "Rho",
+                "n_pcs": "#PCs", "p1": "#Active", "tfdr": "tFDR"}
 
 # CSV metric tag -> label as printed in the table.
 METRIC_LABELS = {"AvgL": "Avg L", "AvgT": "Avg T",
-                 "Avg_L": "Avg L", "Avg_T": "Avg T"}
+                 "Avg_L": "Avg L", "Avg_T": "Avg T",
+                 "PEV": "PEV (total var)", "PEVsig": "PEV (signal+mixed)"}
 
 # A tidy columnar CSV has exactly these four columns (in any order):
 #   <series>, metric, <sweep>, value
 SERIES_KEYS = ("solver", "method")
+
+# Tables restricted to the cumulative-PEV rows: the CSV still records FDR/TPR
+# as the data record, but the displayed table carries only the PEV metrics
+# (demo_trex_spca_02 parts 2-4 show the cumulative PEV of PCs 1-3 only).
+PEV_ONLY_STEMS = {
+    "demo_trex_spca_02_mc_sim_pev_snr",
+    "demo_trex_spca_02_mc_sim_pev_loadings",
+    "demo_trex_spca_02_mc_sim_pev_tfdr",
+}
 
 
 def classify(path: Path):
@@ -116,10 +140,10 @@ def banner(txt_path: Path) -> str:
 
 
 def render(head: str, sweep_label: str, xs, series, metrics, values,
-           suite: str = "") -> str:
+           suite: str = "", sweep_col: str = "") -> str:
     out = [head.rstrip("\n"), ""]
     hdr = " " * INDENT_W + sweep_label.ljust(METRIC_W)
-    hdr += header_cells(xs, suite)
+    hdr += header_cells(xs, suite, COL_W, sweep_col)
     out.append(hdr)
     out.append("-" * (INDENT_W + METRIC_W + COL_W * len(xs)))
     for s in series:
@@ -154,6 +178,8 @@ def main(argv: list[str]) -> int:
             continue
         series_col, sweep_col = kind
         xs, series, metrics, values = read_table(c, series_col, sweep_col)
+        if c.stem in PEV_ONLY_STEMS:
+            metrics = [m for m in metrics if m in ("PEV", "PEVsig")]
         txt = c.with_suffix(".txt")
         if not txt.exists():
             # No sibling table: writing one would drop the framed metadata
@@ -163,7 +189,7 @@ def main(argv: list[str]) -> int:
             continue
         txt.write_text(render(banner(txt),
                               SWEEP_LABELS.get(sweep_col, sweep_col),
-                              xs, series, metrics, values, suite_of(c)))
+                              xs, series, metrics, values, suite_of(c), sweep_col))
         try:
             shown = txt.relative_to(here)
         except ValueError:
