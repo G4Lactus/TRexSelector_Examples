@@ -28,8 +28,9 @@ for _p in (_THIS_DIR, _PARENT_DIR):
         sys.path.insert(0, _p)
 
 import numpy as np
-from trex_selector_neo.tsolvers.lars_based import TLASSO_Solver
+
 from trex_selector_neo.ml_methods import LpNormScaler, NormType
+from trex_selector_neo.tsolvers.lars_based import TLASSO_Solver
 from trex_selector_neo.utils import get_max_threads, numpy_to_memmap, set_num_threads
 
 from ts_demo_utils import (
@@ -68,8 +69,9 @@ def demo_early_stopping(high_dim, rnd_coef, T_stop):
 
     print_selection(solver, true_support)
     print_selection_quality(solver, true_support)
-    print(f"Diagnostics: removals = {solver.getNumRemovals()}, "
-          f"cycling ratio = {solver.getCyclingRatio():.4f}")
+    print("\nT-LASSO Diagnostics:")
+    print(f"  Removals: {solver.getNumRemovals()}")
+    print(f"  Cycling ratio: {solver.getCyclingRatio():.4f}")
     print("\n")
 
 
@@ -112,8 +114,9 @@ def demo_with_external_normalizer(high_dim, rnd_coef, T_stop):
 
     print_selection(solver, true_support)
     print_selection_quality(solver, true_support)
-    print(f"Diagnostics: removals = {solver.getNumRemovals()}, "
-          f"cycling ratio = {solver.getCyclingRatio():.4f}")
+    print("\nT-LASSO Diagnostics:")
+    print(f"  Removals: {solver.getNumRemovals()}")
+    print(f"  Cycling ratio: {solver.getCyclingRatio():.4f}")
     print("\n")
 
 
@@ -122,7 +125,7 @@ def demo_with_external_normalizer(high_dim, rnd_coef, T_stop):
 # ==============================================================================
 
 def demo_serialization():
-    print_section_header("Demo 3: T-LASSO Serialization & Warm Start")
+    print_section_header("Demo 3: T-LASSO Serialization & Path Consistency")
 
     n, p = 100, 50
     num_dummies = p
@@ -172,8 +175,9 @@ def demo_serialization():
     paths_match = solver_ref.getActions() == solver2.getActions()
     print("\u2713 Paths match" if paths_match else "\u2717 Paths differ!")
 
-    print(f"Diagnostics: removals = {solver2.getNumRemovals()}, "
-          f"cycling ratio = {solver2.getCyclingRatio():.4f}")
+    print("\nT-LASSO Diagnostics:")
+    print(f"  Removals: {solver2.getNumRemovals()}")
+    print(f"  Cycling ratio: {solver2.getCyclingRatio():.4f}")
 
     os.remove(filename)
     print("\u2713 Checkpoint file removed")
@@ -222,8 +226,9 @@ def demo_memory_mapped(high_dim, rnd_coef, T_stop):
 
         print_selection(solver, true_support)
         print_selection_quality(solver, true_support)
-        print(f"Diagnostics: removals = {solver.getNumRemovals()}, "
-              f"cycling ratio = {solver.getCyclingRatio():.4f}")
+        print("\nT-LASSO Diagnostics:")
+        print(f"  Removals: {solver.getNumRemovals()}")
+        print(f"  Cycling ratio: {solver.getCyclingRatio():.4f}")
     finally:
         print("\nCleaning up files...")
         for f in (X_file, D_file, y_file):

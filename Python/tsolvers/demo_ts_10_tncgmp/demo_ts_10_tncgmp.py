@@ -28,9 +28,9 @@ for _p in (_THIS_DIR, _PARENT_DIR):
         sys.path.insert(0, _p)
 
 import numpy as np
-from trex_selector_neo.tsolvers.omp_based import TNCGMP_Solver
-from trex_selector_neo.tsolvers.omp_based import NCGMPVariant
+
 from trex_selector_neo.ml_methods import LpNormScaler, NormType
+from trex_selector_neo.tsolvers.omp_based import NCGMPVariant, TNCGMP_Solver
 from trex_selector_neo.utils import get_max_threads, numpy_to_memmap, set_num_threads
 
 from ts_demo_utils import (
@@ -84,7 +84,7 @@ def demo_with_external_normalizer(high_dim, rnd_coef, T_stop):
     num_dummies = 10 * p
 
     true_support = [4, 27, 149, 398, 420]
-    true_coefs = [2.5, -0.4, -0.2, -0.8, 1.1] if rnd_coef else [1.0] * 5
+    true_coefs = [-0.4, -0.2, -0.8, 1.1, 2.5] if rnd_coef else [1.0] * 5
     snr = 1.0
 
     print("High-dimensional (p > n)" if high_dim else "Low-dimensional (n > p)")
@@ -105,6 +105,9 @@ def demo_with_external_normalizer(high_dim, rnd_coef, T_stop):
 
     y -= y.mean()
 
+    # The data was already externally L2-normalized and y centered above, so
+    # the solver's own normalization and intercept are disabled here —
+    # enabling them would normalize twice and fit an intercept on centered y.
     solver = TNCGMP_Solver(X, D, y, NCGMPVariant.LineSearch, normalize=False, intercept=False,
                            verbose=True)
     solver.executeStep(T_stop, early_stop=True)

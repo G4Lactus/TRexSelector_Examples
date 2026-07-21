@@ -28,8 +28,9 @@ for _p in (_THIS_DIR, _PARENT_DIR):
         sys.path.insert(0, _p)
 
 import numpy as np
-from trex_selector_neo.tsolvers.lars_based import TENET_Solver
+
 from trex_selector_neo.ml_methods import LpNormScaler, NormType
+from trex_selector_neo.tsolvers.lars_based import TENET_Solver
 from trex_selector_neo.utils import get_max_threads, numpy_to_memmap, set_num_threads
 
 from ts_demo_utils import (
@@ -42,11 +43,11 @@ from ts_demo_utils import (
 
 
 # ==============================================================================
-# Demo 1: Basic T-ENET with Early Stopping
+# Demo 1: Basic T-Elastic Net with Early Stopping
 # ==============================================================================
 
 def demo_early_stopping(high_dim, rnd_coef, T_stop):
-    print_section_header("Demo 1: Basic T-ENET with Early Stopping")
+    print_section_header("Demo 1: Basic T-Elastic Net with Early Stopping")
 
     n = 1000 if high_dim else 5000
     p = 5000 if high_dim else 1000
@@ -69,8 +70,9 @@ def demo_early_stopping(high_dim, rnd_coef, T_stop):
 
     print_selection(solver, true_support)
     print_selection_quality(solver, true_support)
-    print(f"Diagnostics: removals = {solver.getNumRemovals()}, "
-          f"cycling ratio = {solver.getCyclingRatio():.4f}")
+    print("\nT-Elastic Net Diagnostics:")
+    print(f"  Removals: {solver.getNumRemovals()}")
+    print(f"  Cycling ratio: {solver.getCyclingRatio():.4f}")
     print("\n")
 
 
@@ -79,7 +81,7 @@ def demo_early_stopping(high_dim, rnd_coef, T_stop):
 # ==============================================================================
 
 def demo_with_external_normalizer(high_dim, rnd_coef, T_stop):
-    print_section_header("Demo 2: T-ENET with External Normalization")
+    print_section_header("Demo 2: T-Elastic Net with External Normalization")
 
     n = 1000 if high_dim else 5000
     p = 5000 if high_dim else 1000
@@ -114,8 +116,9 @@ def demo_with_external_normalizer(high_dim, rnd_coef, T_stop):
 
     print_selection(solver, true_support)
     print_selection_quality(solver, true_support)
-    print(f"Diagnostics: removals = {solver.getNumRemovals()}, "
-          f"cycling ratio = {solver.getCyclingRatio():.4f}")
+    print("\nT-Elastic Net Diagnostics:")
+    print(f"  Removals: {solver.getNumRemovals()}")
+    print(f"  Cycling ratio: {solver.getCyclingRatio():.4f}")
     print("\n")
 
 
@@ -124,7 +127,7 @@ def demo_with_external_normalizer(high_dim, rnd_coef, T_stop):
 # ==============================================================================
 
 def demo_serialization():
-    print_section_header("Demo 3: T-ENET Serialization & Warm Start")
+    print_section_header("Demo 3: T-Elastic Net Serialization & Path Consistency")
 
     n, p = 100, 50
     num_dummies = p
@@ -175,8 +178,9 @@ def demo_serialization():
     paths_match = solver_ref.getActions() == solver2.getActions()
     print("\u2713 Paths match" if paths_match else "\u2717 Paths differ!")
 
-    print(f"Diagnostics: removals = {solver2.getNumRemovals()}, "
-          f"cycling ratio = {solver2.getCyclingRatio():.4f}")
+    print("\nT-Elastic Net Diagnostics:")
+    print(f"  Removals: {solver2.getNumRemovals()}")
+    print(f"  Cycling ratio: {solver2.getCyclingRatio():.4f}")
 
     os.remove(filename)
     print("\u2713 Checkpoint file removed")
@@ -188,7 +192,7 @@ def demo_serialization():
 # ==============================================================================
 
 def demo_memory_mapped(high_dim, rnd_coef, T_stop):
-    print_section_header("Demo 4: T-ENET with Memory-Mapped Data")
+    print_section_header("Demo 4: T-Elastic Net with Memory-Mapped Data")
 
     n = 1000 if high_dim else 5000
     p = 5000 if high_dim else 1000  # cpp: 500,000 on disk; scaled for the port
@@ -218,16 +222,17 @@ def demo_memory_mapped(high_dim, rnd_coef, T_stop):
         del X, D
         print("\u2713 Data generated on disk\n")
 
-        print("Running T-ENET on memory-mapped data...")
+        print("Running T-Elastic Net on memory-mapped data...")
         solver = TENET_Solver(X_mmap.to_numpy(), D_mmap.to_numpy(), y_mmap.to_numpy(),
                               lambda2, normalize=True, intercept=True, verbose=True)
         solver.executeStep(T_stop, early_stop=True)
-        print("\u2713 T-ENET completed\n")
+        print("\u2713 T-Elastic Net completed\n")
 
         print_selection(solver, true_support)
         print_selection_quality(solver, true_support)
-        print(f"Diagnostics: removals = {solver.getNumRemovals()}, "
-              f"cycling ratio = {solver.getCyclingRatio():.4f}")
+        print("\nT-Elastic Net Diagnostics:")
+        print(f"  Removals: {solver.getNumRemovals()}")
+        print(f"  Cycling ratio: {solver.getCyclingRatio():.4f}")
     finally:
         print("\nCleaning up files...")
         for f in (X_file, D_file, y_file):

@@ -28,8 +28,9 @@ for _p in (_THIS_DIR, _PARENT_DIR):
         sys.path.insert(0, _p)
 
 import numpy as np
-from trex_selector_neo.tsolvers.lars_based import TSTAGEWISE_Solver
+
 from trex_selector_neo.ml_methods import LpNormScaler, NormType
+from trex_selector_neo.tsolvers.lars_based import TSTAGEWISE_Solver
 from trex_selector_neo.utils import get_max_threads, numpy_to_memmap, set_num_threads
 
 from ts_demo_utils import (
@@ -68,8 +69,9 @@ def demo_early_stopping(high_dim, rnd_coef, T_stop):
 
     print_selection(solver, true_support)
     print_selection_quality(solver, true_support)
-    print(f"Diagnostics: removals = {solver.getNumRemovals()}, "
-          f"cycling ratio = {solver.getCyclingRatio():.4f}")
+    print("\nT-Stagewise Diagnostics:")
+    print(f"  Removals: {solver.getNumRemovals()}")
+    print(f"  Cycling ratio: {solver.getCyclingRatio():.4f}")
     print("\n")
 
 
@@ -85,7 +87,7 @@ def demo_with_external_normalizer(high_dim, rnd_coef, T_stop):
     num_dummies = 10 * p
 
     true_support = [4, 27, 149, 398, 420]
-    true_coefs = [2.5, -0.4, -0.2, -0.8, 1.1] if rnd_coef else [1.0] * 5
+    true_coefs = [-0.4, -0.2, -0.8, 1.1, 2.5] if rnd_coef else [1.0] * 5
     snr = 1.0
 
     print("High-dimensional (p > n)" if high_dim else "Low-dimensional (n > p)")
@@ -112,8 +114,9 @@ def demo_with_external_normalizer(high_dim, rnd_coef, T_stop):
 
     print_selection(solver, true_support)
     print_selection_quality(solver, true_support)
-    print(f"Diagnostics: removals = {solver.getNumRemovals()}, "
-          f"cycling ratio = {solver.getCyclingRatio():.4f}")
+    print("\nT-Stagewise Diagnostics:")
+    print(f"  Removals: {solver.getNumRemovals()}")
+    print(f"  Cycling ratio: {solver.getCyclingRatio():.4f}")
     print("\n")
 
 
@@ -219,8 +222,9 @@ def demo_memory_mapped(high_dim, rnd_coef, T_stop):
 
         print_selection(solver, true_support)
         print_selection_quality(solver, true_support)
-        print(f"Diagnostics: removals = {solver.getNumRemovals()}, "
-              f"cycling ratio = {solver.getCyclingRatio():.4f}")
+        print("\nT-Stagewise Diagnostics:")
+        print(f"  Removals: {solver.getNumRemovals()}")
+        print(f"  Cycling ratio: {solver.getCyclingRatio():.4f}")
     finally:
         print("\nCleaning up files...")
         for f in (X_file, D_file, y_file):

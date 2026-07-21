@@ -28,8 +28,9 @@ for _p in (_THIS_DIR, _PARENT_DIR):
         sys.path.insert(0, _p)
 
 import numpy as np
-from trex_selector_neo.tsolvers.afs_based import TAFS_Solver
+
 from trex_selector_neo.ml_methods import LpNormScaler, NormType
+from trex_selector_neo.tsolvers.afs_based import TAFS_Solver
 from trex_selector_neo.utils import get_max_threads, numpy_to_memmap, set_num_threads
 
 from ts_demo_utils import (
@@ -45,7 +46,7 @@ from ts_demo_utils import (
 # Demo 1: Basic T-AFS with Early Stopping
 # ==============================================================================
 
-def demo_early_stopping(high_dim, rnd_coef, T_stop):
+def demo_early_stopping(high_dim, rnd_coef, T_stop, rho):
     print_section_header("Demo 1: Basic T-AFS with Early Stopping")
 
     n = 1000 if high_dim else 5000
@@ -55,7 +56,6 @@ def demo_early_stopping(high_dim, rnd_coef, T_stop):
     true_support = [27, 149, 398, 420, 4]
     true_coefs = [-0.4, -0.2, -0.8, 1.1, 2.5] if rnd_coef else [1.0] * 5
     snr = 1.0
-    rho = 1.0
 
     print("High-dimensional (p > n)" if high_dim else "Low-dimensional (n > p)")
     print_demo_config(n, p, num_dummies, T_stop, true_support, true_coefs, snr)
@@ -76,7 +76,7 @@ def demo_early_stopping(high_dim, rnd_coef, T_stop):
 # Demo 2: External Normalization (LpNormScaler)
 # ==============================================================================
 
-def demo_with_external_normalizer(high_dim, rnd_coef, T_stop):
+def demo_with_external_normalizer(high_dim, rnd_coef, T_stop, rho):
     print_section_header("Demo 2: T-AFS with External Normalization")
 
     n = 1000 if high_dim else 5000
@@ -84,9 +84,8 @@ def demo_with_external_normalizer(high_dim, rnd_coef, T_stop):
     num_dummies = 10 * p
 
     true_support = [4, 27, 149, 398, 420]
-    true_coefs = [2.5, -0.4, -0.2, -0.8, 1.1] if rnd_coef else [1.0] * 5
+    true_coefs = [-0.4, -0.2, -0.8, 1.1, 2.5] if rnd_coef else [1.0] * 5
     snr = 1.0
-    rho = 1.0
 
     print("High-dimensional (p > n)" if high_dim else "Low-dimensional (n > p)")
     print_demo_config(n, p, num_dummies, T_stop, true_support, true_coefs, snr)
@@ -119,7 +118,7 @@ def demo_with_external_normalizer(high_dim, rnd_coef, T_stop):
 # Demo 3: Serialization & Warm Start
 # ==============================================================================
 
-def demo_serialization():
+def demo_serialization(rho):
     print_section_header("Demo 3: T-AFS Serialization & Warm Start")
 
     n, p = 100, 50
@@ -130,7 +129,6 @@ def demo_serialization():
 
     true_support = [10, 25, 40]
     true_coefs = [2.5, -1.8, 3.2]
-    rho = 1.0
 
     print_demo_config(n, p, num_dummies, T_stop_final, true_support,
                       true_coefs, snr)
@@ -180,7 +178,7 @@ def demo_serialization():
 # Demo 4: Memory-Mapped Data
 # ==============================================================================
 
-def demo_memory_mapped(high_dim, rnd_coef, T_stop):
+def demo_memory_mapped(high_dim, rnd_coef, T_stop, rho):
     print_section_header("Demo 4: T-AFS with Memory-Mapped Data")
 
     n = 1000 if high_dim else 5000
@@ -190,7 +188,6 @@ def demo_memory_mapped(high_dim, rnd_coef, T_stop):
 
     true_support = [4, 27, 149, 398, 420]
     true_coefs = [2.5, -0.4, -0.2, -0.8, 1.1] if rnd_coef else [1.0] * 5
-    rho = 1.0
 
     print_demo_config(n, p, num_dummies, T_stop, true_support, true_coefs, snr)
 
@@ -238,17 +235,17 @@ if __name__ == "__main__":
     print(f"Running with {get_max_threads()} threads\n")
 
     # Demo 1: Basic usage with internal normalization
-    demo_early_stopping(high_dim=True, rnd_coef=False, T_stop=10)
-    demo_early_stopping(high_dim=False, rnd_coef=False, T_stop=10)
+    demo_early_stopping(high_dim=True, rnd_coef=False, T_stop=10, rho=1.0)
+    demo_early_stopping(high_dim=False, rnd_coef=False, T_stop=10, rho=1.0)
 
     # Demo 2: External normalization
-    demo_with_external_normalizer(high_dim=False, rnd_coef=False, T_stop=10)
-    demo_with_external_normalizer(high_dim=True, rnd_coef=False, T_stop=10)
+    demo_with_external_normalizer(high_dim=False, rnd_coef=False, T_stop=10, rho=1.0)
+    demo_with_external_normalizer(high_dim=True, rnd_coef=False, T_stop=10, rho=1.0)
 
     # Demo 3: Serialization
-    demo_serialization()
+    demo_serialization(rho=1.0)
 
     # Demo 4: Memory-mapped
-    demo_memory_mapped(high_dim=True, rnd_coef=False, T_stop=10)
+    demo_memory_mapped(high_dim=True, rnd_coef=False, T_stop=10, rho=1.0)
 
     print_section_header("\u2713 All demos completed successfully")

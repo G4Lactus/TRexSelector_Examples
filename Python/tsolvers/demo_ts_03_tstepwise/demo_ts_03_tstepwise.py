@@ -28,8 +28,9 @@ for _p in (_THIS_DIR, _PARENT_DIR):
         sys.path.insert(0, _p)
 
 import numpy as np
-from trex_selector_neo.tsolvers.lars_based import TSTEPWISE_Solver
+
 from trex_selector_neo.ml_methods import LpNormScaler, NormType
+from trex_selector_neo.tsolvers.lars_based import TSTEPWISE_Solver
 from trex_selector_neo.utils import get_max_threads, numpy_to_memmap, set_num_threads
 
 from ts_demo_utils import (
@@ -118,7 +119,7 @@ def demo_with_external_normalizer(high_dim, rnd_coef, T_stop):
 # ==============================================================================
 
 def demo_serialization():
-    print_section_header("Demo 3: T-Stepwise Serialization & Warm Start")
+    print_section_header("Demo 3: T-Stepwise Serialization & Path Consistency")
 
     n, p = 100, 50
     num_dummies = p
