@@ -1,63 +1,95 @@
-# Model Selection Demos (Python)
+# Model Selection: Demonstration Suite
 
-## Purpose
+## Overview
 
-Demonstrate K-fold cross-validation for penalized regression via the
-`trex_selector_neo.ml_methods` model-selection classes — lambda-grid
-construction, the CV-MSE curve, the `lambda.min` / `lambda.1se` selections,
-and (for the elastic net) coordinate-descent path fitting.
+This folder contains Python examples for **model selection** routines in the `trex_selector_neo.ml_methods` module.
 
-APIs used:
+The demos focus on regularized Gaussian regression models and show how hyperparameters are selected from synthetic data
+using K-fold cross-validation. In the TRexSelector project, these workflows are relevant for tuning penalization
+strength in ridge- and elastic-net-type estimators.
 
-- `RidgeCV()` — SVD-based ridge K-fold CV with
-  `fit(X, y, n_folds, n_lambda, lambda_ratio, seed)`
-- `ElasticNet()` — glmnet-style CCD path solver with `fit()` (auto grid),
-  `fit_grid()` (explicit grid), `coef()`, `intercepts()`, `lambdas()`,
-  `dev_ratio()`, `converged()`, `n_nonconverged()`
-- `ElasticNetCV()` — K-fold CV over a glmnet-style elastic-net grid with
-  `fit(X, y, alpha, n_folds, n_lambda, lambda_min_ratio, seed, ...)`
-- Common CV getters: `cv_min()`, `cv_1se()`, `index_min()`, `index_1se()`,
-  `lambdas()`, `cv_mse()`, `cv_sem()`
+The main goals of this folder are:
 
-All classes require float64, Fortran-ordered (column-major) arrays;
-`np.asfortranarray()` provides the required layout. Both demos work on
-synthetic sparse-signal data (`y = X beta_true + noise` with 10 active
-coefficients) and use the same n / p / fold / seed values as their C++
-counterparts; NumPy's PCG64 stream differs from `std::mt19937`, so results
-match qualitatively, not bitwise.
+1. to demonstrate model selection for regularized linear regression from Python,
+2. to illustrate how K-fold cross-validation is used to choose penalty parameters,
+3. to compare numerically stable SVD-based ridge fitting with coordinate-descent elastic-net fitting,
+4. to connect fitted penalty choices to downstream TRexSelector workflows.
+
+The C++ counterparts live in [cpp/ml_methods/model_selection/](../../../cpp/ml_methods/model_selection/); equivalent R
+walkthroughs are available under `R/ml_methods/model_selection/`.
 
 ---
 
-## Demos
+## What this folder covers
 
-| Demo | Description |
-|---|---|
-| [demo_ridge_cv_01.py](demo_ridge_cv_01.py) | K-fold ridge CV via `RidgeCV` across three dimensional regimes — low-dimensional (n=1000, p=500, 10-fold), high-dimensional (n=300, p=500, 10-fold), and very high-dimensional (n=300, p=1000, 5-fold). Each scenario prints the CV-MSE curve (ascending lambda grid) and asserts `lambda.min <= lambda.1se`. The C++ counterpart's 4th, memory-mapped scenario is omitted (the Python binding only accepts in-memory arrays). |
-| [demo_enet_cv_01.py](demo_enet_cv_01.py) | Part A: `ElasticNet` auto-grid paths for alpha in {0, 0.5, 1} (n=300, p=100) and {0, 1} (n=200, p=500), printing nnz / L1-norm / dev.ratio along the path, asserting a non-decreasing deviance ratio, and checking that `fit_grid()` at the auto-generated grid reproduces the auto path exactly. Part B: `ElasticNetCV` 10-fold CV per alpha (n=300, p=100) plus the pure-ridge `lambda_2_lars = lambda.1se * p / 2` conversion used by TRexGVS (n=300, p=200). The CV grid follows glmnet's descending order and may hold fewer than `n_lambda` points due to glmnet's early termination. |
+The demos study penalized regression models of the form
+
+$$
+\boldsymbol{y} = \boldsymbol{X}\boldsymbol{\beta} + \boldsymbol{\varepsilon},
+\qquad
+\boldsymbol{\varepsilon} \sim \mathcal{N}(\boldsymbol{0}, \sigma^2 \boldsymbol{I}_n).
+$$
+
+They focus on:
+
+- **ridge regression**, where coefficient shrinkage is controlled by a quadratic penalty,
+- **elastic-net regression**, which combines $\ell_1$ and $\ell_2$ regularization,
+- **cross-validation workflows**, used to select tuning parameters such as $\lambda$ and $\alpha$.
 
 ---
 
-## Running the Demos
+## Start here
+
+If you are new to this folder, begin with:
+
+1. **`demo_mlm_ms_01_ridge_cv_svd/`**  
+   A ridge-regression CV demo using the SVD-based `RidgeCV` across several dimensional regimes.
+
+2. **`demo_mlm_ms_02_enet_cv_ccd/`**  
+   An elastic-net demo covering both regularization-path fitting (`ElasticNet`) and K-fold CV (`ElasticNetCV`) via
+   coordinate descent.
+
+---
+
+## Demo overview
+
+| Folder | Purpose |
+| -------------------------------- | --------- |
+| [demo_mlm_ms_01_ridge_cv_svd/](demo_mlm_ms_01_ridge_cv_svd/README.md) | Ridge regression K-fold CV via the SVD-based `RidgeCV`, including a memory-mapped design-matrix example |
+| [demo_mlm_ms_02_enet_cv_ccd/](demo_mlm_ms_02_enet_cv_ccd/README.md) | Elastic-net path fitting and K-fold CV via coordinate descent, including ridge/lasso/elastic-net comparisons |
+
+---
+
+## Running
 
 ```bash
-python demo_ridge_cv_01.py
-python demo_enet_cv_01.py
+python demo_mlm_ms_01_ridge_cv_svd/demo_mlm_ms_01_ridge_cv_svd.py
+python demo_mlm_ms_02_enet_cv_ccd/demo_mlm_ms_02_enet_cv_ccd.py
 ```
 
-Output is printed to the console; the built-in `assert` checks make the
-scripts fail loudly if the CV selections are inconsistent.
+---
+
+## Folder contents
+
+```txt
+model_selection/
+  ├── README.md
+  ├── demo_mlm_ms_01_ridge_cv_svd/
+  │   ├── demo_mlm_ms_01_ridge_cv_svd.py
+  │   └── README.md
+  └── demo_mlm_ms_02_enet_cv_ccd/
+      ├── demo_mlm_ms_02_enet_cv_ccd.py
+      └── README.md
+```
 
 ---
 
-## Counterparts
+## Notes for new users
 
-- C++: [cpp/ml_methods/model_selection/](../../../cpp/ml_methods/model_selection/)
-  — `demo_mlm_ms_01_ridge_cv_svd` (mirrored by `demo_ridge_cv_01.py`) and
-  `demo_mlm_ms_02_enet_cv_ccd` (mirrored by `demo_enet_cv_01.py`)
-- R: `R/ml_methods/model_selection/demo_ridge_cv_01.R` and
-  `demo_enet_cv_01.R` (the R bindings expose no standalone elastic-net path
-  class, so the R enet demo covers the CV part only)
+- Both demos use synthetic Gaussian regression data with known signal structure.
+- The focus is on hyperparameter selection and diagnostic output rather than downstream prediction benchmarking.
+- The demo-specific README files explain the exact model, penalty, and cross-validation setup in more detail.
 
 ---
 
-**Last updated**: 2026-07-06
+**Last updated**: 2026-07-21

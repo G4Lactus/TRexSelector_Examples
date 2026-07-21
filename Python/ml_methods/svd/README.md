@@ -1,50 +1,54 @@
-# SVD Demos (Python)
+# SVD: Demonstration Suite
 
-## Purpose
+## Overview
 
-Demonstrate truncated singular value decomposition via the
-`trex_selector_neo.ml_methods` `SVDSolver` class — computing the rank-M
-factorization `U @ diag(S) @ V.T`, measuring reconstruction error, and
-checking orthonormality of the singular vectors.
+This folder contains Python examples for the **singular value decomposition (SVD)** implementation in the
+`trex_selector_neo.ml_methods` module.
 
-APIs used:
+SVD is used in this project for stable matrix decompositions, dimensionality reduction, and regression-related
+computations. In particular, it is relevant for PCA and for numerically stable ridge-regression workflows.
 
-- `SVDSolver()` — solver object
-- `SVDSolver.compute(X, M)` — rank-M truncated SVD; returns an `SVDResult`
-  with `U` (n x M left singular vectors), `S` (M singular values, decreasing),
-  and `V` (p x M right singular vectors)
-
-All matrices must be float64 and Fortran-ordered (`np.asfortranarray`).
+The C++ counterparts live in [cpp/ml_methods/svd/](../../../cpp/ml_methods/svd/); an equivalent R walkthrough is
+available under `R/ml_methods/svd/`.
 
 ---
 
-## Demos
+## Key concept
 
-| Demo | Description |
-|---|---|
-| [demo_svd_01_in_memory.py](demo_svd_01_in_memory.py) | Part A: direct / thin-Jacobi path on a tall matrix (300 x 80, M = 10) with relative reconstruction error, top singular values, and a full-rank (M = p) exact-reconstruction assert; Part B: Gram / kernel path on a wide matrix (100 x 500, M = 8) where p > 2*n routes through the n x n Gram matrix; Part C: orthogonality check (200 x 150, M = 20) asserting `\|U^T U - I\|_F` and `\|V^T V - I\|_F` are tiny. |
+Given a matrix $\mathbf{X} \in \mathbb{R}^{n \times p}$, the singular value decomposition is
 
-Data is synthetic standard-normal in every part. RNG seeds match the C++
-demo, but numpy's `default_rng` stream differs from `std::mt19937`, so
-numbers agree qualitatively, not bitwise.
+$$
+\mathbf{X} = \mathbf{U}\boldsymbol{\Sigma}\mathbf{V}^\top,
+$$
+
+where
+
+- $\mathbf{U}$ contains left singular vectors,
+- $\boldsymbol{\Sigma}$ contains singular values,
+- $\mathbf{V}$ contains right singular vectors.
+
+A truncated $\textrm{rank-}M$ approximation uses only the leading $M$ singular components:
+
+$$
+\mathbf{X}_M = \mathbf{U}_M \boldsymbol{\Sigma}_M \mathbf{V}_M^\top.
+$$
 
 ---
 
-## Running the Demos
+## Start here
+
+| Folder | Purpose |
+| ------ | ------- |
+| [demo_mlm_svd_01/](demo_mlm_svd_01/README.md) | Demonstrates basic `SVDSolver` usage, truncated reconstruction, and orthogonality checks |
+
+---
+
+## Running
 
 ```bash
-python demo_svd_01_in_memory.py
+python demo_mlm_svd_01/demo_mlm_svd_01.py
 ```
 
-Output is printed to the console (assumes a Python environment with
-`trex_selector_neo` and `numpy` installed).
-
 ---
 
-## Counterparts
-
-- C++: [cpp/ml_methods/svd/demo_mlm_svd_01](../../../cpp/ml_methods/svd/demo_mlm_svd_01/) (this script is a direct mirror)
-
----
-
-**Last updated**: 2026-07-06
+**Last updated**: 2026-07-21

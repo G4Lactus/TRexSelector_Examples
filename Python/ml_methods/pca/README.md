@@ -1,59 +1,87 @@
-# PCA Demos (Python)
+# PCA: Demonstration Suite
 
-## Purpose
+## Overview
 
-Demonstrate principal component analysis via the `trex_selector_neo.ml_methods`
-`PCA` class — fitting on a data matrix, inspecting scores/loadings/explained
-variance, restoring the in-place preprocessed matrix, and transforming new
-data into the learned component space.
+This folder contains Python examples for the **Principal Component Analysis (PCA)** implementation in the
+`trex_selector_neo.ml_methods` module.
 
-APIs used:
+The demos illustrate how a data matrix can be projected onto a lower-dimensional orthogonal basis while retaining as
+much variance as possible. In the TRexSelector project, PCA can be useful as a dimensionality-reduction and
+preprocessing step when working with high-dimensional data.
 
-- `PCA(center=True, normalize=True)` — configure centering and normalization
-- `PCA.fit(X, M)` — preprocess `X` in place and return a `PCAResult` with the
-  score matrix `Z` (n x M), loading matrix `V` (p x M), and
-  `explained_variance` (fraction of total variance per retained component)
-- `PCA.transform(X_new)` — project new observations onto the learned loadings
-- `PCA.restore()` — undo the in-place preprocessing of the fitted matrix
+The main goals of this folder are:
 
-All matrices must be float64 and Fortran-ordered (`np.asfortranarray`);
-`fit()` additionally requires a writeable array because it preprocesses `X`
-in place. The in-place, zero-copy behavior is deliberate: the class works on
-an `Eigen::Map` of the caller's buffer — the same interface that serves both
-in-memory and memory-mapped data — because the library targets data volumes
-that can exceed RAM and therefore never takes hidden copies of `X`. Pass an
-explicit copy (`X.copy(order="F")`) where the original values are needed
-afterwards, or call `restore()` to undo the preprocessing.
+1. to demonstrate how PCA is fit from Python,
+2. to show how training data and new data are transformed into principal-component scores,
+3. to illustrate how explained variance is inspected after fitting,
+4. to verify that temporary in-place preprocessing can be safely reversed.
+
+The C++ counterparts live in [cpp/ml_methods/pca/](../../../cpp/ml_methods/pca/); an equivalent R walkthrough is
+available under `R/ml_methods/pca/`.
 
 ---
 
-## Demos
+## What this folder covers
 
-| Demo | Description |
-|---|---|
-| [demo_pca_01_in_memory.py](demo_pca_01_in_memory.py) | Part A: basic fit (500 x 200, M = 10) with explained-variance summary (asserts fractions are decreasing and sum to <= 1); Part B: restore round-trip (300 x 100, M = 5) with max/mean error check; Part C: transform new data (train 400 x 80, test 50 x 80, M = 8) and verify `transform()` on the untouched training data reproduces the fit scores. |
+Given a data matrix
 
-Data is synthetic standard-normal in every part. RNG seeds match the C++
-demo, but numpy's `default_rng` stream differs from `std::mt19937`, so
-numbers agree qualitatively, not bitwise.
+$$
+\boldsymbol{X} \in \mathbb{R}^{n \times p},
+$$
+
+PCA seeks a low-dimensional representation using $M$ principal directions with $M \le p$.
+
+The demo in this folder focuses on:
+
+- **basic PCA fitting**, including score and loading dimensions,
+- **explained variance inspection**, for the retained components,
+- **restore and transform behavior**, for both training data and new data.
 
 ---
 
-## Running the Demos
+## Start here
+
+If you are new to this folder, begin with:
+
+1. **`demo_mlm_pca_01/`**  
+   A self-contained PCA demo covering fit, restore, and transform workflows.
+
+---
+
+## Demo overview
+
+| Folder | Purpose |
+| --------------------- | --------- |
+| [demo_mlm_pca_01/](demo_mlm_pca_01/README.md) | Demonstrates PCA fitting, explained variance, restore round-trip checks, and transformation of new data |
+
+---
+
+## Running
 
 ```bash
-python demo_pca_01_in_memory.py
+python demo_mlm_pca_01/demo_mlm_pca_01.py
 ```
 
-Output is printed to the console (assumes a Python environment with
-`trex_selector_neo` and `numpy` installed).
+---
+
+## Folder contents
+
+```txt
+pca/
+  ├── README.md
+  └── demo_mlm_pca_01/
+      ├── demo_mlm_pca_01.py
+      └── README.md
+```
 
 ---
 
-## Counterparts
+## Notes for new users
 
-- C++: [cpp/ml_methods/pca/demo_mlm_pca_01](../../../cpp/ml_methods/pca/demo_mlm_pca_01/) (this script is a direct mirror)
+- This folder currently contains one introductory PCA demo.
+- The demo prints its diagnostics to the console.
+- The demo is intended to explain PCA usage and interface behavior rather than to benchmark large-scale performance.
 
 ---
 
-**Last updated**: 2026-07-06
+**Last updated**: 2026-07-21

@@ -1,58 +1,99 @@
-# HAC Clustering Demos (Python)
+# HAC Clustering: Demonstration Suite
 
-## Purpose
+## Overview
 
-Demonstrate hierarchical agglomerative clustering (HAC) via the
-`trex_selector_neo.ml_methods.clustering` module — building a linkage matrix
-with different linkage methods and distance metrics, and cutting the
-dendrogram into cluster assignments.
+This folder contains Python examples for **hierarchical agglomerative clustering (HAC)** in the
+`trex_selector_neo.ml_methods.clustering` module.
 
-APIs used:
+Within the TRexSelector project, HAC is used by the **GVS (Grouped Variable Selection)** workflow to construct variable
+groups from a dendrogram cut. The examples in this folder show how clustering behaves in in-memory settings and how the
+same ideas extend to memory-mapped, out-of-core workflows.
 
-- `agglomerative_cluster(X, method=..., metric=..., use_mmap=...)` — returns
-  the linkage matrix
-- `cut_tree(linkage, num_orig_objs=..., num_clusters=...)` — returns cluster
-  assignments
-- `LinkageMethod` — `Ward`, `Average`, `Complete`
-- `DistanceMetric` — `Euclidean`, `Correlation`
-- `numpy_to_memmap` (from `trex_selector_neo.utils`, mmap variant only)
+The main goals of this folder are:
 
----
+1. to demonstrate how HAC is applied to synthetic sample and variable clustering tasks,
+2. to compare clustering behavior under different distance and linkage choices,
+3. to illustrate how large clustering problems can be handled with memory-mapped storage,
+4. to provide a bridge between exploratory clustering demos and downstream grouped-variable workflows.
 
-## Demos
-
-| Demo | Description |
-|---|---|
-| [demo_agg_hac_01_in_memory.py](demo_agg_hac_01_in_memory.py) | HAC on an in-memory 50 x 10 Gaussian matrix (`use_mmap=False`). Parts A–D: Ward/Euclidean, Average/Euclidean, Complete/Euclidean, Average/Correlation (Ward is Euclidean-only); each linkage is cut into k = 5 clusters via `cut_tree`. |
-| [demo_agg_hac_02_mmap.py](demo_agg_hac_02_mmap.py) | Same four linkage/metric combinations, but the data is first written to a temporary binary file via `numpy_to_memmap()` and passed as the zero-copy `to_numpy()` view, with `use_mmap=True` so the C++ backend also stores intermediate distance data on disk. |
-
-Key API note (from the mmap demo): `agglomerative_cluster()` always takes an
-`np.ndarray` for `data`; `use_mmap=True` only controls the backend's
-*internal* storage of intermediate distance data. Since both demos use the
-same data and seed, the cluster assignments are identical — only the internal
-computation storage differs.
+The C++ counterparts live in [cpp/ml_methods/hac_clustering/](../../../cpp/ml_methods/hac_clustering/); equivalent R
+walkthroughs are available under `R/ml_methods/hac_clustering/`.
 
 ---
 
-## Running the Demos
+## What this folder covers
+
+Hierarchical agglomerative clustering builds a tree of successive merges and then recovers cluster assignments by
+cutting that tree at a chosen level.
+
+In this folder, the demos focus on:
+
+- **in-memory HAC experiments**, for understanding clustering structure and linkage behavior,
+- **correlation-based variable clustering**, which is relevant for grouped variable selection,
+- **memory-mapped HAC**, for problems that would otherwise exceed available RAM.
+
+The public entry points are `agglomerative_cluster(X, method, metric, use_mmap)` — which clusters the **rows** of `X`
+and returns a SciPy-style linkage matrix — and `cut_tree(linkage, num_orig_objs, num_clusters)`, together with the
+`LinkageMethod` and `DistanceMetric` enums.
+
+---
+
+## Start here
+
+If you are new to this folder, begin with:
+
+1. **`demo_mlm_hac_01/`**  
+   An in-memory HAC demo suite covering several clustering scenarios and linkage comparisons.
+
+2. **`demo_mlm_hac_02_mmap/`**  
+   A memory-mapped demo that reproduces the C++ biobank-scale LSH linkage comparison at an illustrative scale.
+
+---
+
+## Demo overview
+
+| Folder | Purpose |
+| -------------------------- | --------- |
+| [demo_mlm_hac_01/](demo_mlm_hac_01/README.md) | In-memory HAC demo suite for sample clustering, variable clustering, LSH benchmarks, and linkage-method comparisons |
+| [demo_mlm_hac_02_mmap/](demo_mlm_hac_02_mmap/README.md) | Memory-mapped HAC demo for LSH-based linkage comparison without full in-RAM allocation |
+
+---
+
+## Running
 
 ```bash
-python demo_agg_hac_01_in_memory.py
-python demo_agg_hac_02_mmap.py
+python demo_mlm_hac_01/demo_mlm_hac_01.py
+python demo_mlm_hac_02_mmap/demo_mlm_hac_02_mmap.py
 ```
 
-Output is printed to the console (linkage-matrix excerpts and cluster-size
-distributions). The mmap demo cleans up its temporary binary file on exit.
+---
+
+## Folder contents
+
+```txt
+hac_clustering/
+  ├── README.md
+  ├── demo_mlm_hac_01/
+  │   ├── demo_mlm_hac_01.py
+  │   └── README.md
+  └── demo_mlm_hac_02_mmap/
+      ├── demo_mlm_hac_02_mmap.py
+      └── README.md
+```
 
 ---
 
-## Counterparts
+## Notes for new users
 
-- C++: [cpp/ml_methods/hac_clustering/demo_mlm_hac_01](../../../cpp/ml_methods/hac_clustering/)
-  and [demo_mlm_hac_02_mmap](../../../cpp/ml_methods/hac_clustering/)
-- R: `R/ml_methods/hac_clustering/demo_agg_hac_01_in_memory.R` and
-  `demo_agg_hac_02_mmap.R` (these scripts are direct mirrors)
+- `demo_mlm_hac_01` is best for understanding the clustering logic in standard in-memory workflows.
+- `demo_mlm_hac_02_mmap` shows the out-of-core workflow; the C++ counterpart runs it at ~298 GB scale, the Python
+  mirror at ~61 MB.
+- Both demos run at sizes scaled down from their C++ counterparts (noted in the script headers) so that they finish in
+  well under a second.
+- Both demos print their main results to the console.
+- Cross-language correctness checks against R references live in the TRexSelector library test suite
+  (`cpp/tests/validation/`), run on demand rather than shipped with these examples.
 
 ---
 
-**Last updated**: 2026-07-06
+**Last updated**: 2026-07-21
