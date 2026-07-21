@@ -35,7 +35,12 @@ fi
 
 for csv in "${csvs[@]}"; do
   stem="$(basename "$csv" .csv)"
+  if [[ "$stem" == *union_fdr* ]]; then
+    title='T-Rex SPCA: union-support FDR per PC (ActiveSet/TENET)'
+  else
+    title='T-Rex SPCA: TPR/FDR vs SNR (dB)'
+  fi
   "$venv_python" "$plotter" "$csv" \
-    --title 'T-Rex SPCA: TPR/FDR/PEV vs SNR (dB)' \
+    --title "$title" \
     --tfdr 0.1 "$@"
 done
