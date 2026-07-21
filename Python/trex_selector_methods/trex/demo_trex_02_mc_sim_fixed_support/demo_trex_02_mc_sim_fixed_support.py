@@ -11,6 +11,9 @@
 #  - Fixed support drawn once with seed 24 (shared across all trials).
 #  - Reports averaged FDR / TPR per solver x SNR.
 #
+# Python downscale: num_MC = 100 (C++ runs 200) to keep the
+# ProcessPoolExecutor-based run time moderate.
+#
 # ==============================================================================
 
 import sys
@@ -104,7 +107,7 @@ def trx_02_mc_sim_fixed_support(num_MC=_NUM_MC, num_workers=_NUM_WORKERS, high_d
         print()
 
     solver_names = [s["name"] for s in SOLVERS_DEFAULT]
-    stem = (f"demo_trex_02_mc_sim_fixed_support_results_n{n}_p{p}"
+    stem = (f"demo_trex_02_mc_sim_fixed_support_trex_results_n{n}_p{p}"
             f"_stagnation_window_{stagnant_sw}")
     save_mc_results(
         _OUT_DIR, stem, num_MC,

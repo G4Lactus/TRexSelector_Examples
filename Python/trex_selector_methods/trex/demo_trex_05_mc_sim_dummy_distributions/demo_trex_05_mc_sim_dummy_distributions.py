@@ -9,9 +9,10 @@
 #
 # Base solvers compared (one result file pair per solver):
 #   TLARS — equiangular LARS path (stagnation stop AUTO-resolves to disabled).
-#   TOMP  — greedy orthogonal matching pursuit (stagnation stop enabled).
-#   TAFS  — greedy adaptive forward selection, rho_afs = 1.0 (stagnation stop
-#           enabled).
+#   TOMP  — greedy orthogonal matching pursuit (stagnation stop AUTO-resolves
+#           to enabled).
+#   TAFS  — greedy adaptive forward selection, rho_afs = 0.3 (stagnation stop
+#           AUTO-resolves to enabled).
 #
 # The T-Rex FDR calibration rests on exchangeability between real null
 # predictors and the injected dummy variables. Since dummies are centered and
@@ -41,11 +42,15 @@
 #
 #  Scenario:
 #  High-dimensional (n = 300, p = 1000, s = 10).
-#  SNR sweep: {0.1, 0.2, ..., 2.0, 5.0}  (21 values).
+#  SNR sweep: {0.1, 0.2, 0.5, 0.6, 1.0, 2.0, 5.0}  (7 values, mirrors the
+#  current C++ grid and its committed results).
 #  Two support scenarios:
 #    random support — redrawn per trial;
 #    block support  — contiguous block {0, 1, ..., s-1}  (0-based).
 #  Reports averaged FDR / TPR / Avg L / Avg T per distribution x SNR.
+#
+# Python downscale: num_MC = 10 (C++ runs 200) to keep the 3-solver x
+# 12-distribution sweep moderate.
 #
 # ==============================================================================
 
@@ -100,7 +105,7 @@ DISTRIBUTIONS = [
 _SOLVERS = [
     dict(solver_name="TLARS", name="TLARS", lambda2=0.1, rho_afs=0.3, ncgmp_variant=0),
     dict(solver_name="TOMP",  name="TOMP",  lambda2=0.1, rho_afs=0.3, ncgmp_variant=0),
-    dict(solver_name="TAFS",  name="TAFS",  lambda2=0.1, rho_afs=1.0, ncgmp_variant=0),
+    dict(solver_name="TAFS",  name="TAFS",  lambda2=0.1, rho_afs=0.3, ncgmp_variant=0),
 ]
 
 
@@ -115,11 +120,11 @@ def trx_05_dummy_distributions(num_MC=_NUM_MC, num_workers=_NUM_WORKERS,
     p = 1000
     s = 10
     tFDR       = 0.1
-    snr_values = list(np.round(np.arange(0.1, 2.1, 0.1), 1)) + [5.0]  # 21 values
+    snr_values = [0.1, 0.2, 0.5, 0.6, 1.0, 2.0, 5.0]  # mirrors current C++ grid
 
     support_label = "block" if block_support else "random"
     print(f"\n{'=' * 70}")
-    print("MC Simulation — Dummy Distribution Comparison  |  TLARS")
+    print("MC Simulation — Dummy Distribution Comparison  |  TLARS / TOMP / TAFS")
     print("  High-dimensional (p > n)")
     print(f"  n = {n},  p = {p},  s = {s},  num_MC = {num_MC}  [{support_label} support]\n")
 

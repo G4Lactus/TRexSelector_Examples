@@ -30,7 +30,7 @@
 #   Fixed support drawn once with seed=24 (shared across all MC trials)
 #   SNR sweep: {0.1, 0.5, 1.0, 2.0, 5.0}
 #   tloop_max_stagnant_steps=7,  opt_threshold=0.75
-#   num_MC=500
+#   num_MC=200 (mirrors C++; the two parts are directly comparable)
 #
 # Seed spaces (no clashes):
 #   DGP (X, noise)   : trial_seed = base_seed + mc - 1
@@ -64,7 +64,7 @@ from trex_sim_common import (
 
 _OUT_DIR     = os.path.join(_THIS_DIR, "simulation_results", "data")
 _NUM_WORKERS = 6
-_NUM_MC      = 500
+_NUM_MC      = 200
 
 # TLARS solver descriptor (only solver used in mmap demos)
 _TLARS_SOLVER = dict(

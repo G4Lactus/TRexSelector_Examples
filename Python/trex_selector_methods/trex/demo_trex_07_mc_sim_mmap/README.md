@@ -15,7 +15,8 @@ Both parts use the high-dimensional configuration:
   across all MC trials
 - Fixed coefficients `beta_j = 1`, TLARS only
 - SNR sweep: `{0.1, 0.5, 1.0, 2.0, 5.0}`
-- `num_MC = 500` (`_NUM_MC = 500`)
+- `num_MC = 200` (`_NUM_MC = 200`, mirrors C++; the two parts are directly
+  comparable)
 
 Base control (`_MMAP_BASE_CTRL`): `K = 20`, `max_dummy_multiplier = 10`,
 `lloop_strategy = "HCONCAT"`, `tloop_stagnation_stop = True`,
@@ -38,22 +39,24 @@ Both record mean FDR, TPR, Avg L, and Avg T per SNR (`track_L_T=True`).
 ## Imports
 
 The demo inserts its own folder and the parent suite dir onto `sys.path` to
-import the shared `support_generators` and `trex_sim_common` modules. The
-package imports as `trex_selector_neo`.
+import the shared `support_generators` and `trex_sim_common` modules (explicit
+`from`-imports of their symbols); the workers build the selector from
+`trex_selector_neo` internally — this demo file itself needs no root alias.
 
 ## Output
 
-Writes results to this demo's own `simulation_results/` folder via
+Writes results to this demo's own `simulation_results/data/` folder via
 `save_mc_results`, with stems `d03_trex_mmap_demo_c_n300_p1000_sw7` and
-`d03_trex_mmap_demo_d_n300_p1000_sw7` (aligned `.txt` table plus tidy `.csv`).
+`d03_trex_mmap_demo_d_n300_p1000_sw7` (aligned `.txt` table plus tidy `.csv`;
+same stems as the C++ result files).
 
 ## Running
 
 ```bash
-.venv/bin/python Python/trex_selector_methods/trex/demo_trex_07_mc_sim_mmap/demo_trex_07_mc_sim_mmap.py
+python Python/trex_selector_methods/trex/demo_trex_07_mc_sim_mmap/demo_trex_07_mc_sim_mmap.py
 ```
 
 The MC loop is parallelized with Python `multiprocessing` (spawn start method)
 using `_NUM_WORKERS = 6`.
 
-**Last updated**: 2026-07-08
+**Last updated**: 2026-07-21

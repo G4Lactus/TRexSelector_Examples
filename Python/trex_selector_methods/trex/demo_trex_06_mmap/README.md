@@ -32,26 +32,31 @@ Control (`_MMAP_CTRL_DICT`): TLARS, `K = 20`, `max_dummy_multiplier = 10`,
   mirrors the C++ RAII `MmapFileGuard`).
 
 `main()` runs Part A (low then high dim) followed by Part B (low then high dim).
-Each run prints selected indices, FDP/TPP, `T_stop`, and `L`.
+Each run prints (and writes) the C++-style selection block via
+`print_selection_results`: selected indices, FDP/TPP, sparse `phi_prime` /
+`phi_mat`, `fdp_hat_mat`, `r_mat`, and the voting grid, plus `T_stop` and `L`.
 
 ## Imports
 
 The demo inserts its own folder and the parent suite dir onto `sys.path` to
-import the shared `dgp_gauss_snr`, `trex_sim_common`, and `trex_helpers`
-modules. The package imports as `trex_selector_neo`
-(`numpy_to_memmap` from `trex_selector_neo.utils`).
+import the shared `dgp_gauss_snr`, `trex_helpers`, and `trex_sim_common`
+modules. The selector layer is used via the root alias
+`import trex_selector_neo as tsn` (`tsn.TRexSelector`); `numpy_to_memmap`
+comes from `trex_selector_neo.utils` via an explicit `from`-import.
 
 ## Output
 
-Writes a per-variable selection `.csv` per configuration to this demo's own
-`simulation_results/` folder via `save_selection_csv`, with stems
-`d02_trex_mmap_demo_a_n{n}_p{p}` and `d02_trex_mmap_demo_b_n{n}_p{p}`. This is a
+Dual console + file output (mirrors the C++ `print_dual` pattern). Per
+configuration, one `.txt` (full selection block) and one per-variable
+selection `.csv` (via `save_selection_csv`) in this demo's own
+`simulation_results/data/` folder, stems `d02_trex_mmap_demo_a_n{n}_p{p}` and
+`d02_trex_mmap_demo_b_n{n}_p{p}` — matching the C++ result files. This is a
 single-run demo (no `multiprocessing`).
 
 ## Running
 
 ```bash
-.venv/bin/python Python/trex_selector_methods/trex/demo_trex_06_mmap/demo_trex_06_mmap.py
+python Python/trex_selector_methods/trex/demo_trex_06_mmap/demo_trex_06_mmap.py
 ```
 
-**Last updated**: 2026-07-08
+**Last updated**: 2026-07-21

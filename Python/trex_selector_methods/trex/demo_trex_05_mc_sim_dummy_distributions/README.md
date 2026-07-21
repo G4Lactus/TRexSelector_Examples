@@ -4,7 +4,7 @@
 
 Compare the T-Rex **dummy distributions** (the distribution from which the
 injected dummy/null variables are drawn) across three base solvers — TLARS
-(equiangular LARS path), TOMP, and TAFS with `rho_afs = 1.0` (both greedy) —
+(equiangular LARS path), TOMP, and TAFS with `rho_afs = 0.3` (both greedy) —
 with the L-loop strategy fixed at STANDARD. Since dummies are centered and
 L2-normalized before entering the solver, their *scale* is immaterial; the demo
 probes whether the *shape* (tail weight, discreteness, skewness, sparsity,
@@ -18,9 +18,11 @@ stopping time `T`. Python port of
 - Random support redrawn per trial by default (`block_support=False`); a
   contiguous block support `{0, ..., s-1}` is available via `block_support=True`
 - Fixed coefficients `beta_j = 1` (`rnd_coef=False`)
-- SNR grid: `{0.1, 0.2, ..., 2.0}` plus `5.0` (21 values)
-- `num_MC = 10` trials per solver x distribution x SNR (`_NUM_MC = 10`, mirrors C++)
-- Base solvers (`_SOLVERS`, outer sweep): TLARS, TOMP, TAFS (`rho_afs = 1.0`);
+- SNR grid: `{0.1, 0.2, 0.5, 0.6, 1.0, 2.0, 5.0}` (7 values, mirrors the
+  current C++ grid and its committed results)
+- `num_MC = 10` trials per solver x distribution x SNR (`_NUM_MC = 10`;
+  deliberate Python downscale of the C++ `num_MC = 200`)
+- Base solvers (`_SOLVERS`, outer sweep): TLARS, TOMP, TAFS (`rho_afs = 0.3`);
   L-loop strategy: STANDARD (fixed)
 
 ## Distributions
@@ -57,8 +59,10 @@ for the dependent UnifSphere_d5 rows.
 ## Imports
 
 The demo inserts its own folder and the parent suite dir onto `sys.path` to
-import the shared `trex_sim_common` module. The package imports as
-`trex_selector_neo`.
+import the shared `trex_sim_common` module (explicit `from`-imports of its
+symbols); the workers build the selector and the `tsn.DummyDistribution`
+objects from `trex_selector_neo` internally — this demo file itself needs no
+root alias.
 
 ## Output
 
@@ -66,12 +70,13 @@ Writes results to this demo's own `simulation_results/data/` folder via
 `save_mc_results`, with one file pair per base solver, stems
 `demo_trex_05_dummy_distributions_results_n300_p1000_{tlars,tomp,tafs}_random_support`
 (aligned `.txt` table plus tidy `.csv`; the "solver" column holds the
-distribution name — the base solver is encoded in the file name).
+distribution name — the base solver is encoded in the file name, matching the
+C++ result files).
 
 ## Running
 
 ```bash
-.venv/bin/python Python/trex_selector_methods/trex/demo_trex_05_mc_sim_dummy_distributions/demo_trex_05_mc_sim_dummy_distributions.py
+python Python/trex_selector_methods/trex/demo_trex_05_mc_sim_dummy_distributions/demo_trex_05_mc_sim_dummy_distributions.py
 ```
 
 The MC loop is parallelized with Python `multiprocessing` (spawn start method)

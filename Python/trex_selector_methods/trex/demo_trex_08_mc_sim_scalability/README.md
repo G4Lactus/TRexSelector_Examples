@@ -2,56 +2,117 @@
 
 ## Purpose
 
-Benchmark the classical T-Rex selector's runtime and peak resident memory,
-comparing **in-memory** execution against **chunked, memory-mapped
-out-of-core** execution over an exponentially increasing `(n, p)` grid. Unlike
-the C++ counterpart (`demo_trex_07_mc_sim_scalability`, an unbuilt placeholder),
-this Python port is a working benchmark and mirrors the R Demo 08.
+Characterize T-Rex selector **runtime and memory usage** as `n` and `p` scale,
+across three base solvers (TLARS, TOMP, TAFS), on the **fully memory-mapped
+pipeline**: every Monte Carlo trial generates `X` directly into an mmap
+backing file (chunked column generation over `MemoryMappedMatrix`, so `X` is
+never materialized in RAM), and `use_memory_mapping = True` additionally
+memory-maps the internal dummy matrices `D` and serializes solver warm-start
+state to disk. Python port of
+`cpp/trex_selector_methods/trex/demo_trex_08_mc_sim_scalability`.
+
+The benchmark reports, per scenario x solver x SNR grid point:
+
+- **Runtime scaling**: wall-clock per phase (DGP, `select()`,
+  per-`T`-iteration, total)
+- **Memory scaling**: post-`select()` RSS, physical footprint, process peak
+  RSS, and the `X`/`y` data sizes
+- **Selection quality at scale**: FDR, TPR, Avg L, Avg T as a sanity check
+
+It is a **2D sweep**: every scenario x solver combination runs over the SNR
+grid `{0.5, 1.0, 2.0}`.
+
+## Scenarios
+
+| Scenario | n | p | num_MC | Purpose |
+|---|---|---|---|---|
+| A | 300 | 1,000 | 10 | Baseline |
+| B | 1,000 | 10,000 | 10 | Moderate scale |
+| C | 5,000 | 100,000 | 10 | Large sample x high-dimensional |
+
+A tiny smoke-test scenario (`SCENARIOS_SMOKE`, `n = 150`, `p = 500`,
+`num_MC = 2`) is gated behind `if False:` in `main()` for end-to-end pipeline
+verification — mirrors the C++ `make_smoke_scenarios()` gate.
+
+Scenario C is heavy: expect minutes per trial and tens of GiB of
+swap/compression pressure from the per-experiment coefficient-path heap (see
+the C++ README's *Memory behaviour* discussion — it applies unchanged, since
+the selector core is the same C++ code).
 
 ## DGP / Data
 
-- Scenario grid targeting raw-`X` footprints (8 bytes/double) from ~1 GB to
-  ~256 GB: `(5000, 25000)`, `(15000, 75000)`, `(30000, 150000)`,
-  `(50000, 250000)`, `(80000, 400000)`
-- `s = 10` (contiguous support `{0, ..., 9}`), SNR = 1.0, seed = 42, tFDR = 0.1
-- Out-of-core `X` is generated column-chunk by column-chunk (`CHUNK_COLS = 1000`)
-  straight into a `MemoryMappedMatrix`, so the full matrix never sits in RAM
+Mirrors **Demo 03** (variable support):
 
-## What It Computes
+- True support: `s = 10`, indices redrawn per trial via
+  `make_support_random(seed=trial_seed)` (internal `+500_000` offset mirrors
+  the C++ `draw_support`)
+- Fixed coefficients `beta_j = 1` (`rnd_coef=False`)
+- Seeding: `base_seed = 24 + 1000 * (3 * scenario_index + snr_index)`, unique
+  per (scenario, SNR) and shared across solvers so every solver sees identical
+  data; the selector runs with `seed=-1` (hardware entropy)
+- Trials run **sequentially** (no `ProcessPoolExecutor`) so wall-clock and RSS
+  readings are undistorted; the random experiments inside `select()` may still
+  run in parallel (`parallel_rnd_experiments` keeps its default, mirroring the
+  C++ OpenMP setup)
 
-`run_scalability_benchmark()` runs each scenario twice:
+## Control Parameters
 
-- **In-Memory**: `_INMEM_CTRL` (TLARS, `use_memory_mapping = False`) on a
-  fully materialized `dgp_gauss_snr` design.
-- **Memory-Mapped**: `_MMAP_CTRL` (TLARS, `use_memory_mapping = True`,
-  `lloop_strategy = "HCONCAT"`) on the chunked mmap-backed `X`.
+```text
+K = 20                           # Random experiments per T-loop iteration
+max_dummy_multiplier = 10        # Max dummies L = 10p
+use_max_T_stop = True            # Cap T <= ceil(n/2)
+lloop_strategy = STANDARD        # Fresh i.i.d. dummy matrix per L-loop iteration
+tloop_stagnation_stop = True     # Early exit when R_mat stagnates
+tloop_max_stagnant_steps = 5     # Stagnation window
+use_memory_mapping = True        # All scenarios: D mmap + solver serialization
+tFDR = 0.1                       # Target FDR control level
+```
 
-Each run is executed in an **isolated subprocess** (spawn context) so its
-`ru_maxrss` is its own peak and an out-of-memory scenario is reported as
-`OOM/ERROR` and skipped rather than killing the whole demo. Execution time and
-peak RSS are recorded per run.
+## Measurements
+
+Twelve metric rows per solver (mirrors the C++ table): `FDR`, `TPR`, `Avg L`,
+`Avg T`, `DGP s`, `Select s`, `s/T-iter`, `Total s`, `RSS MiB`, `FootprMiB`,
+`PeakRSS`, `X+y MiB`.
+
+Python adaptations of the memory hooks (cpp reads mach/`/proc` directly):
+RSS via `ps -o rss=` (macOS) / `/proc/self/statm` (Linux); physical footprint
+via `task_info(TASK_VM_INFO).phys_footprint` through `ctypes` (macOS) /
+`VmRSS + VmSwap` (Linux), falling back to RSS on failure; peak RSS via
+`resource.getrusage` (monotone over the process lifetime). `y` is kept in RAM
+(`n` doubles — negligible); `X+y MiB` counts the `X` backing file plus `y`'s
+in-memory bytes.
 
 ## Imports
 
 The demo inserts its own folder and the parent suite dir onto `sys.path` to
-import the shared `dgp_gauss_snr` and `trex_sim_common` modules. The package
-imports as `trex_selector_neo` (`MemoryMappedMatrix`, `AccessMode`,
-`_make_trex_ctrl_from_dict`).
+import the shared `support_generators`, `trex_helpers`, and `trex_sim_common`
+modules. The selector layer is used via the root alias
+`import trex_selector_neo as tsn` (`tsn.TRexSelector`); `MemoryMappedMatrix`
+and `AccessMode` come from `trex_selector_neo.utils` via explicit
+`from`-imports.
 
-## Output
+## Output Files
 
-Writes `d04_scalability_benchmark.csv` (columns:
-`scenario, n, p, type, time_sec, mem_mb, status`) to this demo's own
-`simulation_results/` folder, and prints the summary table.
+Written to `simulation_results/data/` with stem
+`demo_trex_08_scalability_results`, **re-saved after each completed scenario**
+(a crash or OOM kill on a later scenario preserves the finished ones):
+
+- `demo_trex_08_scalability_results.txt` — scenario info block plus an aligned
+  table in the demo 02–07 style, one column per scenario x SNR combination
+  (labelled `<scenario>/<snr>`, e.g. `A/0.5`), twelve metric rows per solver.
+- `demo_trex_08_scalability_results.csv` — tidy long format, header column
+  order `scenario,solver,n,p,num_mc,snr,metric,value` (same schema the C++
+  suite plotter's `scalability` mode reads).
 
 ## Running
 
 ```bash
-.venv/bin/python Python/trex_selector_methods/trex/demo_trex_08_mc_sim_scalability/demo_trex_08_mc_sim_scalability.py
+python Python/trex_selector_methods/trex/demo_trex_08_mc_sim_scalability/demo_trex_08_mc_sim_scalability.py
 ```
 
-Each benchmarked run executes in its own subprocess via Python `multiprocessing`
-(spawn start method). Warning: the upper scenarios target very large footprints
-(up to ~256 GB) and are expected to report OOM on typical hardware.
+Scenarios run outermost (every solver finishes the current scenario before the
+next, larger one starts). The full A/B/C benchmark is long — scenario C
+dominates; flip the `if False:` smoke gate in `main()` for a quick end-to-end
+check.
 
-**Last updated**: 2026-07-08
+**Last updated**: 2026-07-21

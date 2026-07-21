@@ -11,6 +11,9 @@
 #  - Support and (optionally) coefficients redrawn each trial.
 #  - Reports averaged FDR / TPR / Avg L / Avg T per solver x SNR.
 #
+# Python downscale: num_MC = 100 (C++ runs 200) to keep the
+# ProcessPoolExecutor-based run time moderate.
+#
 # ==============================================================================
 
 import sys
@@ -51,7 +54,7 @@ def trx_03_mc_sim_variable_support(num_MC=_NUM_MC, num_workers=_NUM_WORKERS,
     s = 10
     tFDR        = 0.1
     snr_values  = list(np.round(np.arange(0.1, 2.1, 0.1), 1)) + [5.0]  # 21 values
-    stagnant_sw = 3
+    stagnant_sw = 5
 
     dim_label = "High-dimensional (p > n)" if high_dim else "Low-dimensional (n > p)"
     print(f"\n{'=' * 70}")
@@ -105,7 +108,8 @@ def trx_03_mc_sim_variable_support(num_MC=_NUM_MC, num_workers=_NUM_WORKERS,
         print()
 
     solver_names = [s["name"] for s in SOLVERS_DEFAULT]
-    stem = f"demo_trex_03_mc_sim_variable_support_results_n{n}_p{p}_stagnation_window_{stagnant_sw}"
+    stem = (f"demo_trex_03_mc_sim_variable_support_trex_results_n{n}_p{p}"
+            f"_stagnation_window_{stagnant_sw}")
     save_mc_results(
         _OUT_DIR, stem, num_MC,
         solver_names, snr_values,

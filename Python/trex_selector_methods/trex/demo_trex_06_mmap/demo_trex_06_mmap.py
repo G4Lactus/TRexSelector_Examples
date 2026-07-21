@@ -28,6 +28,10 @@
 #   mirrors R Part A/B).  This is intentional for a single-run demo; MC demos
 #   use seed=-1 (hardware entropy) for valid FDR estimates.
 #
+# Output (mirrors C++): per configuration one .txt (dual console + file, with
+# the sparse Phi_prime/Phi block) and one per-variable selection .csv, both in
+# simulation_results/data/.
+#
 # ==============================================================================
 
 import sys
@@ -40,13 +44,15 @@ for _p in (_THIS_DIR, _PARENT_DIR):
         sys.path.insert(0, _p)
 
 import tempfile
+
 import numpy as np
-import trex_selector_neo as ts
+
+import trex_selector_neo as tsn
 from trex_selector_neo.utils import numpy_to_memmap
 
 from dgp_gauss_snr import dgp_gauss_snr
+from trex_helpers import make_dual_out, print_selection_results, save_selection_csv
 from trex_sim_common import _make_trex_ctrl_from_dict
-from trex_helpers import print_single_run_result, save_selection_csv
 
 # ==============================================================================
 # Shared demo configuration
@@ -81,25 +87,16 @@ _MMAP_CTRL_DICT = dict(
 
 
 # ==============================================================================
-# Shared print helper (mirrors R .print_and_save_d02)
+# Shared print helper (mirrors C++ print_results + save_selection_csv,
+# written as dual console + file output like the C++ print_dual lambda)
 # ==============================================================================
 
-def _print_and_save(stem, dat, sel, tFDR):
-    from trex_sim_common import compute_fdp, compute_tpp
+def _print_and_save(stem, dat, sel, tFDR, out):
     true_support = dat["true_support"]
     selected     = list(sel.selected_indices)
-    n_sel        = len(selected)
-    true_set     = set(true_support.tolist())
-    n_tp         = len(set(selected) & true_set)
-    n_fp         = n_sel - n_tp
-    fdp_val      = compute_fdp(selected, true_support.tolist())
-    tpp_val      = compute_tpp(selected, true_support.tolist())
 
-    print("-" * 70)
-    print(f"  Selected indices (0-based): {{{', '.join(str(x) for x in sorted(selected))}}}")
-    print(f"  FDP = {fdp_val:.4f}  |  TPP = {tpp_val:.4f}  (target tFDR <= {tFDR:.2f})")
-    print(f"  T_stop = {sel.T_stop},  L = {sel.L}")
-    print("-" * 70 + "\n")
+    print_selection_results(selected, true_support.tolist(), sel, out)
+    out(f"\nT_stop = {sel.T_stop},  L = {sel.L}  (target tFDR <= {tFDR:.2f})\n\n")
 
     save_selection_csv(
         _OUT_DIR, stem,
@@ -123,30 +120,38 @@ def part_a_d_mmap_solver_serial():
         p = 5000 if high_dim else 1000
         dim_label = "High-dimensional (p > n)" if high_dim else "Low-dimensional (n > p)"
 
-        print(f"\n{'=' * 70}")
-        print(f"Part A: In-Memory X  +  use_memory_mapping=True")
-        print(f"  Activates D-mmap and solver serialization inside TRexSelector.")
-        print(f"  {dim_label}  (n = {n}, p = {p})\n")
-
-        print("Generating synthetic data (in-memory) ...")
-        dat = dgp_gauss_snr(n, p, _TRUE_SUPPORT, coefs=_TRUE_COEFS,
-                            snr=_SNR, seed=_SEED)
-
-        ctrl = _make_trex_ctrl_from_dict(_MMAP_CTRL_DICT)
-
-        print("Running T-Rex Selector ...\n")
-        sel = ts.TRexSelector(
-            np.asfortranarray(dat["X"]),
-            dat["y"],
-            tFDR=_TFDR,
-            trex_control=ctrl,
-            seed=_SEED,
-            verbose=True,
-        )
-        sel.select()
-
         stem = f"d02_trex_mmap_demo_a_n{n}_p{p}"
-        _print_and_save(stem, dat, sel, _TFDR)
+        os.makedirs(_OUT_DIR, exist_ok=True)
+        txt_path = os.path.join(_OUT_DIR, f"{stem}.txt")
+
+        with open(txt_path, "w") as fh:
+            out = make_dual_out(fh)
+
+            out(f"\n{'=' * 70}\n")
+            out("Part A: In-Memory X  +  use_memory_mapping=True\n")
+            out("  Activates D-mmap and solver serialization inside TRexSelector.\n")
+            out(f"  {dim_label}  (n = {n}, p = {p})\n\n")
+
+            out("Generating synthetic data (in-memory) ...\n")
+            dat = dgp_gauss_snr(n, p, _TRUE_SUPPORT, coefs=_TRUE_COEFS,
+                                snr=_SNR, seed=_SEED)
+
+            ctrl = _make_trex_ctrl_from_dict(_MMAP_CTRL_DICT)
+
+            out("Running T-Rex Selector ...\n\n")
+            sel = tsn.TRexSelector(
+                np.asfortranarray(dat["X"]),
+                dat["y"],
+                tFDR=_TFDR,
+                trex_control=ctrl,
+                seed=_SEED,
+                verbose=True,
+            )
+            sel.select()
+
+            _print_and_save(stem, dat, sel, _TFDR, out)
+
+        print(f"[Info] Results saved to: {txt_path}")
 
     run_single(high_dim=False)
     run_single(high_dim=True)
@@ -170,51 +175,59 @@ def part_b_full_mmap():
         p = 5000 if high_dim else 1000
         dim_label = "High-dimensional (p > n)" if high_dim else "Low-dimensional (n > p)"
 
-        print(f"\n{'=' * 70}")
-        print(f"Part B: Memory-Mapped X  +  use_memory_mapping=True")
-        print(f"  Full mmap pipeline: X mmap + D mmap + solver serialization.")
-        print(f"  {dim_label}  (n = {n}, p = {p})\n")
-
-        print("Generating synthetic data ...")
-        dat = dgp_gauss_snr(n, p, _TRUE_SUPPORT, coefs=_TRUE_COEFS,
-                            snr=_SNR, seed=_SEED)
-
-        ctrl = _make_trex_ctrl_from_dict(_MMAP_CTRL_DICT)
-
-        # Create temporary backing file.  os.close(fd) releases the OS file
-        # descriptor; numpy_to_memmap re-opens the path for writing.
-        fd, mmap_path = tempfile.mkstemp(suffix=".bin")
-        os.close(fd)
-
-        try:
-            print(f"Converting X to memory-mapped file ({mmap_path}) ...")
-            X_mmap = numpy_to_memmap(mmap_path, dat["X"])
-
-            print("Running T-Rex Selector ...\n")
-            # X_mmap.to_numpy() → Fortran-contiguous float64 mmap view.
-            # TRexSelector.__init__ calls np.asfortranarray(X) which returns
-            # the view unchanged (already F-contiguous float64, zero copy).
-            sel = ts.TRexSelector(
-                X_mmap.to_numpy(),
-                dat["y"],
-                tFDR=_TFDR,
-                trex_control=ctrl,
-                seed=_SEED,
-                verbose=True,
-            )
-            sel.select()
-        finally:
-            # Exception-safe cleanup.  On CPython the MemoryMappedMatrix is
-            # reference-counted; it goes out of scope (and releases the mmap
-            # mapping) before this finally block runs.
-            try:
-                os.unlink(mmap_path)
-                print(f"[Info] Temp mmap file removed: {mmap_path}")
-            except OSError:
-                pass
-
         stem = f"d02_trex_mmap_demo_b_n{n}_p{p}"
-        _print_and_save(stem, dat, sel, _TFDR)
+        os.makedirs(_OUT_DIR, exist_ok=True)
+        txt_path = os.path.join(_OUT_DIR, f"{stem}.txt")
+
+        with open(txt_path, "w") as fh:
+            out = make_dual_out(fh)
+
+            out(f"\n{'=' * 70}\n")
+            out("Part B: Memory-Mapped X  +  use_memory_mapping=True\n")
+            out("  Full mmap pipeline: X mmap + D mmap + solver serialization.\n")
+            out(f"  {dim_label}  (n = {n}, p = {p})\n\n")
+
+            out("Generating synthetic data ...\n")
+            dat = dgp_gauss_snr(n, p, _TRUE_SUPPORT, coefs=_TRUE_COEFS,
+                                snr=_SNR, seed=_SEED)
+
+            ctrl = _make_trex_ctrl_from_dict(_MMAP_CTRL_DICT)
+
+            # Create temporary backing file.  os.close(fd) releases the OS file
+            # descriptor; numpy_to_memmap re-opens the path for writing.
+            fd, mmap_path = tempfile.mkstemp(suffix=".bin")
+            os.close(fd)
+
+            try:
+                out(f"Converting X to memory-mapped file ({mmap_path}) ...\n")
+                X_mmap = numpy_to_memmap(mmap_path, dat["X"])
+
+                out("Running T-Rex Selector ...\n\n")
+                # X_mmap.to_numpy() → Fortran-contiguous float64 mmap view.
+                # TRexSelector.__init__ calls np.asfortranarray(X) which returns
+                # the view unchanged (already F-contiguous float64, zero copy).
+                sel = tsn.TRexSelector(
+                    X_mmap.to_numpy(),
+                    dat["y"],
+                    tFDR=_TFDR,
+                    trex_control=ctrl,
+                    seed=_SEED,
+                    verbose=True,
+                )
+                sel.select()
+            finally:
+                # Exception-safe cleanup.  On CPython the MemoryMappedMatrix is
+                # reference-counted; it goes out of scope (and releases the mmap
+                # mapping) before this finally block runs.
+                try:
+                    os.unlink(mmap_path)
+                    print(f"[Info] Temp mmap file removed: {mmap_path}")
+                except OSError:
+                    pass
+
+            _print_and_save(stem, dat, sel, _TFDR, out)
+
+        print(f"[Info] Results saved to: {txt_path}")
 
     run_single(high_dim=False)
     run_single(high_dim=True)

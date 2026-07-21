@@ -13,7 +13,8 @@ with a fixed true support, comparing all default base solvers. Python port of
   across every solver, SNR level, and MC trial
 - Fixed coefficients `beta_j = 1`
 - SNR sweep: `{0.1, 0.5, 1.0, 2.0, 5.0}`
-- `num_MC = 100` trials per solver x SNR (`_NUM_MC = 100`)
+- `num_MC = 100` trials per solver x SNR (`_NUM_MC = 100`; deliberate Python
+  downscale of the C++ `num_MC = 200`)
 
 ## What It Computes
 
@@ -27,23 +28,26 @@ per solver x SNR (`track_L_T=False`).
 ## Imports
 
 The demo inserts its own folder and the parent suite dir onto `sys.path` to
-import the shared `support_generators` and `trex_sim_common` modules. The
-package imports as `trex_selector_neo`.
+import the shared `support_generators` and `trex_sim_common` modules
+(explicit `from`-imports of their symbols); the workers build the selector
+from `trex_selector_neo` internally — this demo file itself needs no root
+alias.
 
 ## Output
 
-Writes results to this demo's own `simulation_results/` folder via
+Writes results to this demo's own `simulation_results/data/` folder via
 `save_mc_results`, with stem
-`demo_trex_02_mc_sim_fixed_support_results_n300_p1000_stagnation_window_7`
-(aligned `.txt` table plus tidy `.csv`).
+`demo_trex_02_mc_sim_fixed_support_trex_results_n300_p1000_stagnation_window_7`
+(aligned `.txt` table plus tidy `.csv`; same stem convention as the C++
+result files).
 
 ## Running
 
 ```bash
-.venv/bin/python Python/trex_selector_methods/trex/demo_trex_02_mc_sim_fixed_support/demo_trex_02_mc_sim_fixed_support.py
+python Python/trex_selector_methods/trex/demo_trex_02_mc_sim_fixed_support/demo_trex_02_mc_sim_fixed_support.py
 ```
 
 The MC loop is parallelized with Python `multiprocessing` (spawn start method)
 using `_NUM_WORKERS = 6`.
 
-**Last updated**: 2026-07-08
+**Last updated**: 2026-07-21

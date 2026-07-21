@@ -131,20 +131,20 @@ _LLOOP_MAP  = None
 def _get_solver_map():
     global _SOLVER_MAP
     if _SOLVER_MAP is None:
-        import trex_selector_neo as ts
+        import trex_selector_neo as tsn
         _SOLVER_MAP = {
-            "TLARS":      ts.SolverTypeForTRex.TLARS,
-            "TLASSO":     ts.SolverTypeForTRex.TLASSO,
-            "TENET":      ts.SolverTypeForTRex.TENET,
-            "TSTEPWISE":  ts.SolverTypeForTRex.TSTEPWISE,
-            "TSTAGEWISE": ts.SolverTypeForTRex.TSTAGEWISE,
-            "TOMP":       ts.SolverTypeForTRex.TOMP,
-            "TGP":        ts.SolverTypeForTRex.TGP,
-            "TACGP":      ts.SolverTypeForTRex.TACGP,
-            "TMP":        ts.SolverTypeForTRex.TMP,
-            "TNCGMP":     ts.SolverTypeForTRex.TNCGMP,
-            "TOOLS":      ts.SolverTypeForTRex.TOOLS,
-            "TAFS":       ts.SolverTypeForTRex.TAFS,
+            "TLARS":      tsn.SolverTypeForTRex.TLARS,
+            "TLASSO":     tsn.SolverTypeForTRex.TLASSO,
+            "TENET":      tsn.SolverTypeForTRex.TENET,
+            "TSTEPWISE":  tsn.SolverTypeForTRex.TSTEPWISE,
+            "TSTAGEWISE": tsn.SolverTypeForTRex.TSTAGEWISE,
+            "TOMP":       tsn.SolverTypeForTRex.TOMP,
+            "TGP":        tsn.SolverTypeForTRex.TGP,
+            "TACGP":      tsn.SolverTypeForTRex.TACGP,
+            "TMP":        tsn.SolverTypeForTRex.TMP,
+            "TNCGMP":     tsn.SolverTypeForTRex.TNCGMP,
+            "TOOLS":      tsn.SolverTypeForTRex.TOOLS,
+            "TAFS":       tsn.SolverTypeForTRex.TAFS,
         }
     return _SOLVER_MAP
 
@@ -152,21 +152,21 @@ def _get_solver_map():
 def _get_lloop_map():
     global _LLOOP_MAP
     if _LLOOP_MAP is None:
-        import trex_selector_neo as ts
+        import trex_selector_neo as tsn
         _LLOOP_MAP = {
-            "STANDARD":             ts.LLoopStrategy.STANDARD,
-            "HCONCAT":              ts.LLoopStrategy.HCONCAT,
-            "PERMUTATION":          ts.LLoopStrategy.PERMUTATION,
-            "PERMUTATION_ONDEMAND": ts.LLoopStrategy.PERMUTATION_ONDEMAND,
-            "ONDEMAND":             ts.LLoopStrategy.ONDEMAND,
-            "SKIPL":                ts.LLoopStrategy.SKIPL,
+            "STANDARD":             tsn.LLoopStrategy.STANDARD,
+            "HCONCAT":              tsn.LLoopStrategy.HCONCAT,
+            "PERMUTATION":          tsn.LLoopStrategy.PERMUTATION,
+            "PERMUTATION_ONDEMAND": tsn.LLoopStrategy.PERMUTATION_ONDEMAND,
+            "ONDEMAND":             tsn.LLoopStrategy.ONDEMAND,
+            "SKIPL":                tsn.LLoopStrategy.SKIPL,
         }
     return _LLOOP_MAP
 
 
 def _make_dummy_distribution(spec):
     """
-    Build a ts.DummyDistribution from a plain (picklable) spec dict.
+    Build a tsn.DummyDistribution from a plain (picklable) spec dict.
 
     spec: {"type": <name>, <optional distribution-specific parameters>}
     Types and parameters mirror R's trex_dummy_distribution():
@@ -176,8 +176,8 @@ def _make_dummy_distribution(spec):
         Laplace/Gumbel/Logistic(location, scale)
     Omitted parameters use the binding's unit-variance defaults.
     """
-    import trex_selector_neo as ts
-    D = ts.DummyDistribution
+    import trex_selector_neo as tsn
+    D = tsn.DummyDistribution
     t = spec["type"]
     if t == "Normal":
         return D.normal()
@@ -218,11 +218,11 @@ def _make_trex_ctrl_from_dict(d):
         parallel_rnd_experiments, use_memory_mapping,
         dummy_distribution (a spec dict for _make_dummy_distribution).
     """
-    import trex_selector_neo as ts
+    import trex_selector_neo as tsn
     solver_map = _get_solver_map()
     lloop_map  = _get_lloop_map()
 
-    ctrl = ts.TRexControlParameter()
+    ctrl = tsn.TRexControlParameter()
     ctrl.K                        = int(d.get("K", 20))
     ctrl.max_dummy_multiplier     = int(d.get("max_dummy_multiplier", 10))
     ctrl.use_max_T_stop           = bool(d.get("use_max_T_stop", True))
@@ -271,7 +271,7 @@ def _trial_worker(args):
     tFDR       = args["tFDR"]
     track_L_T  = args.get("track_L_T", False)
 
-    import trex_selector_neo as ts
+    import trex_selector_neo as tsn
 
     # Resolve support
     if fixed_supp is None:
@@ -292,7 +292,7 @@ def _trial_worker(args):
     ctrl = _make_trex_ctrl_from_dict(args)
 
     # TRexSelector expects Fortran-contiguous (column-major) X
-    sel = ts.TRexSelector(
+    sel = tsn.TRexSelector(
         np.asfortranarray(dat["X"]),
         dat["y"],
         tFDR=tFDR,
@@ -581,7 +581,7 @@ def _trial_worker_full_mmap(args):
     will be set in the ctrl dict by the caller).
     """
     import tempfile
-    import trex_selector_neo as ts
+    import trex_selector_neo as tsn
     from trex_selector_neo.utils import numpy_to_memmap
 
     mc         = args["mc"]
@@ -625,7 +625,7 @@ def _trial_worker_full_mmap(args):
         # X_mmap.to_numpy() returns a Fortran-contiguous float64 view backed
         # by the mmap buffer; TRexSelector.__init__ calls
         # np.asfortranarray(X, dtype=np.float64) which returns it unchanged.
-        sel = ts.TRexSelector(
+        sel = tsn.TRexSelector(
             X_mmap.to_numpy(),
             dat["y"],
             tFDR=tFDR,
