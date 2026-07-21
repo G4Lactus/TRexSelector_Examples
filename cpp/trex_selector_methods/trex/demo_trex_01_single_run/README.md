@@ -21,9 +21,11 @@ both use fixed $+1$ coefficients (`rnd_coef = false`).
 ## Data Generation Parameters
 
 Both scenarios consider the linear model
+
 $$
 \mathbf{y} = \mathbf{X}\boldsymbol{\beta} + \boldsymbol{\epsilon}, \quad \boldsymbol{\epsilon} \sim N(0, \sigma^2 I_n)
 $$
+
 and share the same true support and coefficients; only the dimensions differ.
 
 ### Scenario A: High-Dimensional ($p > n$)
