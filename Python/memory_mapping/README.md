@@ -1,64 +1,100 @@
-# Memory Mapping Demo (Python)
+# Memory-Mapped Matrix Utilities: Demonstration Suite
 
-## Purpose
+## Overview
 
-Demonstrate the memory-mapping utilities provided by the `trex_selector_neo`
-package. Memory-mapped matrices allow handling large datasets without loading
-the entire array into Python's active memory — the OS pages data in on demand,
-and the same disk-backed buffer is passed as a pointer to the C++ backend.
+This folder contains Python examples for the **`MemoryMappedMatrix`** utility
+from `trex_selector_neo.utils`.
 
-Entry points used (from `trex_selector_neo.utils`):
+The utility provides a disk-backed matrix interface exposed to Python through
+zero-copy NumPy views, making it useful when matrices are too large to keep
+entirely in RAM. In the TRexSelector project, this is especially relevant for
+large design matrices and dummy matrices that exceed available RAM in solver
+and selector workflows — the same disk-backed buffer is passed as a pointer to
+the C++ backend, with no copies on the way.
 
-- `MemoryMappedMatrix` — disk-backed matrix class (`rows()`, `cols()`,
-  `size()`, `to_numpy()`, `write_block()`, `__getitem__`/`__setitem__`)
-- `numpy_to_memmap(path, X)` — write a NumPy array to a binary file and
-  return a `MemoryMappedMatrix` over it
-- `AccessMode` — `ReadOnly` / `ReadWrite` open modes
+The main goals of this folder are:
 
----
+1. to show how memory-mapped matrices are created and accessed from Python,
+2. to demonstrate out-of-core workflows for large matrices,
+3. to illustrate safe file lifetime management with `try/finally`.
 
-## What the Demo Walks Through
-
-[demo_memory_mapping.py](demo_memory_mapping.py) is a single script organized
-into numbered sections:
-
-1. **Create a sample in-memory matrix** — 100 x 50 standard-normal matrix.
-2. **Define a temporary file path** — via `tempfile.mkstemp()`.
-3. **Convert to Memory-Mapped Matrix** — `numpy_to_memmap(bin_file, X)`.
-4. **Explore the object** — `rows()`, `cols()`, `size()`.
-5. **Extract a block** — subsetting via the zero-copy `to_numpy()` view.
-6. **Read back into memory** — `to_numpy().copy()` for an independent array,
-   verified against the original.
-7. **Re-open the file in read-only mode** —
-   `MemoryMappedMatrix(path, n_rows, n_cols, AccessMode.ReadOnly)`.
-8. **Out-of-core data generation** — stream data column-by-column to a new
-   binary file (column-major float64 blocks, matching Eigen ColMajor storage),
-   then map it read-only.
-9. **Element-wise access** — scalar read/write via `mmap[i, j]`, bounds
-   guard (`IndexError`), read-only write guard (`RuntimeError`), block write
-   via slice `__setitem__`, and the explicit `write_block()` method.
-
-Sections 3–9 are wrapped in `try/finally` blocks so temporary files are always
-cleaned up.
+The C++ demo suite additionally showcases C++-specific features such as RAII
+and OpenMP-based parallel generation; see
+[cpp/memory_mapping/](../../cpp/memory_mapping/) and `R/memory_mapping/` for
+the corresponding walkthroughs.
 
 ---
 
-## Running the Demo
+## What this folder covers
+
+A memory-mapped matrix stores its entries in a file on disk and exposes them
+through a matrix-like interface:
+
+$$
+\boldsymbol{X}_{\mathrm{mmap}} \in \mathbb{R}^{n \times p}.
+$$
+
+Conceptually, the matrix behaves like a regular numeric matrix, but its
+storage is file-backed rather than purely in-memory. The Python binding maps
+`double` (float64) matrices.
+
+This is useful for:
+
+- **large matrices**, when RAM is limited,
+- **persistent intermediate data**, when matrix contents should survive beyond
+  a single object lifetime,
+- **solver interoperability**, because the mapped data is consumed zero-copy
+  by the C++ solvers and selectors.
+
+---
+
+## Start here
+
+If you are new to memory mapping in TRexSelector, begin with:
+
+1. **`demo_memory_mapping/`** — a self-contained demo covering matrix
+   creation, read/write access, serial out-of-core generation, deterministic
+   per-column seeding, and safe cleanup.
+
+---
+
+## Demo overview
+
+| Folder | Purpose |
+| ------ | ------- |
+| `demo_memory_mapping/` | Demonstrates basic mmap usage, out-of-core writes, deterministic per-column seeded filling, and element-wise access checks |
+
+---
+
+## Running
 
 ```bash
-python demo_memory_mapping.py
+python demo_memory_mapping/demo_memory_mapping.py
 ```
 
-Output is printed to the console; all temporary binary files are removed
-before the script exits. No `simulation_results/` folder is produced.
+---
+
+## Folder contents
+
+```txt
+memory_mapping/
+  ├── README.md
+  └── demo_memory_mapping/
+      ├── demo_memory_mapping.py
+      └── README.md
+```
 
 ---
 
-## Counterparts
+## Notes for new users
 
-- C++: [cpp/memory_mapping/demo_memory_mapping](../../cpp/memory_mapping/)
-- R: `R/memory_mapping/demo_memory_mapping.R` (this script is a direct mirror)
+- This demo prints results to the console and does not write simulation
+  summary files.
+- Temporary backing files are created in the system temporary directory and
+  removed automatically.
+- The demo is intended to explain the memory-mapping utility itself, not to
+  benchmark maximum scale production performance.
 
 ---
 
-**Last updated**: 2026-07-06
+**Last updated**: 2026-07-21
