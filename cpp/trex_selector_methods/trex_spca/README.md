@@ -12,13 +12,14 @@ Instead of selecting sparse *variables* in a regression model, T-Rex SPCA select
  the estimated loading support. The result is a PCA whose components are supported on a small,
  FDR-controlled set of variables rather than on all $p$ of them.
 
-The demo in this folder is designed to help users understand:
+The demos in this folder are designed to help users understand:
 
 1. whether the FDR of the estimated loading support is actually held at the target,
 2. what that control costs in explained variance, measured against ordinary PCA and an oracle that is told
     the true support size,
 3. how the elastic-net solver (`TENET` vs. `TENET_AUG`) and the loading-assembly mode (`ActiveSet` vs.
-    `Thresholded`) affect the outcome.
+    `Thresholded`) affect the outcome,
+4. and why the *choice of denominator* for the explained variance decides which method looks best.
 
 ---
 
@@ -28,7 +29,9 @@ The demo in this folder is designed to help users understand:
    nonzero entries drawn from a shared overlap pool, so factor supports can partially coincide.
 - Two **T-Rex SPCA** solver variants crossed with two loading-assembly modes, benchmarked against **ordinary
    PCA** (no sparsity) and **oracle-thresholded PCA** (knows the true support size).
-- A sweep over the signal-to-noise ratio **in decibels**, the scale this suite reports on throughout.
+- A sweep over the signal-to-noise ratio **in decibels**, the scale this suite reports on throughout
+   (demo 01), plus sweeps over the extracted PC count, the number of true active loadings and the target FDR
+   (demo 02).
 
 ---
 
@@ -70,14 +73,83 @@ Both the tables and the figures use this decibel axis directly; it is never conv
 \mathrm{TPR} = \mathbb{E}\left[\frac{|\mathcal{S}_1 \cap \widehat{\mathcal{S}}_1|}{\max\{1, |\mathcal{S}_1|\}}\right].
 ```
 
-**PEV** — the proportion of explained variance, computed cumulatively across all $M$ components via a QR
- decomposition of the estimated score matrix — is the quantity the sparsity is bought against. A method that
- selects fewer loadings explains less variance, so PEV is where the cost of FDR control becomes visible.
+Both are evaluated on the **first PC only**, and FDR control is assumed only there: the factor supports are
+ drawn from a shared pool and overlap, so the plug-in PCs that supervise the later components' selectors
+ already blend several factors' supports — beyond PC1 there is no unambiguous per-component ground truth to
+ control against.
+
+**PEV** — the proportion of explained variance, computed cumulatively across all $M$ components — is the
+ quantity the sparsity is bought against, and the place where the cost of FDR control becomes visible.
+
+Classically the explained variance is the plain EV of the estimated components,
+ $\mathrm{EV} = \mathrm{tr}(\widehat{\boldsymbol{Z}}^\top \widehat{\boldsymbol{Z}})$. Sparse loading vectors
+ are not orthogonal, however, and correlated components double-count shared variance under that trace —
+ Zou, Hastie & Tibshirani [[3]](#references) therefore correct it with the **adjusted** EV: a QR
+ decomposition of the estimated score matrix, whose diagonal carries each component's *incremental*
+ contribution,
+
+```math
+\mathrm{EV}_{\mathrm{adj}} = \sum_{m=1}^{M} r_{mm}^2,
+\qquad \widehat{\boldsymbol{Z}} = \boldsymbol{Q}\boldsymbol{R}.
+```
+
+*What one divides it by* is then what decides what the number means, and this suite reports **both** choices.
+
+**The straightforward reading**, $\mathrm{PEV}_{\mathrm{total}} = \mathrm{EV}_{\mathrm{adj}} /
+ \mathrm{Var}(\boldsymbol{X})$, divides by the variance of the whole data matrix. It answers "how much of what
+ is in front of us did the $M$ components reproduce", and it is **bounded by 1** by construction — no set of
+ $M$ components can explain more variance than $\boldsymbol{X}$ contains.
+
+**The reference paper's reading** (Definition 1 of [[1]](#references)) divides by the **Signal + Mixed EV of
+ the data**: the variance carried by the true active variables, with
+ $\mathcal{A}$ the union of the factor supports,
+
+```math
+\mathrm{PEV}_{\mathrm{sig}} = \frac{\mathrm{EV}_{\mathrm{adj}}}
+{\lVert \boldsymbol{X}_{\mathcal{A}} \rVert_F^2 \,/\, (n-1)}.
+```
+
+The denominator is **fixed per dataset and shared by all methods** — that is what lets the metric compare
+ methods on a common scale, and what the paper's Fig. 3 requires: its curves *rise* with SNR from far below
+ $100\%$, which no method-specific (self-normalized) denominator can produce. This convention was
+ cross-validated against the published Fig. 3 by the legacy R reference
+ (`TRex_Simulations/.../trex_spca/demo_trex_spca_03_fig3.R`, denominator mode `"active"`; the R script also
+ documents the remaining conventions the paper text leaves open). An earlier revision of this suite
+ normalized each method by its *own* Signal + Mixed EV instead ("Definition 1 as printed"), which is
+ structurally $\geq 100\%$ for null-capturing methods and inverts the SNR trend — see the demo-02 README
+ for the full account.
+
+The goal, in the words of [[1]](#references), is *"to explain the signal and mixed EV with few PCs and sparse
+ loadings to allow for interpretability of the obtained PCs"*. Non-sparse PCA methods, or methods that do not
+ provide accurate estimates of $\widehat{\boldsymbol{V}}$, are prone to a high Null EV — the variance they
+ capture merely corresponds to null (non-active) variables.
+
+The consequence is the whole point of the metric: it is **not capped**. A method that spends loadings on null
+ variables accumulates variance the denominator does not contain, so its PEV climbs past $100\%$ — and, as
+ [[1]](#references) puts it, exceeding $100\%$ "indicates an inferior performance of the respective method".
+ Ordinary PCA, using all $p$ loadings, overshoots hardest. Sparse FDR-controlled methods saturate near (but
+ below) $100\%$: the gap to $100\%$ is the noise variance sitting on the active columns that $M$ components
+ do not capture.
+
+A third reading, $\mathrm{PEV}_{\mathrm{sigmix}}$, reports a method's *own* Signal + Mixed part — its raw EV
+ minus the Null EV of its loadings, split by variable — over the same shared denominator. Read for ordinary
+ PCA it is the paper's **"Ordinary PCA (Sig + Mix)"** reference curve: it saturates near $100\%$ once all
+ components are extracted, while plain ordinary PCA keeps climbing on Null EV.
+
+Keeping all readings is what makes the trade-off legible: the first prices the sparsity, the second exposes
+ where a non-sparse method's apparent advantage actually comes from.
 
 ---
 
 ## T-Rex SPCA specific concepts
 
+- **Plug-in supervision (and the scope of the FDR guarantee)** — each component's selector regresses on
+   the *plug-in* ordinary PC $\boldsymbol{z}_m = \boldsymbol{X}\boldsymbol{v}_m$, a one-shot construction
+   rather than the iterative refinement most sparse-PCA methods use. The FDR guarantee is therefore
+   **conditional on the plug-in PC being a faithful proxy for its factor**: the selector always controls
+   the FDR of the regression it is handed, and that transfers to the factor model only where the proxy is
+   good. Demo 01 (union-FDR section) and demo 02 (FDR-heatmap section) measure where the condition holds
+   and where it fails.
 - **`SPCAMode`** — how the sparse loading vector is assembled once a support has been selected:
   - `ActiveSet`: use only the T-Rex+GVS selected variables' loadings,
   - `Thresholded`: assemble loadings from the full ordinary-PCA solution, restricted to the selected support.
@@ -99,12 +171,20 @@ trex_spca/
   ├── trex_spca_sim_utils.hpp          # DGP, MC loop, table + CSV output
   ├── trex_spca_plt_utils.py           # shared plotting module (dB sweep figures)
   │
-  └── demo_trex_spca_01_mc_sim/
-      ├── demo_trex_spca_01_mc_sim.cpp # the demo source
-      ├── README.md                    # scenario description and results
-      ├── generate_plots.sh            # renders this demo's figure from its CSV
+  ├── demo_trex_spca_01_mc_sim/
+  │   ├── demo_trex_spca_01_mc_sim.cpp # the demo source
+  │   ├── README.md                    # scenario description and results
+  │   ├── generate_plots.sh            # renders this demo's figures from its CSV
+  │   └── simulation_results/
+  │       ├── data/                    # .txt summary + .csv table
+  │       └── plots/                   # .png + .pdf figures
+  │
+  └── demo_trex_spca_02_mc_sim_pev/
+      ├── demo_trex_spca_02_mc_sim_pev.cpp
+      ├── README.md
+      ├── generate_plots.sh            # combines the four sweep CSVs into panels
       └── simulation_results/
-          ├── data/                    # .txt summary + .csv table
+          ├── data/                    # one .txt + .csv pair per sweep
           └── plots/                   # .png + .pdf figures
 ```
 
@@ -160,8 +240,12 @@ cd demo_trex_spca_01_mc_sim
 ./generate_plots.sh
 ```
 
-The figure shows TPR, FDR (against the tFDR target) and PEV over the decibel sweep axis. `--xscale` is
-accepted for parity with the other suites, but the axis stays in dB either way.
+Two figures are rendered. The first shows TPR and FDR (against the tFDR target) over the decibel sweep axis —
+support recovery only. The second — written with a `_pev` suffix — puts the two PEV normalizations side
+by side, with the 100 % line drawn in the right panel; it is only produced when the CSV carries the `PEVsig`
+metric. When the CSV also carries `PEVsigmix`, OrdPCA's Sig + Mix part is drawn in the Definition-1 panels as
+the paper's dashed "Ordinary PCA (Sig + Mix)" reference. `--xscale` is accepted for parity with the other
+suites, but the axis stays in dB either way.
 
 ---
 
@@ -175,7 +259,10 @@ accepted for parity with the other suites, but the axis stays in dB either way.
    in High-Dimensional Linear Models using the T-Knock Filter.", European Signal Processing Conference (EUSIPCO), 2022,
     pp. 892–896, EURASIP.
     [DOI-Link](https://doi.org/10.23919/EUSIPCO55093.2022.9909883)
+3. Zou, H., Hastie, T., & Tibshirani, R., "Sparse Principal Component Analysis.", Journal of Computational
+   and Graphical Statistics, vol. 15, no. 2, 2006, pp. 265–286, Taylor & Francis.
+   [DOI-Link](https://doi.org/10.1198/106186006X113430)
 
 ---
 
-**Last updated**: 2026-07-20
+**Last updated**: 2026-07-21
